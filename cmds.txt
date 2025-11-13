@@ -1,0 +1,6 @@
+git init
+git add -A
+git commit -m "Initial commit with Maven Wrapper"
+git branch -M main
+git remote add origin https://github.com/<YOUR_USER>/<REPO>.git
+git push -u origin main
