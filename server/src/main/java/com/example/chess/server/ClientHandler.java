@@ -26,7 +26,7 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try (socket) {
-            in  = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
             String line;
@@ -79,7 +79,7 @@ public class ClientHandler implements Runnable {
 
     private void handleRegister(String corrId, JsonObject msg) {
         String username = getRequiredString(msg, "username");
-        String name     = getRequiredString(msg, "name");
+        String name = getRequiredString(msg, "name");
         String password = getRequiredString(msg, "password");
 
         User user = authService.register(username, name, password);
@@ -130,6 +130,7 @@ public class ClientHandler implements Runnable {
             out.flush();
         } catch (IOException e) {
             // client is disconnected
+        }
     }
 }
 
