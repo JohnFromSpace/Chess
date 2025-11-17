@@ -23,6 +23,10 @@ public class ClientHandler implements Runnable {
         this.authService = authService;
     }
 
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
     @Override
     public void run() {
         try (socket) {
@@ -131,6 +135,22 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             // client is disconnected
         }
+    }
+
+    void onGameStarted(com.example.chess.common.GameModels.Game game, boolean isWhite) {
+        JsonObject o = Msg.obj("gameStarted", null);
+        o.addProperty("gameId", game.id);
+        o.addProperty("color", isWhite ? "white" : "black");
+        o.addProperty("opponent", isWhite ? game.blackUser : game.whiteUser);
+        o.addProperty("timeControlMs", game.timeControlMs);
+        o.addProperty("incrementMs", game.incrementMs);
+        send(o);
+    }
+
+    void sendInfo(String message) {
+        JsonObject o = Msg.obj("info", null);
+        o.addProperty("message", message);
+        send(o);
     }
 }
 
