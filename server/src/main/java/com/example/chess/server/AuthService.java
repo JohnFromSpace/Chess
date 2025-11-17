@@ -9,9 +9,9 @@ import java.util.Optional;
 public class AuthService {
 
     private final FileStores fileStores;
-    private Map<String, User> users;
+    private final Map<String, User> users;
 
-    public AuthService(FileStores fileStores) {
+    public AuthService(@org.jetbrains.annotations.NotNull FileStores fileStores) {
         this.fileStores = fileStores;
         this.users = fileStores.loadUsers();
     }

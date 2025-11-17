@@ -1,5 +1,6 @@
 package com.example.chess.server;
 
+import com.example.chess.common.GameModels;
 import com.example.chess.server.fs.FileStores;
 
 import java.io.IOException;
@@ -15,6 +16,7 @@ public class ServerMain {
 
         FileStores fileStores = new FileStores(dataDir);
         AuthService authService = new AuthService(fileStores);
+        GameCoordinator gameCoordinator = new GameCoordinator(fileStores);
 
         System.out.println("Chess server starting on port " + port + " ...");
 
@@ -22,7 +24,7 @@ public class ServerMain {
             while (true) {
                 Socket client = serverSocket.accept();
                 System.out.println("Client connected: " + client.getRemoteSocketAddress());
-                ClientHandler handler = new ClientHandler(client, authService);
+                ClientHandler handler = new ClientHandler(client, authService, gameCoordinator);
                 Thread t = new Thread(handler, "Client-" + client.getPort());
                 t.start();
             }

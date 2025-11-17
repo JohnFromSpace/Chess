@@ -1,5 +1,7 @@
 package com.example.chess.server;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.SecureRandom;
@@ -10,10 +12,12 @@ public final class PasswordUtil {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int ITERATIONS = 65536;
     private static final int KEY_LENGTH = 256; // bits
+    private static String password;
 
     private PasswordUtil() {}
 
-    public static String hash(String password) {
+    public static @NotNull String hash(@NotNull String password) {
+        PasswordUtil.password = password;
         byte[] salt = new byte[16];
         RANDOM.nextBytes(salt);
         byte[] hash = pbkdf2(password.toCharArray(), salt, ITERATIONS);

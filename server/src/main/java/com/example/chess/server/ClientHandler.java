@@ -12,15 +12,17 @@ public class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final AuthService authService;
+    private final GameCoordinator gameCoordinator;
     private final Gson gson = new Gson();
 
     private BufferedReader in;
     private BufferedWriter out;
     private User currentUser;
 
-    public ClientHandler(Socket socket, AuthService authService) {
+    public ClientHandler(Socket socket, AuthService authService, GameCoordinator gameCoordinator) {
         this.socket = socket;
         this.authService = authService;
+        this.gameCoordinator = gameCoordinator;
     }
 
     public User getCurrentUser() {
@@ -42,6 +44,10 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             // client disconnected or IO problem
             // just end the thread
+        } finally {
+            if(currentUser != null) {
+                gameCoordinator.onUserOffline(this, currentUser);
+            }
         }
     }
 
@@ -66,6 +72,7 @@ public class ClientHandler implements Runnable {
                 case "ping" -> handlePing(corrId);
                 case "register" -> handleRegister(corrId, msg);
                 case "login" -> handleLogin(corrId, msg);
+                case "requestGame" -> handleRequestGame(corrId, msg);
                 default -> sendError(corrId, "Unknown message type: " + type);
             }
         } catch (IllegalArgumentException ex) {
@@ -103,6 +110,8 @@ public class ClientHandler implements Runnable {
         User user = authService.login(username, password);
         this.currentUser = user;
 
+        gameCoordinator.onUserOnline(this, user);
+
         JsonObject o = Msg.obj("loginOk", corrId);
         JsonObject u = new JsonObject();
         u.addProperty("username", user.username);
@@ -111,6 +120,18 @@ public class ClientHandler implements Runnable {
         u.addProperty("won", user.stats.won);
         u.addProperty("rating", user.stats.rating);
         o.add("user", u);
+        send(o);
+    }
+
+    void handleRequestGame(String corrId, JsonObject msg) {
+        if(currentUser == null) {
+            throw new IllegalArgumentException("You must be logged in to request a game.");
+        }
+
+        gameCoordinator.requestGame(this, currentUser);
+
+        JsonObject o = Msg.obj("requestGameOk", corrId);
+        o.addProperty("status", "queueOrMatched");
         send(o);
     }
 
