@@ -34,13 +34,15 @@ public class GameCoordinator {
     }
 
     public synchronized void requestGame(ClientHandler handler, User user) {
-        if(waitingQueue.isEmpty()) {
+        // If no one is waiting, enqueue this player and stop.
+        if (waitingQueue.isEmpty()) {
             waitingQueue.addLast(handler);
             handler.sendInfo("Waiting for opponent's response.");
+            return;
         }
 
         ClientHandler opponentHandler = waitingQueue.pollFirst();
-        if(opponentHandler == handler || opponentHandler == null || opponentHandler.getCurrentUser() == null) {
+        if (opponentHandler == handler || opponentHandler == null || opponentHandler.getCurrentUser() == null) {
             waitingQueue.addLast(handler);
             handler.sendInfo("Waiting for opponent's response.");
             return;
@@ -52,12 +54,12 @@ public class GameCoordinator {
         game.id = UUID.randomUUID().toString();
 
         boolean thisIsWhite = new Random().nextBoolean();
-        if(thisIsWhite) {
+        if (thisIsWhite) {
             game.whiteUser = user.username;
             game.blackUser = opponentUser.username;
         } else {
-            game.whiteUser = user.username;
-            game.blackUser = opponentUser.username;
+            game.whiteUser = opponentUser.username;
+            game.blackUser = user.username;
         }
 
         long now = System.currentTimeMillis();
@@ -76,3 +78,4 @@ public class GameCoordinator {
         return Optional.ofNullable(activeGames.get(gameId));
     }
 }
+

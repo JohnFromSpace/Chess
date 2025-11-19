@@ -36,6 +36,7 @@ public class ClientMain {
             System.out.println("1) Register");
             System.out.println("2) Login");
             System.out.println("3) Ping server");
+            System.out.println("4) Request game");
             System.out.println("0) Exit");
             System.out.print("Choose: ");
 
@@ -46,6 +47,7 @@ public class ClientMain {
                     case "1" -> doRegister(conn, scanner);
                     case "2" -> doLogin(conn, scanner);
                     case "3" -> doPing(conn);
+                    case "4" -> doRequestGame(conn);
                     case "0" -> {
                         System.out.println("Bye.");
                         return;
@@ -98,6 +100,13 @@ public class ClientMain {
         JsonObject msg = Msg.obj("ping", corrId);
         conn.send(msg);
         System.out.println("Ping sent (corrId=" + corrId + ").");
+    }
+
+    private static void doRequestGame(ClientConnection conn) throws IOException {
+         String corrId = conn.nextCorrId();
+         JsonObject msg = Msg.obj("requestGame", corrId);
+         conn.send(msg);
+         System.out.println("Requesting a game (corrId= " + corrId + ").");
     }
 
     private static void handleAsyncMessage(JsonObject msg) {
