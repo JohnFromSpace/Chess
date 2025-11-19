@@ -3,6 +3,7 @@ package com.example.chess.server.fs;
 import com.example.chess.common.UserModels.User;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.example.chess.common.GameModels.Game;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
