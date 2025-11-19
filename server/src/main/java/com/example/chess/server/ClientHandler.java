@@ -73,6 +73,7 @@ public class ClientHandler implements Runnable {
                 case "register" -> handleRegister(corrId, msg);
                 case "login" -> handleLogin(corrId, msg);
                 case "requestGame" -> handleRequestGame(corrId, msg);
+                case "makeMove" -> handleMove(corrId, msg);
                 default -> sendError(corrId, "Unknown message type: " + type);
             }
         } catch (IllegalArgumentException ex) {
@@ -135,6 +136,20 @@ public class ClientHandler implements Runnable {
         send(o);
     }
 
+    private void handleMove(String corrId, JsonObject msg) {
+        String gameId = getRequiredString(msg, "gameId");
+        String moveStr = getRequiredString(msg, "move");
+
+        if(currentUser == null) {
+            throw new IllegalArgumentException("Not logged in.");
+        }
+
+        gameCoordinator.makeMove(gameId, currentUser, moveStr);
+
+        JsonObject o = Msg.obj("moveOk", corrId);
+        send(o);
+    }
+
     private String getRequiredString(JsonObject obj, String field) {
         if (!obj.has(field)) {
             throw new IllegalArgumentException("Missing field: " + field);
@@ -171,6 +186,13 @@ public class ClientHandler implements Runnable {
     void sendInfo(String message) {
         JsonObject o = Msg.obj("info", null);
         o.addProperty("message", message);
+        send(o);
+    }
+
+    void sendMove(String gameId, String move) {
+        JsonObject o = Msg.obj("move", null);
+        o.addProperty("gameId", gameId);
+        o.addProperty("move", move);
         send(o);
     }
 }
