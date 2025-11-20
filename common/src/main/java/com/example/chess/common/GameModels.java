@@ -70,16 +70,26 @@ public class GameModels {
         public String id;
         public String whiteUser;
         public String blackUser;
+
         public String initialFen = "startpos";
-        public long timeControlMs = 300_000;
-        public long incrementMs = 0;
+        public long timeControlMs = 5 * 6 * 1000L;
+        public long incrementMs = 2 * 1000L;
+        public long whiteTimeMs = timeControlMs;
+        public long blackTimeMs = timeControlMs;
+
         public List<Move> moves = new ArrayList<>();
         public Result result = Result.ONGOING;
         public String resultReason = "";
+
+        public String drawOfferedBy;
+
         public long createdAt;
         public long lastUpdate;
+
         public Board board = new Board();
         public boolean whiteMove = true;
+
+
     }
 }
 
