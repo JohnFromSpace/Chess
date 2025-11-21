@@ -1,5 +1,7 @@
 package com.example.chess.client;
 
+import com.example.chess.common.GameModels.Board;
+import com.example.chess.common.GameModels.Move;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.common.Msg;
 import com.google.gson.JsonObject;
@@ -10,6 +12,7 @@ import java.util.Scanner;
 public class ClientMain {
     private static String currentGameId = null;
     private static String myColor = null;
+    private static Board currentBoard = null;
 
     public static void main(String[] args) {
         String host = "localhost";
@@ -127,18 +130,25 @@ public class ClientMain {
         if("gameStarted".equals(type)) {
             currentGameId = msg.get("gameId").getAsString();
             myColor = msg.get("color").getAsString();
+
+            currentBoard = new Board();
+
             System.out.println("\n[SERVER] Game started! gameId= " + currentGameId + ", you are " +
                     myColor + ", opponent= " +
                     msg.get("opponent").getAsString());
+
+            printBoard(currentBoard);
         } else if("gameOver".equals(type)) {
-            System.out.println("\n[SEREVER] Game over: " + msg);
+            System.out.println("\n[SERVER] Game over: " + msg);
+
             currentGameId = null;
             myColor = null;
         } else if("drawOffered".equals(type)) {
             System.out.println("\n[SERVER] Draw offered by: " + msg.get("from").getAsString());
             System.out.println("Use 7) Accept draw or 8) Decline draw.");
+
         } else if("move".equals(type)) {
-            System.out.println("\n[SERVER] Move: " + msg);
+            handleMoveMessage(msg);
         } else {
             System.out.println("\n[SERVER] " + type + ": " + msg);
         }
@@ -205,5 +215,59 @@ public class ClientMain {
 
         System.out.println("Resigned.");
     }
-}
 
+    private static void printBoard(Board board) {
+        if(board == null) {
+            System.out.println("(empty board)");
+            return;
+        }
+
+        System.out.println();
+        for(int row = 0; row < 8; row++) {
+            int rank = 8 - row;
+            System.out.println(rank + " ");
+            for(int col = 0; col < 8; col++) {
+                char piece = board.get(row, col);
+                if(piece == 0) {
+                    piece = '.';
+                }
+                System.out.println(piece + " ");
+            }
+            System.out.println();
+        }
+
+        System.out.println("    a b c d e f g h");
+        System.out.println();
+    }
+
+    private static void handleMoveMessage(JsonObject msg) {
+        System.out.println("\n[SERVER] Move: " + msg);
+
+        if(currentBoard == null) {
+            return;
+        }
+
+        if(!msg.has("move")) {
+            return;
+        }
+
+        String moveStr = msg.get("move").getAsString();
+
+        try {
+            Move m = Move.parse(moveStr);
+
+            char piece = currentBoard.get(m.fromRow, m.fromCol);
+            if(piece == 0 || piece == '.') {
+                System.out.println("(warning: on piece in source square locally)");
+                return;
+            }
+
+            currentBoard.set(m.toRow, m.toCol, piece);
+            currentBoard.set(m.fromRow, m.fromCol, '.');
+
+            printBoard(currentBoard);
+        } catch (Exception e) {
+            System.out.println("(failed to apply locally: " + e.getMessage() + ")");
+        }
+    }
+}

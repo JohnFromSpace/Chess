@@ -8,11 +8,6 @@ public class GameModels {
     public enum Result { ONGOING, WHITE_WIN, BLACK_WIN, DRAW }
 
     public static class Move {
-        public String uci;        // e2e4, e7e8q, O-O, etc.
-        public String san;        // optional pretty notation
-        public long whiteMs;      // white's clock after the move
-        public long blackMs;      // black's clock after the move
-
         public int fromRow, fromCol;
         public int toRow, toCol;
 
