@@ -244,6 +244,122 @@ public class GameCoordinator {
         return whiteA == whiteB;
     }
 
+    private Board copyBoard(Board b) {
+        Board nb = new Board();
+        for(int row = 0; row < 8; row++) {
+            for(int col = 0; col < 8; col++) {
+                nb.squares[row][col] = b.squares[row][col];
+            }
+        }
+
+        return nb;
+    }
+
+    private boolean isSquareAttacked(Board board, int row, int col, boolean byWhite) {
+        // check all directions for rooks & queens
+        int[][] rookDirs = { {1,0}, {-1,0}, {0,1}, {0,-1} };
+        for (int[] d : rookDirs) {
+            int r = row + d[0], c = col + d[1];
+            while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                char p = board.get(r, c);
+                if (p != '.' && p != 0) {
+                    if (byWhite && Character.isUpperCase(p) &&
+                            (p == 'R' || p == 'Q')) return true;
+                    if (!byWhite && Character.isLowerCase(p) &&
+                            (p == 'r' || p == 'q')) return true;
+                    break;
+                }
+                r += d[0];
+                c += d[1];
+            }
+        }
+
+        // bishop & queen diagonals
+        int[][] bishopDirs = { {1,1}, {1,-1}, {-1,1}, {-1,-1} };
+        for (int[] d : bishopDirs) {
+            int r = row + d[0], c = col + d[1];
+            while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                char p = board.get(r, c);
+                if (p != '.' && p != 0) {
+                    if (byWhite && Character.isUpperCase(p) &&
+                            (p == 'B' || p == 'Q')) return true;
+                    if (!byWhite && Character.isLowerCase(p) &&
+                            (p == 'b' || p == 'q')) return true;
+                    break;
+                }
+                r += d[0];
+                c += d[1];
+            }
+        }
+
+        // knights
+        int[][] knightMoves = {
+                {2,1},{2,-1},{-2,1},{-2,-1},
+                {1,2},{1,-2},{-1,2},{-1,-2}
+        };
+        for (int[] m : knightMoves) {
+            int r = row + m[0], c = col + m[1];
+            if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                char p = board.get(r, c);
+                if (byWhite && p == 'N') return true;
+                if (!byWhite && p == 'n') return true;
+            }
+        }
+
+        // pawns
+        int dir = byWhite ? -1 : 1;
+        int pawnRow = row + dir;
+
+        if (pawnRow >= 0 && pawnRow < 8) {
+            if (col - 1 >= 0) {
+                char p = board.get(pawnRow, col - 1);
+                if (byWhite && p == 'P') return true;
+                if (!byWhite && p == 'p') return true;
+            }
+            if (col + 1 < 8) {
+                char p = board.get(pawnRow, col + 1);
+                if (byWhite && p == 'P') return true;
+                if (!byWhite && p == 'p') return true;
+            }
+        }
+
+        // adjacent king
+        for (int dr = -1; dr <= 1; dr++) {
+            for (int dc = -1; dc <= 1; dc++) {
+                if (dr == 0 && dc == 0) continue;
+                int r = row + dr, c = col + dc;
+                if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                    char p = board.get(r, c);
+                    if (byWhite && p == 'K') return true;
+                    if (!byWhite && p == 'k') return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isKingInCheck(Board board, boolean isWhite) {
+        char king = isWhite ? 'K' : 'k';
+        int kr = -1;
+        int kc = -1;
+
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                if(board.get(row, col) == king) {
+                    kr = row;
+                    kc = col;
+                }
+            }
+        }
+
+        if(kr == -1) {
+            return true;
+        }
+
+        return isSquareAttacked(board, kr, kc, isWhite);
+    }
+
     private synchronized void tickClocks() {
         long now = System.currentTimeMillis();
 
