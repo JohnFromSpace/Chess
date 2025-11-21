@@ -193,13 +193,15 @@ public class ClientHandler implements Runnable {
         send(o);
     }
 
-    void sendMove(Game game, String move) {
+    void sendMove(Game game, String move, boolean whiteInCheck, boolean blackInCheck) {
         JsonObject o = Msg.obj("move", null);
         o.addProperty("gameId", game.id);
         o.addProperty("move", move);
         o.addProperty("whiteToMove", game.whiteUser);
         o.addProperty("whiteTimeMs", game.whiteTimeMs);
         o.addProperty("blackTimeMs", game.blackTimeMs);
+        o.addProperty("whiteInCheck", whiteInCheck);
+        o.addProperty("blackInCheck", blackInCheck);
 
         send(o);
     }

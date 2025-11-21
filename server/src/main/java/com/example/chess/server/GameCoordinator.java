@@ -119,8 +119,16 @@ public class GameCoordinator {
             throw new IllegalArgumentException("Cannot capture your own piece.");
         }
 
-        if(!isLegalMoveForPiece(game.board, piece, move, isWhite)) {
+        if(isLegalMoveForPiece(game.board, piece, move, isWhite)) {
             throw new IllegalArgumentException("Illegal move: " + moveStr);
+        }
+
+        Board test = copyBoard(game.board);
+        test.set(move.toRow, move.toCol, piece);
+        test.set(move.fromRow, move.fromCol, piece);
+
+        if(isKingInCheck(test, isWhite)) {
+            throw new IllegalArgumentException("Illegal move: king is in check.");
         }
 
         if(isWhite) {
@@ -135,17 +143,32 @@ public class GameCoordinator {
         game.whiteMove = !game.whiteMove;
         game.lastUpdate = System.currentTimeMillis();
 
+        boolean whiteInCheckNow = isKingInCheck(game.board, true);
+        boolean blackInCheckNow = isKingInCheck(game.board, false);
+
+        boolean sideToMoveIsWhite = game.whiteMove;
+        boolean sideToMoveInCheck = sideToMoveIsWhite ? whiteInCheckNow : blackInCheckNow;
+
+        boolean sideToMoveHasMoves = hasAnyLegalMove(game.board, sideToMoveIsWhite);
+
         fileStores.saveGame(game);
 
         ClientHandler white = onlineHandlers.get(game.whiteUser);
         ClientHandler black = onlineHandlers.get(game.blackUser);
 
         if(white != null) {
-            white.sendMove(game, moveStr);
+            white.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
         }
 
         if(black != null) {
-            black.sendMove(game, moveStr);
+            black.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
+        }
+
+        if(sideToMoveInCheck && !sideToMoveHasMoves) {
+            Result result = sideToMoveIsWhite ? Result.BLACK_WIN : Result.WHITE_WIN;
+            finishGame(game, result, "checkmate");
+        } else if(!sideToMoveInCheck && !sideToMoveHasMoves) {
+            finishGame(game, Result.DRAW, "stalemate");
         }
     }
 
@@ -158,7 +181,7 @@ public class GameCoordinator {
         int adx = Math.abs(dx);
         int ady = Math.abs(dy);
 
-        return switch (p) {
+        return !switch (p) {
             case 'p' -> isLegalPawnMove(board, m, isWhite);
             case 'n' -> adx * adx + ady * ady == 5;
             case 'b' -> {
@@ -359,6 +382,50 @@ public class GameCoordinator {
 
         return isSquareAttacked(board, kr, kc, isWhite);
     }
+
+    private boolean hasAnyLegalMove(Board board, boolean forWhite) {
+        for (int fromRow = 0; fromRow < 8; fromRow++) {
+            for (int fromCol = 0; fromCol < 8; fromCol++) {
+                char piece = board.get(fromRow, fromCol);
+                if (piece == '.' || piece == 0) continue;
+
+                boolean pieceIsWhite = Character.isUpperCase(piece);
+                if (pieceIsWhite != forWhite) continue;
+
+                for (int toRow = 0; toRow < 8; toRow++) {
+                    for (int toCol = 0; toCol < 8; toCol++) {
+                        if (fromRow == toRow && fromCol == toCol) continue;
+
+                        char dest = board.get(toRow, toCol);
+                        // can't capture own piece
+                        if (dest != '.' && dest != 0 && sameColor(piece, dest)) continue;
+
+                        Move m = new Move();
+                        m.fromRow = fromRow;
+                        m.fromCol = fromCol;
+                        m.toRow = toRow;
+                        m.toCol = toCol;
+
+                        // geometric & occupancy rules
+                        if (isLegalMoveForPiece(board, piece, m, forWhite)) continue;
+
+                        // simulate on a copy and check king safety
+                        Board test = copyBoard(board);
+                        test.set(m.toRow, m.toCol, piece);
+                        test.set(m.fromRow, m.fromCol, '.');
+
+                        if (!isKingInCheck(test, forWhite)) {
+                            // found at least one legal move
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
 
     private synchronized void tickClocks() {
         long now = System.currentTimeMillis();

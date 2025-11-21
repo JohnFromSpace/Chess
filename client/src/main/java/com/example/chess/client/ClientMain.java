@@ -266,6 +266,22 @@ public class ClientMain {
             currentBoard.set(m.fromRow, m.fromCol, '.');
 
             printBoard(currentBoard);
+
+            if(myColor != null) {
+                boolean whiteInCheck = msg.has("whiteInCheck") &&
+                        msg.get("whiteInCheck").getAsBoolean();
+                boolean blackInCheck = msg.has("blackInCheck") &&
+                        msg.get("blackInCheck").getAsBoolean();
+
+                boolean myKingInCheck = ("white".equals(myColor) && whiteInCheck) ||
+                        ("black".equals(myColor) && blackInCheck);
+
+                if(myKingInCheck) {
+                    System.out.println(">>> YOUR KING IS IN CHECK.! <<<");
+                } else if (whiteInCheck || blackInCheck) {
+                    System.out.println(">>> OPPONENT'S KING IS IN CHEKC! <<<");
+                }
+            }
         } catch (Exception e) {
             System.out.println("(failed to apply locally: " + e.getMessage() + ")");
         }
