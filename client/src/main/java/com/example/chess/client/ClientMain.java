@@ -47,6 +47,9 @@ public class ClientMain {
             System.out.println("7) Accept draw");
             System.out.println("8) Decline draw");
             System.out.println("9) Resign");
+            System.out.println("10) View my statistics");
+            System.out.println("11) List my games");
+            System.out.println("12) View game details & replay");
             System.out.println("0) Exit");
             System.out.print("Choose: ");
 
@@ -63,6 +66,9 @@ public class ClientMain {
                     case "7" -> doRespondDraw(conn, true);
                     case "8" -> doRespondDraw(conn, false);
                     case "9" -> doResign(conn);
+                    case "10" -> doGetStats(conn);
+                    case "11" -> doListGames(conn);
+                    case "12" -> doViewGameDetails(conn, scanner);
                     case "0" -> {
                         System.out.println("Bye.");
                         return;
@@ -149,6 +155,12 @@ public class ClientMain {
 
         } else if("move".equals(type)) {
             handleMoveMessage(msg);
+        } else if ("getStatsOk".equals(type)) {
+            handleStatsMessage(msg);
+        } else if("listGamesOk".equals(type)) {
+            handleGamesListMessage(msg);
+        } else if("gameDetailsOk".equals(type)) {
+            handleGameDetailsMessage(msg);
         } else {
             System.out.println("\n[SERVER] " + type + ": " + msg);
         }
@@ -285,5 +297,136 @@ public class ClientMain {
         } catch (Exception e) {
             System.out.println("(failed to apply locally: " + e.getMessage() + ")");
         }
+    }
+
+    private static void doGetStats(ClientConnection conn) throws IOException {
+        String corrId = conn.nextCorrId();
+        JsonObject msg = Msg.obj("getStats", corrId);
+        conn.send(msg);
+        System.out.println("Requested stats (corrId=" + corrId + ").");
+    }
+
+    private static void doListGames(ClientConnection conn) throws IOException {
+        String corrId = conn.nextCorrId();
+        JsonObject msg = Msg.obj("listGames", corrId);
+        conn.send(msg);
+        System.out.println("Requested games list (corrId=" + corrId + ").");
+    }
+
+    private static void doViewGameDetails(ClientConnection conn, Scanner scanner) throws IOException {
+        System.out.print("Enter gameId to inspect: ");
+        String gameId = scanner.nextLine().trim();
+        if (gameId.isEmpty()) {
+            System.out.println("GameId cannot be empty.");
+            return;
+        }
+
+        String corrId = conn.nextCorrId();
+        JsonObject msg = Msg.obj("getGameDetails", corrId);
+        msg.addProperty("gameId", gameId);
+        conn.send(msg);
+        System.out.println("Requested game details (corrId=" + corrId + ").");
+    }
+
+    private static void handleStatsMessage(JsonObject msg) {
+        System.out.println("\n=== Your Statistics ===");
+        JsonObject u = msg.getAsJsonObject("user");
+        if (u == null) {
+            System.out.println("(no user object)");
+            return;
+        }
+        String username = u.get("username").getAsString();
+        String name = u.get("name").getAsString();
+        int played = u.get("played").getAsInt();
+        int won = u.get("won").getAsInt();
+        int drawn = u.has("drawn") ? u.get("drawn").getAsInt() : 0;
+        int rating = u.get("rating").getAsInt();
+
+        System.out.println("User:    " + username + " (" + name + ")");
+        System.out.println("Played:  " + played);
+        System.out.println("Won:     " + won);
+        System.out.println("Drawn:   " + drawn);
+        System.out.println("Lost:    " + (played - won - drawn));
+        System.out.println("Rating:  " + rating);
+        System.out.println("=======================");
+    }
+
+    private static void handleGamesListMessage(JsonObject msg) {
+        System.out.println("\n=== Your Games ===");
+        if (!msg.has("games")) {
+            System.out.println("(no games)");
+            return;
+        }
+        var arr = msg.getAsJsonArray("games");
+        if (arr.size() == 0) {
+            System.out.println("(no games yet)");
+            return;
+        }
+        for (int i = 0; i < arr.size(); i++) {
+            JsonObject g = arr.get(i).getAsJsonObject();
+            String id = g.get("id").getAsString();
+            long createdAt = g.get("createdAt").getAsLong();
+            String opponent = g.get("opponent").getAsString();
+            String color = g.get("color").getAsString();
+            String result = g.get("result").getAsString();
+            String reason = g.has("reason") && !g.get("reason").isJsonNull()
+                    ? g.get("reason").getAsString() : "";
+
+            System.out.printf("%2d) %s vs %s (%s)  result=%s  reason=%s  createdAt=%d%n",
+                    i + 1, color.equals("white") ? "You" : opponent,
+                    color.equals("white") ? opponent : "You",
+                    color,
+                    result,
+                    reason,
+                    createdAt);
+            System.out.println("    id=" + id);
+        }
+        System.out.println("==================");
+    }
+
+    private static void handleGameDetailsMessage(JsonObject msg) {
+        System.out.println("\n=== Game Details ===");
+        JsonObject g = msg.getAsJsonObject("game");
+        if (g == null) {
+            System.out.println("(no game object)");
+            return;
+        }
+        String id = g.get("id").getAsString();
+        String whiteUser = g.get("whiteUser").getAsString();
+        String blackUser = g.get("blackUser").getAsString();
+        String result = g.get("result").getAsString();
+        String reason = g.has("reason") ? g.get("reason").getAsString() : "";
+        long createdAt = g.get("createdAt").getAsLong();
+
+        System.out.println("Id:      " + id);
+        System.out.println("White:   " + whiteUser);
+        System.out.println("Black:   " + blackUser);
+        System.out.println("Result:  " + result + " (" + reason + ")");
+        System.out.println("Created: " + createdAt);
+
+        var movesArr = g.getAsJsonArray("moves");
+        System.out.println("\nMoves:");
+        Board replayBoard = new Board();
+        if (movesArr != null) {
+            for (int i = 0; i < movesArr.size(); i++) {
+                String moveStr = movesArr.get(i).getAsString();
+                System.out.printf("%3d. %s%n", i + 1, moveStr);
+
+                try {
+                    Move m = Move.parse(moveStr);
+                    char piece = replayBoard.get(m.fromRow, m.fromCol);
+                    if (piece != 0 && piece != '.') {
+                        replayBoard.set(m.toRow, m.toCol, piece);
+                        replayBoard.set(m.fromRow, m.fromCol, '.');
+                    }
+                } catch (Exception e) {
+                    System.out.println("   (failed to apply move locally: " + e.getMessage() + ")");
+                }
+            }
+        }
+
+        System.out.println("\nFinal position:");
+        printBoard(replayBoard);
+        System.out.println("====================");
     }
 }

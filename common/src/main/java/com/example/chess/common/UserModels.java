@@ -5,7 +5,15 @@ public class UserModels {
     public static class Stats {
         public int played;
         public int won;
-        public int rating = 1500;
+        public int drawn;
+        public int rating;
+
+        public Stats() {
+            this.played = 0;
+            this.won = 0;
+            this.drawn = 0;
+            this.rating = 1200;
+        }
     }
 
     public static class User {

@@ -34,20 +34,12 @@ public class GameModels {
         }
 
         public void loadInitialPosition() {
-            String[] rows = new String[] {
-                    "rnbqkbnr",
-                    "pppppppp",
-                    "........",
-                    "........",
-                    "........",
-                    "........",
-                    "PPPPPPPP",
-                    "RNBQKBNR"
-            };
+            squares[0] = new char[] {'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
+            squares[1] = new char[] {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'};
 
-            for (int i = 0; i < 8; i++) {
+            for (int i = 2; i < 5; i++) {
                 for (int j = 0; j < 8; j++) {
-                    squares[i][j] = rows[i].charAt(j);
+                    squares[i][j] = '.';
                 }
             }
         }
@@ -67,12 +59,11 @@ public class GameModels {
         public String blackUser;
 
         public String initialFen = "startpos";
-        public long timeControlMs = 5 * 6 * 1000L;
-        public long incrementMs = 2 * 1000L;
+        public long timeControlMs = 5L * 60L * 1000L;
+        public long incrementMs = 2L * 1000L;
         public long whiteTimeMs = timeControlMs;
         public long blackTimeMs = timeControlMs;
 
-        public List<Move> moves = new ArrayList<>();
         public Result result = Result.ONGOING;
         public String resultReason = "";
 
@@ -84,7 +75,7 @@ public class GameModels {
         public Board board = new Board();
         public boolean whiteMove = true;
 
-
+        public List<String> moves = new ArrayList<>();
     }
 }
 

@@ -8,7 +8,8 @@ import com.example.chess.common.GameModels.Game;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.*;
 
 public class FileStores {
@@ -70,16 +71,6 @@ public class FileStores {
         }
     }
 
-    public synchronized void saveGame(Game game) {
-        Path p = gamesDir.resolve(game.id + ".json");
-        try {
-            String json = GSON.toJson(game);
-            Files.writeString(p, json, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save game " + game.id, e);
-        }
-    }
-
     public synchronized List<Game> listGamesFor(String username) {
         List<Game> result = new ArrayList<>();
         try (var stream = Files.list(gamesDir)) {
@@ -97,5 +88,115 @@ public class FileStores {
         result.sort(Comparator.comparingLong(a -> -a.createdAt));
         return result;
     }
-}
 
+    public synchronized User loadUser(String username) {
+        List<User> users = loadAllUsers();
+        for (User u : users) {
+            if (u.username.equals(username)) {
+                return u;
+            }
+        }
+        return null;
+    }
+
+    public synchronized void saveUser(User user) {
+        List<User> users = loadAllUsers();
+        boolean replaced = false;
+        for (int i = 0; i < users.size(); i++) {
+            if (users.get(i).username.equals(user.username)) {
+                users.set(i, user);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            users.add(user);
+        }
+        writeAllUsers(users);
+    }
+
+    private List<User> loadAllUsers() {
+        try {
+            if (!Files.exists(usersFile)) return new ArrayList<>();
+            String json = Files.readString(usersFile);
+            if (json.isEmpty()) return new ArrayList<>();
+
+            Type type = new TypeToken<List<User>>() {}.getType();
+            List<User> list = GSON.fromJson(json, type);
+            return (list != null) ? list : new ArrayList<>();
+        } catch (IOException e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private void writeAllUsers(List<User> users) {
+        try {
+            Files.createDirectories(root);
+            String json = GSON.toJson(users);
+            Files.writeString(usersFile, json);
+        } catch (IOException ignored) {
+        }
+    }
+
+    // ---------------- GAMES ----------------
+
+    public synchronized void saveGame(Game game) {
+        List<Game> games = loadAllGames();
+        boolean replaced = false;
+        for (int i = 0; i < games.size(); i++) {
+            if (games.get(i).id.equals(game.id)) {
+                games.set(i, game);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            games.add(game);
+        }
+        writeAllGames(games);
+    }
+
+    public synchronized List<Game> findGamesForUser(String username) {
+        List<Game> games = loadAllGames();
+        List<Game> result = new ArrayList<>();
+        for (Game g : games) {
+            if (username.equals(g.whiteUser) || username.equals(g.blackUser)) {
+                result.add(g);
+            }
+        }
+        return result;
+    }
+
+    public synchronized Game findGameById(String gameId) {
+        List<Game> games = loadAllGames();
+        for (Game g : games) {
+            if (gameId.equals(g.id)) {
+                return g;
+            }
+        }
+        return null;
+    }
+
+    private List<Game> loadAllGames() {
+        try {
+            if (!Files.exists(usersFile)) return new ArrayList<>();
+            String json = Files.readString(usersFile);
+            if (json.isEmpty()) return new ArrayList<>();
+
+            Type type = new TypeToken<List<Game>>() {}.getType();
+            List<Game> list = GSON.fromJson(json, type);
+            return (list != null) ? list : new ArrayList<>();
+        } catch (IOException e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private void writeAllGames(List<Game> games) {
+        try {
+            Files.createDirectories(root);
+            String json = GSON.toJson(games);
+            Files.writeString(usersFile, json);
+        } catch (IOException ignored) {
+        }
+    }
+}

@@ -78,6 +78,9 @@ public class ClientHandler implements Runnable {
                 case "offerDraw" -> handleOfferDraw(corrId, msg);
                 case "respondDraw" -> handleRespondDraw(corrId, msg);
                 case "resign" -> handleResign(corrId, msg);
+                case "getStats" -> handleGetStats(corrId);
+                case "listGames" -> handleListGames(corrId);
+                case "getGameDetails" -> handleGetGameDetails(corrId, msg);
                 default -> sendError(corrId, "Unknown message type: " + type);
             }
         } catch (IllegalArgumentException ex) {
@@ -268,6 +271,89 @@ public class ClientHandler implements Runnable {
         o.addProperty("whiteTimeMs", game.whiteTimeMs);
         o.addProperty("blackTimeMs", game.blackTimeMs);
 
+        send(o);
+    }
+
+    private void handleGetStats(String corrId) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("Not logged in.");
+        }
+
+        JsonObject o = Msg.obj("getStatsOk", corrId);
+        JsonObject u = new JsonObject();
+        u.addProperty("username", currentUser.username);
+        u.addProperty("name", currentUser.name);
+        u.addProperty("played", currentUser.stats.played);
+        u.addProperty("won", currentUser.stats.won);
+        u.addProperty("drawn", currentUser.stats.drawn);
+        u.addProperty("rating", currentUser.stats.rating);
+        o.add("user", u);
+
+        send(o);
+    }
+
+    private void handleListGames(String corrId) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("Not logged in.");
+        }
+
+        java.util.List<Game> games = gameCoordinator.listGamesForUser(currentUser.username);
+
+        JsonObject o = Msg.obj("listGamesOk", corrId);
+        com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+
+        for (Game g : games) {
+            JsonObject jg = new JsonObject();
+            jg.addProperty("id", g.id);
+            jg.addProperty("createdAt", g.createdAt);
+            String opponent =
+                    currentUser.username.equals(g.whiteUser) ? g.blackUser : g.whiteUser;
+            jg.addProperty("opponent", opponent);
+            String color =
+                    currentUser.username.equals(g.whiteUser) ? "white" : "black";
+            jg.addProperty("color", color);
+            jg.addProperty("result", g.result.toString());
+            jg.addProperty("reason", g.resultReason);
+            arr.add(jg);
+        }
+
+        o.add("games", arr);
+        send(o);
+    }
+
+    private void handleGetGameDetails(String corrId, JsonObject msg) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("Not logged in.");
+        }
+
+        String gameId = getRequiredString(msg, "gameId");
+        Game g = gameCoordinator.loadGamesById(gameId);
+        if (g == null) {
+            throw new IllegalArgumentException("Game not found.");
+        }
+
+        if (!currentUser.username.equals(g.whiteUser) && !currentUser.username.equals(g.blackUser)) {
+            throw new IllegalArgumentException("You are not part of this game.");
+        }
+
+        JsonObject o = Msg.obj("gameDetailsOk", corrId);
+        JsonObject gg = new JsonObject();
+        gg.addProperty("id", g.id);
+        gg.addProperty("whiteUser", g.whiteUser);
+        gg.addProperty("blackUser", g.blackUser);
+        gg.addProperty("createdAt", g.createdAt);
+        gg.addProperty("result", g.result.toString());
+        gg.addProperty("reason", g.resultReason == null ? "" : g.resultReason);
+
+        com.google.gson.JsonArray movesArr = new com.google.gson.JsonArray();
+        if (g.moves != null) {
+            for (String m : g.moves) {
+                movesArr.add(m);
+            }
+        }
+        gg.add("moves", movesArr);
+
+        o.add("game", gg);
         send(o);
     }
 }

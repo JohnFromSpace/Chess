@@ -6,22 +6,30 @@ import com.example.chess.common.GameModels.Move;
 import com.example.chess.common.GameModels.Board;
 import com.example.chess.common.UserModels.User;
 import com.example.chess.server.fs.FileStores;
+import com.example.chess.common.UserModels.Stats;
 
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class GameCoordinator {
+    // online states
     private final FileStores fileStores;
     private final Map<String, ClientHandler> onlineHandlers = new HashMap<>();
+
+    // simple FIFO queue for pairing
     private final Deque<ClientHandler> waitingQueue = new ArrayDeque<>();
+
+    // active games
     private final Map<String, Game> activeGames = new HashMap<>();
 
-    public final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    public final ScheduledExecutorService scheduler;
 
     public GameCoordinator(FileStores fileStores) {
         this.fileStores = fileStores;
+        this.scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(this::tickClocks, 1, 1, TimeUnit.SECONDS);
     }
 
@@ -150,6 +158,12 @@ public class GameCoordinator {
         boolean sideToMoveInCheck = sideToMoveIsWhite ? whiteInCheckNow : blackInCheckNow;
 
         boolean sideToMoveHasMoves = hasAnyLegalMove(game.board, sideToMoveIsWhite);
+
+        if(game.moves == null) {
+            game.moves = new java.util.ArrayList<>();
+        }
+
+        game.moves.add(moveStr);
 
         fileStores.saveGame(game);
 
@@ -465,6 +479,9 @@ public class GameCoordinator {
 
         game.result = result;
         game.resultReason = reason;
+
+        updateStatsAndRatings(game);
+
         fileStores.saveGame(game);
 
         ClientHandler whiteHandler = onlineHandlers.get(game.whiteUser);
@@ -555,5 +572,76 @@ public class GameCoordinator {
                                 null;
 
         return opponent == null ? null : onlineHandlers.get(opponent);
+    }
+
+    private void updateStatsAndRatings(Game game) {
+        try {
+            User white = fileStores.loadUser(game.whiteUser);
+            User black = fileStores.loadUser(game.blackUser);
+
+            if(white == null || black == null) {
+                return;
+            }
+
+            Stats ws = white.stats;
+            Stats bs = black.stats;
+
+            ws.played++;
+            bs.played++;
+
+            double sw, sb;
+            switch(game.result) {
+                case WHITE_WIN -> {
+                    ws.won++;
+                    sw = 1.0;
+                    sb = 0.0;
+                }
+                case BLACK_WIN -> {
+                    bs.won++;
+                    sw = 0.0;
+                    sb = 1.0;
+                }
+                case DRAW -> {
+                    ws.drawn++;
+                    bs.drawn++;
+                    sw = 0.5;
+                    sb = 0.5;
+                }
+                default -> {
+                    return;
+                }
+            }
+
+            double rw = ws.rating;
+            double rb = bs.rating;
+
+            double expectedW = 1.0 / (1.0 + Math.pow(10.0, (rb - rw) / 400.0));
+            double expectedB = 1.0 - expectedW;
+
+            double K = 32.0;
+            rw = rw + K * (sw - expectedW);
+            rb = rb + K * (sb - expectedB);
+
+            ws.rating = (int)Math.round(rw);
+            bs.rating = (int)Math.round(rb);
+
+            fileStores.saveUser(white);
+            fileStores.saveUser(black);
+        } catch (Exception e) {
+            // don't crash the game if stats and ratings IO fail
+        }
+    }
+
+    public synchronized List<Game> listGamesForUser(String username) {
+        return fileStores.findGamesForUser(username);
+    }
+
+    public synchronized Game loadGamesById(String gameId) {
+        Game active = activeGames.get(gameId);
+        if(active != null) {
+            return active;
+        }
+
+        return fileStores.findGameById(gameId);
     }
 }
