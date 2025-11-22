@@ -60,35 +60,6 @@ public class FileStores {
         }
     }
 
-    public synchronized Optional<Game> loadGame(String id) {
-        Path p = gamesDir.resolve(id + ".json");
-        if (!Files.exists(p)) return Optional.empty();
-        try {
-            String json = Files.readString(p, StandardCharsets.UTF_8);
-            return Optional.ofNullable(GSON.fromJson(json, Game.class));
-        } catch (IOException e) {
-            return Optional.empty();
-        }
-    }
-
-    public synchronized List<Game> listGamesFor(String username) {
-        List<Game> result = new ArrayList<>();
-        try (var stream = Files.list(gamesDir)) {
-            for (Path p : stream.toList()) {
-                String json = Files.readString(p, StandardCharsets.UTF_8);
-                Game g = GSON.fromJson(json, Game.class);
-                if (g == null) continue;
-                if (username.equals(g.whiteUser) || username.equals(g.blackUser)) {
-                    result.add(g);
-                }
-            }
-        } catch (IOException e) {
-            // ignore, just return what we have
-        }
-        result.sort(Comparator.comparingLong(a -> -a.createdAt));
-        return result;
-    }
-
     public synchronized User loadUser(String username) {
         List<User> users = loadAllUsers();
         for (User u : users) {
