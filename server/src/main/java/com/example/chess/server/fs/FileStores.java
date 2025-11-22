@@ -114,8 +114,10 @@ public class FileStores {
     public synchronized void saveGame(Game game) {
         List<Game> games = loadAllGames();
         boolean replaced = false;
+
         for (int i = 0; i < games.size(); i++) {
-            if (games.get(i).id.equals(game.id)) {
+            Game g = games.get(i);
+            if (g != null && Objects.equals(g.id, game.id)) {
                 games.set(i, game);
                 replaced = true;
                 break;

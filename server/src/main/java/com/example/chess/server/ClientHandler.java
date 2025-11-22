@@ -87,6 +87,7 @@ public class ClientHandler implements Runnable {
             // business validation errors
             sendError(corrId, ex.getMessage());
         } catch (Exception ex) {
+            ex.printStackTrace();
             sendError(corrId, "Internal server error.");
         }
     }
