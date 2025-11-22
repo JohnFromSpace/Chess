@@ -291,7 +291,7 @@ public class ClientMain {
                 if(myKingInCheck) {
                     System.out.println(">>> YOUR KING IS IN CHECK.! <<<");
                 } else if (whiteInCheck || blackInCheck) {
-                    System.out.println(">>> OPPONENT'S KING IS IN CHEKC! <<<");
+                    System.out.println(">>> OPPONENT'S KING IS IN CHECk! <<<");
                 }
             }
         } catch (Exception e) {
