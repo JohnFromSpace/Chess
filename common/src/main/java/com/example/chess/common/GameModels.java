@@ -36,6 +36,8 @@ public class GameModels {
         public void loadInitialPosition() {
             squares[0] = new char[] {'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
             squares[1] = new char[] {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'};
+            squares[6] = new char[] {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'};
+            squares[7] = new char[] {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'};
 
             for (int i = 2; i < 5; i++) {
                 for (int j = 0; j < 8; j++) {

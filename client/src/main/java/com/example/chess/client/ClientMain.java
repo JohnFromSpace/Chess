@@ -237,13 +237,13 @@ public class ClientMain {
         System.out.println();
         for(int row = 0; row < 8; row++) {
             int rank = 8 - row;
-            System.out.println(rank + " ");
+            System.out.print(rank + " ");
             for(int col = 0; col < 8; col++) {
                 char piece = board.get(row, col);
                 if(piece == 0) {
                     piece = '.';
                 }
-                System.out.println(piece + " ");
+                System.out.print(piece + " ");
             }
             System.out.println();
         }
