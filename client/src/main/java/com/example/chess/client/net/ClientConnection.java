@@ -1,5 +1,7 @@
 package com.example.chess.client.net;
 
+import com.example.chess.common.Message;
+import com.example.chess.common.MessageCodec;
 import com.example.chess.common.Msg;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -84,10 +86,15 @@ public class ClientConnection implements Closeable {
         return UUID.randomUUID().toString();
     }
 
-    public void send(JsonObject obj) throws IOException {
-        String line = Msg.jsonLine(obj);
-        out.write(line);
-        out.flush();
+    public void send(JsonObject payload, String type, String corrId) throws IOException {
+        Message msg = new Message(type, corrId, payload);
+        try {
+            String line = MessageCodec.toJsonLine(msg);
+            out.write(line);
+            out.flush();
+        } catch (Exception e) {
+            // client disconnected
+        }
     }
 
     public JsonObject takeMessage() throws InterruptedException {

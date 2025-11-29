@@ -1,6 +1,8 @@
 package com.example.chess.server;
 
 import com.example.chess.common.GameModels.Game;
+import com.example.chess.common.Message;
+import com.example.chess.common.MessageCodec;
 import com.example.chess.common.Msg;
 import com.example.chess.common.UserModels.User;
 import com.google.gson.Gson;
@@ -53,20 +55,17 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleLine(String line) {
-        JsonObject msg;
+        Message m;
         try {
-            msg = gson.fromJson(line, JsonObject.class);
+            m = MessageCodec.fromJsonLine(line);
         } catch (Exception e) {
             sendError(null, "Invalid JSON.");
             return;
         }
-        if (msg == null || !msg.has("type")) {
-            sendError(null, "Missing 'type' field.");
-            return;
-        }
 
-        String type = msg.get("type").getAsString();
-        String corrId = msg.has("corrId") ? msg.get("corrId").getAsString() : null;
+        String type = m.type;
+        String corrId = m.corrId;
+        JsonObject msg = m.payload;
 
         try {
             switch (type) {
@@ -87,7 +86,7 @@ public class ClientHandler implements Runnable {
             // business validation errors
             sendError(corrId, ex.getMessage());
         } catch (Exception ex) {
-            ex.printStackTrace();
+            // ex.printStackTrace();
             sendError(corrId, "Internal server error.");
         }
     }
