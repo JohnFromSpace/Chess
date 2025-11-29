@@ -109,8 +109,6 @@ public class FileStores {
         }
     }
 
-    // ---------------- GAMES ----------------
-
     public synchronized void saveGame(Game game) {
         List<Game> games = loadAllGames();
         boolean replaced = false;
