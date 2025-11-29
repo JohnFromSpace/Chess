@@ -53,24 +53,30 @@ public class ClientConnection implements Closeable {
     private void readerLoop() {
         try {
             String line;
-            while (running && (line = in.readLine()) != null) {
+            while ((line = in.readLine()) != null) {
                 line = line.trim();
+
                 if (line.isEmpty()) continue;
-                try {
-                    JsonObject obj = gson.fromJson(line, JsonObject.class);
-                    if (obj != null) {
-                        incoming.offer(obj);
-                        if (onMessage != null) {
-                            onMessage.accept(obj);
-                        }
-                    }
-                } catch (Exception ignored) {
+
+                JsonObject msg = gson.fromJson(line, JsonObject.class);
+                String type = msg.get("type").getAsString();
+
+                if("error".equals(type)) {
+                    String message = msg.has("message") ?
+                            msg.get("message").getAsString() :
+                            "Unknown error from server.";
+                } else if ("info".equals(type)) {
+                    String message = msg.has("message") ?
+                            msg.get("message").getAsString() :
+                            "";
+                } else {
+                    System.out.println("[SERVER] " + msg);
                 }
             }
         } catch (IOException e) {
-            // connection closed
-        } finally {
-            running = false;
+            System.out.println("Connection to server closed: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error reading from server: " + e.getMessage());
         }
     }
 
