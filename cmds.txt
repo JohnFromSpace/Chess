@@ -2,4 +2,5 @@ git init
 git add -A
 git commit -m "Update"
 git branch -M main
+git pull
 git push -u origin main
