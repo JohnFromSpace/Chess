@@ -8,6 +8,7 @@ import com.example.chess.common.UserModels.User;
 import com.example.chess.common.UserModels.Stats;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
+import com.example.chess.server.rules.ChessRules;
 
 import java.util.*;
 import java.util.List;
@@ -20,6 +21,8 @@ public class GameCoordinator {
     private final UserRepository userRepository;
     private final GameRepository gameRepository;
     private final Map<String, ClientHandler> onlineHandlers = new HashMap<>();
+
+    private final ChessRules chessRules = new ChessRules();
 
     // simple FIFO queue for pairing
     private final Deque<ClientHandler> waitingQueue = new ArrayDeque<>();
@@ -608,11 +611,11 @@ public class GameCoordinator {
         }
 
         // simulate on a copy to check king safety
-        Board test = copyBoard(game.board);
+        Board test = chessRules.copyBoard(game.board);
         test.set(move.toRow, move.toCol, piece);
         test.set(move.fromRow, move.fromCol, '.');
 
-        if (isKingInCheck(test, isWhitePlayer)) {
+        if (chessRules.isKingInCheck(test, isWhitePlayer)) {
             throw new IllegalArgumentException("Illegal move: king would be in check.");
         }
 
@@ -638,12 +641,17 @@ public class GameCoordinator {
         game.lastUpdate = System.currentTimeMillis();
 
         // check / checkmate / stalemate evaluation
-        boolean whiteInCheckNow = isKingInCheck(game.board, true);
-        boolean blackInCheckNow = isKingInCheck(game.board, false);
+        boolean whiteInCheckNow = chessRules.isKingInCheck(game.board, true);
+        boolean blackInCheckNow = chessRules.isKingInCheck(game.board, false);
 
         boolean sideToMoveIsWhite = game.whiteMove;
         boolean sideToMoveInCheck = sideToMoveIsWhite ? whiteInCheckNow : blackInCheckNow;
-        boolean sideToMoveHasMoves = hasAnyLegalMove(game.board, sideToMoveIsWhite);
+        boolean sideToMoveHasMoves = chessRules.hasAnyLegalMove(game.board, sideToMoveIsWhite);
+
+        if(game.moves == null) {
+            game.moves = new java.util.ArrayList<>();
+        }
+        game.moves.add(moveStr);
 
         gameRepository.saveGame(game);
 

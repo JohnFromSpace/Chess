@@ -39,41 +39,30 @@ public class FileStores implements UserRepository, GameRepository {
         }
     }
 
-    private Path userFile(String username) {
-        return usersDir.resolve(username + ".json");
-    }
-
     @Override
-    public Optional<User> findByUsername(String username) {
-        Path file = userFile(username);
-        if (!Files.exists(file)) {
-            return Optional.empty();
-        }
-        try {
-            String json = Files.readString(file, StandardCharsets.UTF_8);
-            User user = GSON.fromJson(json, User.class);
-            return Optional.ofNullable(user);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read user file: " + file, e);
-        }
+    public synchronized Optional<User> findByUsername(String username) {
+        return loadAllUsers().stream()
+                .filter(u -> u.username.equals(username))
+                .findFirst();
     }
 
     @Override
     public void saveUser(User user) {
-        if (user == null || user.username == null || user.username.isBlank()) {
-            throw new IllegalArgumentException("User or username is null/blank");
+        List<User> users = loadAllUsers();
+        boolean updated = false;
+
+        for (int i = 0; i < users.size(); i++) {
+            if (users.get(i).username.equals(user.username)) {
+                users.set(i, user);
+                updated = true;
+                break;
+            }
         }
-        Path file = userFile(user.username);
-        try {
-            Files.createDirectories(usersDir);
-            String json = GSON.toJson(user);
-            Files.writeString(file, json, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write user file: " + file, e);
+        if (!updated) {
+            users.add(user);
         }
+
+        writeAllUsers(users);
     }
 
     @Override
@@ -84,15 +73,24 @@ public class FileStores implements UserRepository, GameRepository {
     private List<User> loadAllUsers() {
         try {
             Files.createDirectories(root);
-            if (!Files.exists(usersFile)) {
+            if (!Files.exists(usersDir)) {
                 return new ArrayList<>();
             }
-            String json = Files.readString(usersFile);
+            String json = Files.readString(usersDir);
             List<User> users = GSON.fromJson(json, USER_LIST_TYPE);
             return users != null ? users : new ArrayList<>();
         } catch (IOException e) {
-            // log in real app
             return new ArrayList<>();
+        }
+    }
+
+    private void writeAllUsers(List<User> users) {
+        try {
+            Files.createDirectories(root);
+            String json = GSON.toJson(users, USER_LIST_TYPE);
+            Files.writeString(usersDir, json);
+        } catch (IOException e) {
+            System.err.println("Failed to write users.json: " + e.getMessage());
         }
     }
 
@@ -101,7 +99,7 @@ public class FileStores implements UserRepository, GameRepository {
     }
 
     @Override
-    public Optional<Game> findGamesById(String id) {
+    public Optional<Game> findGameById(String id) {
         Path file = gameFile(id);
         if (!Files.exists(file)) {
             return Optional.empty();
