@@ -23,9 +23,6 @@ public class RulesEngine {
         return nb;
     }
 
-    // -------- move legality (geometric + occupancy only) --------
-
-    /** Returns true if the move is legal for this piece type *ignoring* check. */
     public boolean isLegalMoveForPiece(Board board, char piece, Move m, boolean isWhite) {
         char p = Character.toLowerCase(piece);
 
@@ -101,8 +98,6 @@ public class RulesEngine {
         }
         return true;
     }
-
-    // -------- check / checkmate helpers --------
 
     public boolean isKingInCheck(Board board, boolean isWhite) {
         char king = isWhite ? 'K' : 'k';

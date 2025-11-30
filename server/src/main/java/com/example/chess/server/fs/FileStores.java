@@ -18,7 +18,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 public class FileStores implements UserRepository, GameRepository {
-
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type USER_LIST_TYPE = new TypeToken<List<User>>() {}.getType();
 
@@ -114,8 +113,8 @@ public class FileStores implements UserRepository, GameRepository {
     }
 
     @Override
-    public List<Game> findGamesForUser(String username) {
-        List<Game> result = new ArrayList<>();
+    public Map<String, Game> findGamesForUser(String username) {
+        Map<String, Game> result = new HashMap<>();
         if (!Files.exists(gamesDir)) {
             return result;
         }
@@ -126,7 +125,7 @@ public class FileStores implements UserRepository, GameRepository {
                     Game game = GSON.fromJson(json, Game.class);
                     if (game != null &&
                             (username.equals(game.whiteUser) || username.equals(game.blackUser))) {
-                        result.add(game);
+                        result.put(username, game);
                     }
                 } catch (IOException e) {
                     System.err.println("Failed to read game file: " + file + " -> " + e.getMessage());
