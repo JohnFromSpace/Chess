@@ -1,6 +1,5 @@
 package com.example.chess.server.fs.repository;
 
-import com.example.chess.common.GameModels;
 import com.example.chess.common.UserModels.User;
 
 import java.util.List;
@@ -10,6 +9,4 @@ public interface UserRepository {
     Optional<User> findByUsername(String username);
     void saveUser(User user);
     List<User> findAllUsers();
-
-    Optional<GameModels.Game> findById(String id);
 }

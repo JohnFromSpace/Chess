@@ -90,104 +90,7 @@ public class GameCoordinator {
         opponentHandler.onGameStarted(game, game.whiteUser.equals(opponentUser.username));
     }
 
-    public synchronized void makeMove(String gameId, User user, String moveStr){
-        Game game = activeGames.get(gameId);
 
-        if(game == null) {
-            throw new IllegalArgumentException("Game not found.");
-        }
-
-        if(game.result != Result.ONGOING) {
-            throw new IllegalArgumentException("Game is already finished");
-        }
-
-        boolean isWhite = game.whiteUser.equals(user.username);
-        if(!isWhite && !game.blackUser.equals(user.username)) {
-            throw new IllegalArgumentException("You are not part of this game.");
-        }
-
-        Move move = Move.parse(moveStr);
-
-        if(move.fromRow == move.toRow && move.fromCol == move.toCol) {
-            throw new IllegalArgumentException("Target is the same square.");
-        }
-
-        char piece = game.board.get(move.fromRow, move.fromCol);
-        if(piece == '.' || piece == 0) {
-            throw new IllegalArgumentException("No piece on this square.");
-        }
-
-        if(isWhite && !Character.isUpperCase(piece)) {
-            throw new IllegalArgumentException("That's not your piece.");
-        }
-
-        if(!isWhite && !Character.isLowerCase(piece)) {
-            throw new IllegalArgumentException("That's not your piece.");
-        }
-
-        char dest = game.board.get(move.toRow, move.toCol);
-        if(dest != '.' && sameColor(piece, dest)) {
-            throw new IllegalArgumentException("Cannot capture your own piece.");
-        }
-
-        if(isLegalMoveForPiece(game.board, piece, move, isWhite)) {
-            throw new IllegalArgumentException("Illegal move: " + moveStr);
-        }
-
-        Board test = copyBoard(game.board);
-        test.set(move.toRow, move.toCol, piece);
-        test.set(move.fromRow, move.fromCol, '.');
-
-        if(isKingInCheck(test, isWhite)) {
-            throw new IllegalArgumentException("Illegal move: king is in check.");
-        }
-
-        if(isWhite) {
-            game.whiteTimeMs += game.incrementMs;
-        } else {
-            game.blackTimeMs += game.incrementMs;
-        }
-
-        game.board.set(move.toRow, move.toCol, piece);
-        game.board.set(move.fromRow, move.fromCol, piece);
-
-        game.whiteMove = !game.whiteMove;
-        game.lastUpdate = System.currentTimeMillis();
-
-        boolean whiteInCheckNow = isKingInCheck(game.board, true);
-        boolean blackInCheckNow = isKingInCheck(game.board, false);
-
-        boolean sideToMoveIsWhite = game.whiteMove;
-        boolean sideToMoveInCheck = sideToMoveIsWhite ? whiteInCheckNow : blackInCheckNow;
-
-        boolean sideToMoveHasMoves = hasAnyLegalMove(game.board, sideToMoveIsWhite);
-
-        if(game.moves == null) {
-            game.moves = new java.util.ArrayList<>();
-        }
-
-        game.moves.add(moveStr);
-
-        gameRepository.saveGame(game);
-
-        ClientHandler white = onlineHandlers.get(game.whiteUser);
-        ClientHandler black = onlineHandlers.get(game.blackUser);
-
-        if(white != null) {
-            white.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
-        }
-
-        if(black != null) {
-            black.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
-        }
-
-        if(sideToMoveInCheck && !sideToMoveHasMoves) {
-            Result result = sideToMoveIsWhite ? Result.BLACK_WIN : Result.WHITE_WIN;
-            finishGame(game, result, "checkmate");
-        } else if(!sideToMoveInCheck && !sideToMoveHasMoves) {
-            finishGame(game, Result.DRAW, "stalemate");
-        }
-    }
 
     private boolean isLegalMoveForPiece(Board board, char piece, Move m, boolean isWhite) {
         char p = Character.toLowerCase(piece);
@@ -651,5 +554,9 @@ public class GameCoordinator {
 
         return gameRepository.findGameById(gameId).
                 orElseThrow(() -> new IllegalArgumentException("Game not found: " + gameId));
+    }
+
+    public void makeMove(String gameId, User currentUser, String moveStr) {
+
     }
 }

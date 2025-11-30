@@ -8,5 +8,4 @@ public interface GameRepository {
     Optional<Game> findGameById(String id);
     void saveGame(Game game);
     List<Game> findGamesForUser(String username);
-    List<Game> findAllGames();
 }

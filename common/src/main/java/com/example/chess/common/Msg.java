@@ -2,7 +2,6 @@ package com.example.chess.common;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import java.util.UUID;
 
 public final class Msg {
     private static final Gson G = new Gson();

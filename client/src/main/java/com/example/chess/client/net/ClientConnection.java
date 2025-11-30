@@ -1,110 +1,90 @@
 package com.example.chess.client.net;
 
-import com.example.chess.common.Message;
-import com.example.chess.common.MessageCodec;
+import com.example.chess.client.ClientMessageListener;
+import com.example.chess.common.Msg;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Consumer;
 
-public class ClientConnection implements Closeable {
-
+public class ClientConnection implements Runnable {
     private final String host;
     private final int port;
-    private final Gson gson = new Gson();
+    private final ClientMessageListener listener;
 
     private Socket socket;
     private BufferedReader in;
     private BufferedWriter out;
+    private final Gson gson = new Gson();
 
-    private Thread readerThread;
-    private volatile boolean running;
+    private volatile boolean running = false;
 
-    // For synchronous waiting on replies if we want later
-    private final BlockingQueue<JsonObject> incoming = new LinkedBlockingQueue<>();
-
-    // Optional callback for all messages
-    private Consumer<JsonObject> onMessage;
-
-    public ClientConnection(String host, int port) {
+    public ClientConnection(String host, int port, ClientMessageListener listener) {
         this.host = host;
         this.port = port;
+        this.listener = listener;
     }
 
-    public void setOnMessage(Consumer<JsonObject> onMessage) {
-        this.onMessage = onMessage;
-    }
-
-    public void connect() throws IOException {
+    public void start() throws IOException {
         socket = new Socket(host, port);
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         running = true;
-
-        readerThread = new Thread(this::readerLoop, "Client-Reader");
-        readerThread.setDaemon(true);
-        readerThread.start();
-    }
-
-    private void readerLoop() {
-        try {
-            String line;
-            while ((line = in.readLine()) != null) {
-                line = line.trim();
-
-                if (line.isEmpty()) continue;
-
-                JsonObject msg = gson.fromJson(line, JsonObject.class);
-                String type = msg.get("type").getAsString();
-
-                if("error".equals(type)) {
-                    if (msg.has("message")) {
-                        msg.get("message").getAsString();
-                    }
-                } else if ("info".equals(type)) {
-                    if (msg.has("message")) {
-                        msg.get("message").getAsString();
-                    }
-                } else {
-                    System.out.println("[SERVER] " + msg);
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Connection to server closed: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Error reading from server: " + e.getMessage());
-        }
-    }
-
-    public String nextCorrId() {
-        return UUID.randomUUID().toString();
-    }
-
-    public void send(JsonObject payload, String type, String corrId) throws IOException {
-        Message msg = new Message(type, corrId, payload);
-        try {
-            String line = MessageCodec.toJsonLine(msg);
-            out.write(line);
-            out.flush();
-        } catch (Exception e) {
-            System.err.println("Connection to server closed: " + e.getMessage());
-        }
-    }
-
-    public JsonObject takeMessage() throws InterruptedException {
-        return incoming.take();
+        Thread t = new Thread(this, "client-connection");
+        t.setDaemon(true);
+        t.start();
     }
 
     @Override
-    public void close() throws IOException {
+    public void run() {
+        try {
+            String line;
+            while (running && (line = in.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                handleIncomingLine(line);
+            }
+        } catch (IOException e) {
+            System.err.println("Connection to server lost: " + e.getMessage());
+        } finally {
+            running = false;
+            try {
+                if (socket != null) socket.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private void handleIncomingLine(String line) {
+        try {
+            JsonObject msg = gson.fromJson(line, JsonObject.class);
+            if (msg == null || !msg.has("type")) {
+                System.out.println("[SERVER RAW] " + line);
+                return;
+            }
+            listener.onMessage(msg);
+        } catch (Exception e) {
+            System.err.println("Failed to parse server message: " + e.getMessage());
+            System.err.println("Raw line: " + line);
+        }
+    }
+
+    public synchronized void send(JsonObject msg) {
+        try {
+            String line = Msg.jsonLine(msg);
+            out.write(line);
+            out.flush();
+        } catch (IOException e) {
+            System.err.println("Failed to send message to server: " + e.getMessage());
+        }
+    }
+
+    public void stop() {
         running = false;
-        if (socket != null && !socket.isClosed()) {
-            socket.close();
+        try {
+            if (socket != null) socket.close();
+        } catch (IOException ignored) {
         }
     }
 }

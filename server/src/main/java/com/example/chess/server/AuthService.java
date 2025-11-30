@@ -1,11 +1,8 @@
 package com.example.chess.server;
 
 import com.example.chess.common.UserModels.User;
-import com.example.chess.server.fs.FileStores;
 import com.example.chess.server.fs.repository.UserRepository;
 
-import java.util.InvalidPropertiesFormatException;
-import java.util.Map;
 import java.util.Optional;
 
 public class AuthService {
