@@ -3,7 +3,6 @@ package com.example.chess.server;
 import com.example.chess.common.GameModels.Game;
 import com.example.chess.common.Message;
 import com.example.chess.common.MessageCodec;
-import com.example.chess.common.Msg;
 import com.example.chess.common.UserModels.User;
 import com.google.gson.JsonObject;
 
@@ -52,306 +51,201 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleLine(String line) {
-        Message m;
+        Message msg;
         try {
-            m = MessageCodec.fromJsonLine(line);
+            msg = MessageCodec.fromJsonLine(line);
         } catch (Exception e) {
-            sendError(null, "Invalid JSON.");
+            sendError(null, "Invalid message: " + e.getMessage());
             return;
         }
 
-        String type = m.type;
-        String corrId = m.corrId;
-        JsonObject msg = m.payload;
+        String type = msg.type;
+        String corrId = msg.corrId;
 
         try {
             switch (type) {
-                case "ping" -> handlePing(corrId);
-                case "register" -> handleRegister(corrId, msg);
-                case "login" -> handleLogin(corrId, msg);
-                case "requestGame" -> handleRequestGame(corrId, msg);
-                case "move" -> handleMove(corrId, msg);
-                case "offerDraw" -> handleOfferDraw(corrId, msg);
-                case "respondDraw" -> handleRespondDraw(corrId, msg);
-                case "resign" -> handleResign(corrId, msg);
-                case "getStats" -> handleGetStats(corrId);
-                case "listGames" -> handleListGames(corrId);
-                case "getGameDetails" -> handleGetGameDetails(corrId, msg);
+                case "ping" -> handlePing(msg);
+                case "register" -> handleRegister(msg);
+                case "login" -> handleLogin(msg);
+                case "requestGame" -> handleRequestGame(msg);
+                case "makeMove" -> handleMakeMove(msg);
+                case "offerDraw" -> handleOfferDraw(msg);
+                case "acceptDraw" -> handleRespondDraw(msg, true);
+                case "declineDraw" -> handleRespondDraw(msg, false);
+                case "resign" -> handleResign(msg);
                 default -> sendError(corrId, "Unknown message type: " + type);
             }
         } catch (IllegalArgumentException ex) {
             // business validation errors
             sendError(corrId, ex.getMessage());
         } catch (Exception ex) {
-            // ex.printStackTrace();
             sendError(corrId, "Internal server error.");
         }
     }
 
-    private void handlePing(String corrId) {
-        JsonObject o = Msg.obj("pong", corrId);
-        send(o);
+    private void handlePing(Message inMsg) {
+        Message outMsg = Message.of("pong", inMsg.corrId);
     }
 
-    private void handleRegister(String corrId, JsonObject msg) {
-        String username = getRequiredString(msg, "username");
-        String name = getRequiredString(msg, "name");
-        String password = getRequiredString(msg, "password");
+    private void handleRegister(Message inMsg) {
+        String username = inMsg.getRequiredString("username");
+        String name     = inMsg.getRequiredString("name");
+        String password = inMsg.getRequiredString("password");
 
         User user = authService.register(username, name, password);
 
-        JsonObject o = Msg.obj("registerOk", corrId);
+        Message out = Message.of("registerOk", inMsg.corrId);
         JsonObject u = new JsonObject();
         u.addProperty("username", user.username);
         u.addProperty("name", user.name);
-        o.add("user", u);
-        send(o);
+        out.put("user", u);
+        send(out);
     }
 
-    private void handleLogin(String corrId, JsonObject msg) {
-        String username = getRequiredString(msg, "username");
-        String password = getRequiredString(msg, "password");
+    private void handleLogin(Message inMsg) {
+        String username = inMsg.getRequiredString("username");
+        String password = inMsg.getRequiredString("password");
 
         User user = authService.login(username, password);
         this.currentUser = user;
 
         gameCoordinator.onUserOnline(this, user);
 
-        JsonObject o = Msg.obj("loginOk", corrId);
+        Message out = Message.of("loginOk", inMsg.corrId);
         JsonObject u = new JsonObject();
         u.addProperty("username", user.username);
         u.addProperty("name", user.name);
         u.addProperty("played", user.stats.played);
         u.addProperty("won", user.stats.won);
         u.addProperty("rating", user.stats.rating);
-        o.add("user", u);
-        send(o);
+        out.put("user", u);
+        send(out);
     }
 
-    void handleRequestGame(String corrId, JsonObject msg) {
-        if(currentUser == null) {
+    private void handleRequestGame(Message inMsg) {
+        if (currentUser == null) {
             throw new IllegalArgumentException("You must be logged in to request a game.");
         }
 
         gameCoordinator.requestGame(this, currentUser);
 
-        JsonObject o = Msg.obj("requestGameOk", corrId);
-        o.addProperty("status", "queueOrMatched");
-        send(o);
+        Message out = Message.of("requestGameOk", inMsg.corrId)
+                .put("status", "queueOrMatched");
+        send(out);
     }
 
-    private void handleMove(String corrId, JsonObject msg) {
-        String gameId = getRequiredString(msg, "gameId");
-        String moveStr = getRequiredString(msg, "move");
-
-        if(currentUser == null) {
-            throw new IllegalArgumentException("Not logged in.");
+    private void handleMakeMove(Message inMsg) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("You must be logged in to make a move.");
         }
 
-        gameCoordinator.makeMove(gameId, currentUser, moveStr);
+        String gameId = inMsg.getRequiredString("gameId");
+        String move   = inMsg.getRequiredString("move");
 
-        JsonObject o = Msg.obj("moveOk", corrId);
-        send(o);
+        gameCoordinator.makeMove(gameId, currentUser, move);
+
+        Message out = Message.of("makeMoveOk", inMsg.corrId);
+        send(out);
     }
 
-    private String getRequiredString(JsonObject obj, String field) {
-        if (!obj.has(field)) {
-            throw new IllegalArgumentException("Missing field: " + field);
+    private void handleOfferDraw(Message inMsg) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("You must be logged in to offer a draw.");
         }
-        return obj.get(field).getAsString();
+
+        String gameId = inMsg.getRequiredString("gameId");
+        gameCoordinator.offerDraw(gameId, currentUser);
+
+        Message out = Message.of("offerDrawOk", inMsg.corrId);
+        send(out);
+    }
+
+    private void handleRespondDraw(Message inMsg, boolean accept) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("You must be logged in.");
+        }
+
+        String gameId = inMsg.getRequiredString("gameId");
+        gameCoordinator.respondDraw(gameId, currentUser, accept);
+
+        Message out = Message.of(accept ? "acceptDrawOk" : "declineDrawOk",
+                inMsg.corrId);
+        send(out);
+    }
+
+    private void handleResign(Message inMsg) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("You must be logged in.");
+        }
+
+        String gameId = inMsg.getRequiredString("gameId");
+        gameCoordinator.resign(gameId, currentUser);
+
+        Message out = Message.of("resignOk", inMsg.corrId);
+        send(out);
     }
 
     private void sendError(String corrId, String message) {
-        JsonObject o = Msg.obj("error", corrId);
-        o.addProperty("message", message);
-        send(o);
+        Message m = Message.of("error", corrId)
+                .put("message", message);
+        send(m);
     }
 
-    private synchronized void send(JsonObject o) {
+    private synchronized void send(Message m) {
         try {
-            String line = Msg.jsonLine(o);
+            String line = MessageCodec.toJsonLine(m);
             out.write(line);
             out.flush();
         } catch (IOException e) {
-            // client is disconnected
+            // client is disconnected; ignore
         }
     }
 
     void onGameStarted(com.example.chess.common.GameModels.Game game, boolean isWhite) {
-        JsonObject o = Msg.obj("gameStarted", null);
-        o.addProperty("gameId", game.id);
-        o.addProperty("color", isWhite ? "white" : "black");
-        o.addProperty("opponent", isWhite ? game.blackUser : game.whiteUser);
-        o.addProperty("timeControlMs", game.timeControlMs);
-        o.addProperty("incrementMs", game.incrementMs);
-        send(o);
+        Message m = Message.of("gameStarted", null)
+                .put("gameId", game.id)
+                .put("color", isWhite ? "white" : "black")
+                .put("opponent", isWhite ? game.blackUser : game.whiteUser)
+                .put("timeControlMs", (int) game.timeControlMs)
+                .put("incrementMs", (int) game.incrementMs);
+        send(m);
     }
 
-    void sendInfo(String message) {
-        JsonObject o = Msg.obj("info", null);
-        o.addProperty("message", message);
-        send(o);
-    }
-
-    void sendMove(Game game, String move, boolean whiteInCheck, boolean blackInCheck) {
-        JsonObject o = Msg.obj("move", null);
-        o.addProperty("gameId", game.id);
-        o.addProperty("move", move);
-        o.addProperty("whiteToMove", game.whiteUser);
-        o.addProperty("whiteTimeMs", game.whiteTimeMs);
-        o.addProperty("blackTimeMs", game.blackTimeMs);
-        o.addProperty("whiteInCheck", whiteInCheck);
-        o.addProperty("blackInCheck", blackInCheck);
-
-        send(o);
-    }
-
-    private void handleOfferDraw(String corrId, JsonObject msg) {
-        String gameId = getRequiredString(msg, "gameId");
-        if (currentUser == null) {
-            throw new IllegalArgumentException("Not logged in.");
-        }
-
-        gameCoordinator.offerDraw(gameId, currentUser);
-
-        JsonObject o = Msg.obj("offerDrawOk", corrId);
-        send(o);
-    }
-
-    private void handleRespondDraw(String corrId, JsonObject msg) {
-        String gameId = getRequiredString(msg, "gameId");
-        boolean accepted = msg.has("accepted") && msg.get("accepted").getAsBoolean();
-
-        if (currentUser == null) {
-            throw new IllegalArgumentException("Not logged in.");
-        }
-
-        gameCoordinator.respondDraw(gameId, currentUser, accepted);
-
-        JsonObject o = Msg.obj("respondDrawOk", corrId);
-        send(o);
-    }
-
-    private void handleResign(String corrId, JsonObject msg) {
-        String gameId = getRequiredString(msg, "gameId");
-        if (currentUser == null) {
-            throw new IllegalArgumentException("Not logged in.");
-        }
-
-        gameCoordinator.resign(gameId, currentUser);
-
-        JsonObject o = Msg.obj("resignOk", corrId);
-        send(o);
-    }
-
-    void sendDrawOffered(String gameId, String fromUser) {
-        JsonObject o = Msg.obj("drawOffered", null);
-        o.addProperty("gameId", gameId);
-        o.addProperty("from", fromUser);
-
-        send(o);
-    }
-
-    void sendDrawDeclined(String gameId, String byUser) {
-        JsonObject o = Msg.obj("drawDeclined", null);
-        o.addProperty("gameId", gameId);
-        o.addProperty("by", byUser);
-
-        send(o);
+    void sendMove(Game game, String moveStr, boolean whiteInCheck, boolean blackInCheck) {
+        Message m = Message.of("move", null)
+                .put("gameId", game.id)
+                .put("move", moveStr)
+                .put("whiteInCheck", whiteInCheck)
+                .put("blackInCheck", blackInCheck);
+        send(m);
     }
 
     void sendGameOver(Game game) {
-        JsonObject o = Msg.obj("gameOver", null);
-        o.addProperty("gameId", game.id);
-        o.addProperty("result", game.result.toString());
-        o.addProperty("reason", game.resultReason);
-        o.addProperty("whiteTimeMs", game.whiteTimeMs);
-        o.addProperty("blackTimeMs", game.blackTimeMs);
-
-        send(o);
+        Message m = Message.of("gameOver", null)
+                .put("gameId", game.id)
+                .put("result", game.result.name())
+                .put("reason", game.resultReason != null ? game.resultReason : "");
+        send(m);
     }
 
-    private void handleGetStats(String corrId) {
-        if (currentUser == null) {
-            throw new IllegalArgumentException("Not logged in.");
-        }
-
-        JsonObject o = Msg.obj("getStatsOk", corrId);
-        JsonObject u = new JsonObject();
-        u.addProperty("username", currentUser.username);
-        u.addProperty("name", currentUser.name);
-        u.addProperty("played", currentUser.stats.played);
-        u.addProperty("won", currentUser.stats.won);
-        u.addProperty("drawn", currentUser.stats.drawn);
-        u.addProperty("rating", currentUser.stats.rating);
-        o.add("user", u);
-
-        send(o);
+    void sendDrawOffered(String gameId, String byUser) {
+        Message m = Message.of("drawOffered", null)
+                .put("gameId", gameId)
+                .put("by", byUser);
+        send(m);
     }
 
-    private void handleListGames(String corrId) {
-        if (currentUser == null) {
-            throw new IllegalArgumentException("Not logged in.");
-        }
-
-        java.util.List<Game> games = gameCoordinator.listGamesForUser(currentUser.username);
-
-        JsonObject o = Msg.obj("listGamesOk", corrId);
-        com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
-
-        for (Game g : games) {
-            JsonObject jg = new JsonObject();
-            jg.addProperty("id", g.id);
-            jg.addProperty("createdAt", g.createdAt);
-            String opponent =
-                    currentUser.username.equals(g.whiteUser) ? g.blackUser : g.whiteUser;
-            jg.addProperty("opponent", opponent);
-            String color =
-                    currentUser.username.equals(g.whiteUser) ? "white" : "black";
-            jg.addProperty("color", color);
-            jg.addProperty("result", g.result.toString());
-            jg.addProperty("reason", g.resultReason);
-            arr.add(jg);
-        }
-
-        o.add("games", arr);
-        send(o);
+    void sendDrawDeclined(String gameId, String byUser) {
+        Message m = Message.of("drawDeclined", null)
+                .put("gameId", gameId)
+                .put("by", byUser);
+        send(m);
     }
 
-    private void handleGetGameDetails(String corrId, JsonObject msg) {
-        if (currentUser == null) {
-            throw new IllegalArgumentException("Not logged in.");
-        }
-
-        String gameId = getRequiredString(msg, "gameId");
-        Game g = gameCoordinator.loadGamesById(gameId);
-        if (g == null) {
-            throw new IllegalArgumentException("Game not found.");
-        }
-
-        if (!currentUser.username.equals(g.whiteUser) && !currentUser.username.equals(g.blackUser)) {
-            throw new IllegalArgumentException("You are not part of this game.");
-        }
-
-        JsonObject o = Msg.obj("gameDetailsOk", corrId);
-        JsonObject gg = new JsonObject();
-        gg.addProperty("id", g.id);
-        gg.addProperty("whiteUser", g.whiteUser);
-        gg.addProperty("blackUser", g.blackUser);
-        gg.addProperty("createdAt", g.createdAt);
-        gg.addProperty("result", g.result.toString());
-        gg.addProperty("reason", g.resultReason == null ? "" : g.resultReason);
-
-        com.google.gson.JsonArray movesArr = new com.google.gson.JsonArray();
-        if (g.moves != null) {
-            for (String m : g.moves) {
-                movesArr.add(m);
-            }
-        }
-        gg.add("moves", movesArr);
-
-        o.add("game", gg);
-        send(o);
+    void sendInfo(String message) {
+        Message m = Message.of("info", null)
+                .put("message", message);
+        send(m);
     }
 }
 
