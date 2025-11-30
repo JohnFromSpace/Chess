@@ -6,8 +6,10 @@ import com.example.chess.server.fs.repository.UserRepository;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.example.chess.common.GameModels.Game;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
@@ -18,6 +20,7 @@ import java.util.*;
 public class FileStores implements UserRepository, GameRepository {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Type USER_LIST_TYPE = new TypeToken<List<User>>() {}.getType();
 
     private final Path root;
     private final Path usersDir;
@@ -74,27 +77,23 @@ public class FileStores implements UserRepository, GameRepository {
     }
 
     @Override
-    public List<User> findAllUsers() {
-        List<User> result = new ArrayList<>();
-        if (!Files.exists(usersDir)) {
-            return result;
-        }
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(usersDir, "*.json")) {
-            for (Path file : stream) {
-                try {
-                    String json = Files.readString(file, StandardCharsets.UTF_8);
-                    User user = GSON.fromJson(json, User.class);
-                    if (user != null) {
-                        result.add(user);
-                    }
-                } catch (IOException e) {
-                    System.err.println("Failed to read user file: " + file + " -> " + e.getMessage());
-                }
+    public synchronized List<User> findAllUsers() {
+        return loadAllUsers();
+    }
+
+    private List<User> loadAllUsers() {
+        try {
+            Files.createDirectories(root);
+            if (!Files.exists(usersFile)) {
+                return new ArrayList<>();
             }
+            String json = Files.readString(usersFile);
+            List<User> users = GSON.fromJson(json, USER_LIST_TYPE);
+            return users != null ? users : new ArrayList<>();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to list users directory: " + usersDir, e);
+            // log in real app
+            return new ArrayList<>();
         }
-        return result;
     }
 
     private Path gameFile(String id) {
@@ -102,12 +101,7 @@ public class FileStores implements UserRepository, GameRepository {
     }
 
     @Override
-    public Optional<Game> findById(String id) {
-        return findGameById(id);
-    }
-
-    @Override
-    public Optional<Game> findGameById(String id) {
+    public Optional<Game> findGamesById(String id) {
         Path file = gameFile(id);
         if (!Files.exists(file)) {
             return Optional.empty();
@@ -134,30 +128,6 @@ public class FileStores implements UserRepository, GameRepository {
                     Game game = GSON.fromJson(json, Game.class);
                     if (game != null &&
                             (username.equals(game.whiteUser) || username.equals(game.blackUser))) {
-                        result.add(game);
-                    }
-                } catch (IOException e) {
-                    System.err.println("Failed to read game file: " + file + " -> " + e.getMessage());
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to list games directory: " + gamesDir, e);
-        }
-        return result;
-    }
-
-    @Override
-    public List<Game> findAllGames() {
-        List<Game> result = new ArrayList<>();
-        if (!Files.exists(gamesDir)) {
-            return result;
-        }
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
-            for (Path file : stream) {
-                try {
-                    String json = Files.readString(file, StandardCharsets.UTF_8);
-                    Game game = GSON.fromJson(json, Game.class);
-                    if (game != null) {
                         result.add(game);
                     }
                 } catch (IOException e) {
