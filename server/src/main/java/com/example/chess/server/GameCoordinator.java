@@ -121,7 +121,7 @@ public class GameCoordinator {
             throw new IllegalArgumentException("That's not your piece.");
         }
 
-        if(!isWhite && !Character.isUpperCase(piece)) {
+        if(!isWhite && !Character.isLowerCase(piece)) {
             throw new IllegalArgumentException("That's not your piece.");
         }
 
@@ -136,7 +136,7 @@ public class GameCoordinator {
 
         Board test = copyBoard(game.board);
         test.set(move.toRow, move.toCol, piece);
-        test.set(move.fromRow, move.fromCol, piece);
+        test.set(move.fromRow, move.fromCol, '.');
 
         if(isKingInCheck(test, isWhite)) {
             throw new IllegalArgumentException("Illegal move: king is in check.");
@@ -238,7 +238,7 @@ public class GameCoordinator {
                 return true;
             }
 
-            if(m.toRow == startRow && dy == 2 * dir) {
+            if(m.fromRow == startRow && dy == 2 * dir) {
                 int midRow = m.fromRow + dir;
                 return board.get(midRow, m.fromCol) == '.' && dest == '.';
             }
@@ -397,7 +397,7 @@ public class GameCoordinator {
             return true;
         }
 
-        return isSquareAttacked(board, kr, kc, isWhite);
+        return isSquareAttacked(board, kr, kc, !isWhite);
     }
 
     private boolean hasAnyLegalMove(Board board, boolean forWhite) {
@@ -467,7 +467,7 @@ public class GameCoordinator {
                 game.blackTimeMs -= elapsed;
                 if (game.blackTimeMs <= 0) {
                     game.blackTimeMs = 0;
-                    finishGame(game, Result.ONGOING, "timeout");
+                    finishGame(game, Result.WHITE_WIN, "timeout");
                 }
             }
 
@@ -497,6 +497,8 @@ public class GameCoordinator {
         if(blackHandler != null) {
             blackHandler.sendGameOver(game);
         }
+
+        activeGames.remove(game.id);
     }
 
     public synchronized void offerDraw(String gameId, User user) {
@@ -547,6 +549,8 @@ public class GameCoordinator {
             if(responderHandler != null) {
                 responderHandler.sendDrawDeclined(gameId, user.username);
             }
+
+            return;
         }
 
         game.drawOfferedBy = null;
@@ -562,7 +566,7 @@ public class GameCoordinator {
         if(user.username.equals(game.whiteUser)) {
             finishGame(game, Result.BLACK_WIN, "resign");
         } else if (user.username.equals(game.blackUser)) {
-            finishGame(game, Result.ONGOING, "resign");
+            finishGame(game, Result.WHITE_WIN, "resign");
         } else {
             throw new IllegalArgumentException("You are not part of this game.");
         }
@@ -631,7 +635,7 @@ public class GameCoordinator {
             userRepository.saveUser(white.get());
             userRepository.saveUser(black.get());
         } catch (Exception e) {
-            // don't crash the game if stats and ratings IO fail
+            System.err.println("Failed to update stats/ratings: " + e.getMessage());
         }
     }
 
