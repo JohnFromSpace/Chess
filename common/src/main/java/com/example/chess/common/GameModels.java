@@ -60,7 +60,6 @@ public class GameModels {
         public String whiteUser;
         public String blackUser;
 
-        public String initialFen = "startpos";
         public long timeControlMs = 5L * 60L * 1000L;
         public long incrementMs = 2L * 1000L;
         public long whiteTimeMs = timeControlMs;
