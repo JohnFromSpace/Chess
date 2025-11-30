@@ -2,7 +2,6 @@ package com.example.chess.client.net;
 
 import com.example.chess.common.Message;
 import com.example.chess.common.MessageCodec;
-import com.example.chess.common.Msg;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -64,13 +63,13 @@ public class ClientConnection implements Closeable {
                 String type = msg.get("type").getAsString();
 
                 if("error".equals(type)) {
-                    String message = msg.has("message") ?
-                            msg.get("message").getAsString() :
-                            "Unknown error from server.";
+                    if (msg.has("message")) {
+                        msg.get("message").getAsString();
+                    }
                 } else if ("info".equals(type)) {
-                    String message = msg.has("message") ?
-                            msg.get("message").getAsString() :
-                            "";
+                    if (msg.has("message")) {
+                        msg.get("message").getAsString();
+                    }
                 } else {
                     System.out.println("[SERVER] " + msg);
                 }
@@ -93,7 +92,7 @@ public class ClientConnection implements Closeable {
             out.write(line);
             out.flush();
         } catch (Exception e) {
-            // client disconnected
+            System.err.println("Connection to server closed: " + e.getMessage());
         }
     }
 

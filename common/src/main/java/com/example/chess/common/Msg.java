@@ -7,12 +7,6 @@ import java.util.UUID;
 public final class Msg {
     private static final Gson G = new Gson();
 
-    private Msg() {}
-
-    public static String nextId() {
-        return UUID.randomUUID().toString();
-    }
-
     public static String jsonLine(JsonObject o) {
         return G.toJson(o) + "\n";
     }
