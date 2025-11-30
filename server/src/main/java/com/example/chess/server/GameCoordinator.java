@@ -90,8 +90,6 @@ public class GameCoordinator {
         opponentHandler.onGameStarted(game, game.whiteUser.equals(opponentUser.username));
     }
 
-
-
     private boolean isLegalMoveForPiece(Board board, char piece, Move m, boolean isWhite) {
         char p = Character.toLowerCase(piece);
 
@@ -556,7 +554,114 @@ public class GameCoordinator {
                 orElseThrow(() -> new IllegalArgumentException("Game not found: " + gameId));
     }
 
-    public void makeMove(String gameId, User currentUser, String moveStr) {
+    public void makeMove(String gameId, User user, String moveStr) {
+        Game game = activeGames.get(gameId);
+        if (game == null) {
+            throw new IllegalArgumentException("Game not found or not active.");
+        }
 
+        if (game.result != Result.ONGOING) {
+            throw new IllegalArgumentException("Game is already finished.");
+        }
+
+        boolean isWhitePlayer;
+        if (game.whiteUser.equals(user.username)) {
+            isWhitePlayer = true;
+        } else if (game.blackUser.equals(user.username)) {
+            isWhitePlayer = false;
+        } else {
+            throw new IllegalArgumentException("You are not part of this game.");
+        }
+
+        // turn check
+        if (game.whiteMove != isWhitePlayer) {
+            throw new IllegalArgumentException("It's not your turn.");
+        }
+
+        Move move = Move.parse(moveStr); // assumes long algebraic "e2e4" etc.
+
+        if (move.fromRow == move.toRow && move.fromCol == move.toCol) {
+            throw new IllegalArgumentException("Target is the same square.");
+        }
+
+        char piece = game.board.get(move.fromRow, move.fromCol);
+        if (piece == '.' || piece == 0) {
+            throw new IllegalArgumentException("No piece on this square.");
+        }
+
+        // color ownership
+        if (isWhitePlayer && !Character.isUpperCase(piece)) {
+            throw new IllegalArgumentException("That's not your piece.");
+        }
+        if (!isWhitePlayer && !Character.isLowerCase(piece)) {
+            throw new IllegalArgumentException("That's not your piece.");
+        }
+
+        char dest = game.board.get(move.toRow, move.toCol);
+        if (dest != '.' && dest != 0 && sameColor(piece, dest)) {
+            throw new IllegalArgumentException("Cannot capture your own piece.");
+        }
+
+        // geometric / occupancy rules
+        if (!isLegalMoveForPiece(game.board, piece, move, isWhitePlayer)) {
+            throw new IllegalArgumentException("Illegal move: " + moveStr);
+        }
+
+        // simulate on a copy to check king safety
+        Board test = copyBoard(game.board);
+        test.set(move.toRow, move.toCol, piece);
+        test.set(move.fromRow, move.fromCol, '.');
+
+        if (isKingInCheck(test, isWhitePlayer)) {
+            throw new IllegalArgumentException("Illegal move: king would be in check.");
+        }
+
+        // apply increment
+        if (isWhitePlayer) {
+            game.whiteTimeMs += game.incrementMs;
+        } else {
+            game.blackTimeMs += game.incrementMs;
+        }
+
+        // apply move to real board
+        game.board.set(move.toRow, move.toCol, piece);
+        game.board.set(move.fromRow, move.fromCol, '.');
+
+        // append to history
+        if (game.moves == null) {
+            game.moves = new ArrayList<>();
+        }
+        game.moves.add(moveStr);
+
+        // switch side to move and update timestamp
+        game.whiteMove = !game.whiteMove;
+        game.lastUpdate = System.currentTimeMillis();
+
+        // check / checkmate / stalemate evaluation
+        boolean whiteInCheckNow = isKingInCheck(game.board, true);
+        boolean blackInCheckNow = isKingInCheck(game.board, false);
+
+        boolean sideToMoveIsWhite = game.whiteMove;
+        boolean sideToMoveInCheck = sideToMoveIsWhite ? whiteInCheckNow : blackInCheckNow;
+        boolean sideToMoveHasMoves = hasAnyLegalMove(game.board, sideToMoveIsWhite);
+
+        gameRepository.saveGame(game);
+
+        ClientHandler whiteHandler = onlineHandlers.get(game.whiteUser);
+        ClientHandler blackHandler = onlineHandlers.get(game.blackUser);
+
+        if (whiteHandler != null) {
+            whiteHandler.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
+        }
+        if (blackHandler != null) {
+            blackHandler.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
+        }
+
+        if (sideToMoveInCheck && !sideToMoveHasMoves) {
+            Result result = sideToMoveIsWhite ? Result.BLACK_WIN : Result.WHITE_WIN;
+            finishGame(game, result, "checkmate");
+        } else if (!sideToMoveInCheck && !sideToMoveHasMoves) {
+            finishGame(game, Result.DRAW, "stalemate");
+        }
     }
 }
