@@ -582,7 +582,7 @@ public class GameCoordinator {
             Optional<User> white = userRepository.findByUsername(game.whiteUser);
             Optional<User> black = userRepository.findByUsername(game.blackUser);
 
-            if(white == null || black == null) {
+            if(white.isEmpty() || black.isEmpty()) {
                 return;
             }
 
