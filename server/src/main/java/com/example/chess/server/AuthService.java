@@ -2,22 +2,23 @@ package com.example.chess.server;
 
 import com.example.chess.common.UserModels.User;
 import com.example.chess.server.fs.FileStores;
+import com.example.chess.server.fs.repository.UserRepository;
 
+import java.util.InvalidPropertiesFormatException;
 import java.util.Map;
 import java.util.Optional;
 
 public class AuthService {
 
-    private final FileStores fileStores;
-    private final Map<String, User> users;
+    private final UserRepository userRepository;
 
-    public AuthService(@org.jetbrains.annotations.NotNull FileStores fileStores) {
-        this.fileStores = fileStores;
-        this.users = fileStores.loadUsers();
+    public AuthService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
     public synchronized User register(String username, String name, String password) {
-        if (users.containsKey(username)) {
+        Optional<User> existing = userRepository.findByUsername(username);
+        if (existing.isPresent()) {
             throw new IllegalArgumentException("Username is already taken.");
         }
 
@@ -25,32 +26,20 @@ public class AuthService {
         user.username = username;
         user.name = name;
         user.passHash = PasswordUtil.hash(password);
-        users.put(username, user);
-        fileStores.saveUsers(users.values());
+
+        userRepository.saveUser(user);
         return user;
     }
 
     public synchronized User login(String username, String password) {
-        User user = users.get(username);
+        User currentUser = userRepository.findByUsername(username).
+                orElseThrow(() -> new IllegalArgumentException("Invalid credentials."));
 
-        if (user == null) {
+        if (!currentUser.passHash.equals(password)) {
             throw new IllegalArgumentException("Invalid credentials.");
         }
 
-        if (!PasswordUtil.verify(password, user.passHash)) {
-            throw new IllegalArgumentException("Invalid credentials.");
-        }
-
-        return user;
-    }
-
-    public synchronized void updateUser(User user) {
-        users.put(user.username, user);
-        fileStores.saveUsers(users.values());
-    }
-
-    public synchronized Optional<User> find(String username) {
-        return Optional.ofNullable(users.get(username));
+        return currentUser;
     }
 }
 

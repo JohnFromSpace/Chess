@@ -1,7 +1,8 @@
 package com.example.chess.server;
 
-import com.example.chess.common.GameModels;
 import com.example.chess.server.fs.FileStores;
+import com.example.chess.server.fs.repository.GameRepository;
+import com.example.chess.server.fs.repository.UserRepository;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -13,10 +14,13 @@ public class ServerMain {
     public static void main(String[] args) {
         int port = 5000;
         Path dataDir = Path.of("data");
-
         FileStores fileStores = new FileStores(dataDir);
-        AuthService authService = new AuthService(fileStores);
-        GameCoordinator gameCoordinator = new GameCoordinator(fileStores);
+
+        UserRepository userRepository = fileStores;
+        GameRepository gameRepository = fileStores;
+
+        AuthService authService = new AuthService(userRepository);
+        GameCoordinator gameCoordinator = new GameCoordinator(userRepository, gameRepository);
 
         System.out.println("Chess server starting on port " + port + " ...");
 

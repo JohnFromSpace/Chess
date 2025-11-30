@@ -5,8 +5,9 @@ import com.example.chess.common.GameModels.Game;
 import com.example.chess.common.GameModels.Move;
 import com.example.chess.common.GameModels.Board;
 import com.example.chess.common.UserModels.User;
-import com.example.chess.server.fs.FileStores;
 import com.example.chess.common.UserModels.Stats;
+import com.example.chess.server.fs.repository.GameRepository;
+import com.example.chess.server.fs.repository.UserRepository;
 
 import java.util.*;
 import java.util.List;
@@ -16,7 +17,8 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public class GameCoordinator {
     // online states
-    private final FileStores fileStores;
+    private final UserRepository userRepository;
+    private final GameRepository gameRepository;
     private final Map<String, ClientHandler> onlineHandlers = new HashMap<>();
 
     // simple FIFO queue for pairing
@@ -27,8 +29,9 @@ public class GameCoordinator {
 
     public final ScheduledExecutorService scheduler;
 
-    public GameCoordinator(FileStores fileStores) {
-        this.fileStores = fileStores;
+    public GameCoordinator(UserRepository userRepository, GameRepository gameRepository) {
+        this.userRepository = userRepository;
+        this.gameRepository = gameRepository;
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(this::tickClocks, 1, 1, TimeUnit.SECONDS);
     }
@@ -81,7 +84,7 @@ public class GameCoordinator {
         game.result = Result.ONGOING;
 
         activeGames.put(game.id, game);
-        fileStores.saveGame(game);
+        gameRepository.saveGame(game);
 
         handler.onGameStarted(game, game.whiteUser.equals(user.username));
         opponentHandler.onGameStarted(game, game.whiteUser.equals(opponentUser.username));
@@ -165,7 +168,7 @@ public class GameCoordinator {
 
         game.moves.add(moveStr);
 
-        fileStores.saveGame(game);
+        gameRepository.saveGame(game);
 
         ClientHandler white = onlineHandlers.get(game.whiteUser);
         ClientHandler black = onlineHandlers.get(game.blackUser);
@@ -482,7 +485,7 @@ public class GameCoordinator {
 
         updateStatsAndRatings(game);
 
-        fileStores.saveGame(game);
+        gameRepository.saveGame(game);
 
         ClientHandler whiteHandler = onlineHandlers.get(game.whiteUser);
         ClientHandler blackHandler = onlineHandlers.get(game.blackUser);
@@ -576,15 +579,15 @@ public class GameCoordinator {
 
     private void updateStatsAndRatings(Game game) {
         try {
-            User white = fileStores.loadUser(game.whiteUser);
-            User black = fileStores.loadUser(game.blackUser);
+            Optional<User> white = userRepository.findByUsername(game.whiteUser);
+            Optional<User> black = userRepository.findByUsername(game.blackUser);
 
             if(white == null || black == null) {
                 return;
             }
 
-            Stats ws = white.stats;
-            Stats bs = black.stats;
+            Stats ws = white.get().stats;
+            Stats bs = black.get().stats;
 
             ws.played++;
             bs.played++;
@@ -625,15 +628,15 @@ public class GameCoordinator {
             ws.rating = (int)Math.round(rw);
             bs.rating = (int)Math.round(rb);
 
-            fileStores.saveUser(white);
-            fileStores.saveUser(black);
+            userRepository.saveUser(white.get());
+            userRepository.saveUser(black.get());
         } catch (Exception e) {
             // don't crash the game if stats and ratings IO fail
         }
     }
 
     public synchronized List<Game> listGamesForUser(String username) {
-        return fileStores.findGamesForUser(username);
+        return gameRepository.findGamesForUser(username);
     }
 
     public synchronized Game loadGamesById(String gameId) {
@@ -642,6 +645,7 @@ public class GameCoordinator {
             return active;
         }
 
-        return fileStores.findGameById(gameId);
+        return gameRepository.findGameById(gameId).
+                orElseThrow(() -> new IllegalArgumentException("Game not found: " + gameId));
     }
 }
