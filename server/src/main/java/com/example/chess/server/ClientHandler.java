@@ -5,7 +5,6 @@ import com.example.chess.common.Message;
 import com.example.chess.common.MessageCodec;
 import com.example.chess.common.Msg;
 import com.example.chess.common.UserModels.User;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import java.io.*;
@@ -16,7 +15,6 @@ public class ClientHandler implements Runnable {
     private final Socket socket;
     private final AuthService authService;
     private final GameCoordinator gameCoordinator;
-    private final Gson gson = new Gson();
 
     private BufferedReader in;
     private BufferedWriter out;
@@ -45,8 +43,7 @@ public class ClientHandler implements Runnable {
                 handleLine(line);
             }
         } catch (IOException e) {
-            // client disconnected or IO problem
-            // just end the thread
+            System.err.println("Client disconnected: " + e.getMessage());
         } finally {
             if(currentUser != null) {
                 gameCoordinator.onUserOffline(this, currentUser);

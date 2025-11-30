@@ -97,13 +97,10 @@ public class FileStores implements UserRepository, GameRepository {
         return result;
     }
 
-    // ───────────────────────────── games ─────────────────────────────
-
     private Path gameFile(String id) {
         return gamesDir.resolve(id + ".json");
     }
 
-    /** legacy–style findById if your interface still has it; delegate to findGameById */
     @Override
     public Optional<Game> findById(String id) {
         return findGameById(id);
