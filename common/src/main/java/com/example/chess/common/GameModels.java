@@ -39,7 +39,7 @@ public class GameModels {
             squares[6] = new char[] {'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'};
             squares[7] = new char[] {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'};
 
-            for (int i = 2; i < 5; i++) {
+            for (int i = 2; i <= 5; i++) {
                 for (int j = 0; j < 8; j++) {
                     squares[i][j] = '.';
                 }

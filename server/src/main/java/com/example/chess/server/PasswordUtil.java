@@ -14,8 +14,6 @@ public final class PasswordUtil {
     private static final int KEY_LENGTH = 256; // bits
     private static String password;
 
-    private PasswordUtil() {}
-
     public static @NotNull String hash(@NotNull String password) {
         PasswordUtil.password = password;
         byte[] salt = new byte[16];
