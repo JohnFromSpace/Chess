@@ -114,7 +114,7 @@ public class RulesEngine {
         }
 
         if (kr == -1) {
-            // no king? treat as in check (broken board)
+            // treat as in check (broken board)
             return true;
         }
 

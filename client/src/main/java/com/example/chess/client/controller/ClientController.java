@@ -147,7 +147,6 @@ public class ClientController implements ClientMessageListener {
         msg.addProperty("type", "requestGame");
         msg.addProperty("corrId", newCorrId());
 
-        // Резултатът (gameStarted) идва асинхронно през onMessage()
         conn.sendAndWait(msg);
         view.showMessage("Requested a game. Waiting for pairing...");
     }

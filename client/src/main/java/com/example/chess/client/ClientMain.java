@@ -24,8 +24,6 @@ public class ClientMain {
             // Controller will act as the listener (implements ClientMessageListener)
             ClientController controller = new ClientController(model, view, connection);
 
-            // IMPORTANT: add this method in ClientConnection if you don't have it:
-            // public void setListener(ClientMessageListener listener) { this.listener = listener; }
             connection.setListener(controller);
 
             // Start network loop and then run the UI loop
