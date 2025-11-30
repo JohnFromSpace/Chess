@@ -8,6 +8,8 @@ public class Message {
     public String corrId;
     public JsonObject data = new JsonObject();
 
+    public Message() {}
+
     public Message(String type, String corrId, JsonObject data) {
         this.type = type;
         this.corrId = corrId;

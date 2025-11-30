@@ -1,36 +1,46 @@
 package com.example.chess.common;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import java.util.Map;
 
 public class MessageCodec {
     private static final Gson GSON = new Gson();
 
-    public static Message fromJsonLine(String line) {
-        JsonObject root = GSON.fromJson(line, JsonObject.class);
-        String type = root.get("type").getAsString();
-        String corrId = root.has("corrId") ? root.get("corrId").getAsString() : null;
+    private MessageCodec() {}
 
-        JsonObject payload = new JsonObject();
-        for (String key : root.keySet()) {
-            if (!key.equals("type") && !key.equals("corrId")) {
-                payload.add(key, root.get(key));
-            }
+    public static String toJsonLine(Message m) {
+        JsonObject root = new JsonObject();
+        root.addProperty("type", m.type);
+        if (m.corrId != null) {
+            root.addProperty("corrId", m.corrId);
         }
-        return new Message(type, corrId, payload);
+
+        for (Map.Entry<String, JsonElement> e : m.data.entrySet()) {
+            root.add(e.getKey(), e.getValue());
+        }
+
+        return GSON.toJson(root) + "\n";
     }
 
-    public static String toJsonLine(Message msg) {
-        JsonObject root = new JsonObject();
-        root.addProperty("type", msg.type);
-        if (msg.corrId != null) {
-            root.addProperty("corrId", msg.corrId);
+    public static Message fromJsonLine(String line) {
+        JsonObject root = GSON.fromJson(line, JsonObject.class);
+        if (root == null || !root.has("type")) {
+            throw new IllegalArgumentException("Missing 'type' field.");
         }
-        if (msg.payload != null) {
-            for (String key : msg.payload.keySet()) {
-                root.add(key, msg.payload.get(key));
-            }
+
+        Message m = new Message();
+        m.type = root.get("type").getAsString();
+        if (root.has("corrId")) {
+            m.corrId = root.get("corrId").getAsString();
         }
-        return GSON.toJson(root) + "\n";
+
+        root.remove("type");
+        root.remove("corrId");
+        m.data = root;
+
+        return m;
     }
 }
