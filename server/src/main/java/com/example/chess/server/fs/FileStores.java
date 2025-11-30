@@ -64,11 +64,6 @@ public class FileStores implements UserRepository, GameRepository {
         writeAllUsers(users);
     }
 
-    @Override
-    public synchronized List<User> findAllUsers() {
-        return loadAllUsers();
-    }
-
     private List<User> loadAllUsers() {
         try {
             Files.createDirectories(root);

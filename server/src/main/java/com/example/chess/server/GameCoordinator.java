@@ -286,20 +286,6 @@ public class GameCoordinator {
         }
     }
 
-    public synchronized Map<String, Game> listGamesForUser(String username) {
-        return gameRepository.findGamesForUser(username);
-    }
-
-    public synchronized Game loadGamesById(String gameId) {
-        Game active = activeGames.get(gameId);
-        if(active != null) {
-            return active;
-        }
-
-        return gameRepository.findGameById(gameId).
-                orElseThrow(() -> new IllegalArgumentException("Game not found: " + gameId));
-    }
-
     public void makeMove(String gameId, User user, String moveStr) {
         Game game = activeGames.get(gameId);
         if (game == null) {
