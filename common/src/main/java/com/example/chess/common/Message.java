@@ -10,12 +10,6 @@ public class Message {
 
     public Message() {}
 
-    public Message(String type, String corrId, JsonObject data) {
-        this.type = type;
-        this.corrId = corrId;
-        this.data = data;
-    }
-
     public Message(String type, String corrId) {
         this.type = type;
         this.corrId = corrId;
@@ -50,19 +44,5 @@ public class Message {
             throw new IllegalArgumentException("Missing field: " + field);
         }
         return data.get(field).getAsString();
-    }
-
-    public int getIntOrDefault(String field, int def) {
-        if (!data.has(field) || data.get(field).isJsonNull()) {
-            return def;
-        }
-        return data.get(field).getAsInt();
-    }
-
-    public boolean getBooleanOrDefault(String field, boolean def) {
-        if (!data.has(field) || data.get(field).isJsonNull()) {
-            return def;
-        }
-        return data.get(field).getAsBoolean();
     }
 }

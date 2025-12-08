@@ -22,26 +22,6 @@ public final class PasswordUtil {
         return "pbkdf2$" + ITERATIONS + "$" + b64(salt) + "$" + b64(hash);
     }
 
-    public static boolean verify(String password, String stored) {
-        try {
-            String[] parts = stored.split("\\$");
-            if (parts.length != 4) return false;
-            int iter = Integer.parseInt(parts[1]);
-            byte[] salt = Base64.getDecoder().decode(parts[2]);
-            byte[] expected = Base64.getDecoder().decode(parts[3]);
-            byte[] actual = pbkdf2(password.toCharArray(), salt, iter);
-
-            if (actual.length != expected.length) return false;
-            int diff = 0;
-            for (int i = 0; i < actual.length; i++) {
-                diff |= actual[i] ^ expected[i];
-            }
-            return diff == 0;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     private static String b64(byte[] bytes) {
         return Base64.getEncoder().encodeToString(bytes);
     }

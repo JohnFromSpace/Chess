@@ -243,7 +243,6 @@ public class ClientController implements ClientMessageListener {
                 String opponent = g.get("opponent").getAsString();
                 String color    = g.get("color").getAsString();
                 String result   = g.get("result").getAsString();
-                String created  = g.get("createdAt").getAsString();
 
                 String line = String.format(
                         "[%d] %s vs %s (%s), result=%s, id=%s",

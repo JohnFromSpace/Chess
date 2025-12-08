@@ -197,7 +197,7 @@ public class ClientHandler implements Runnable {
             out.write(line);
             out.flush();
         } catch (IOException e) {
-            // client is disconnected; ignore
+            System.err.println("Failed to send message: " + e.getMessage());
         }
     }
 

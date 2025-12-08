@@ -44,7 +44,8 @@ public class ClientConnection {
     public void stop() {
         try {
             if (socket != null) socket.close();
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to stop", e);
         }
     }
 
@@ -83,6 +84,7 @@ public class ClientConnection {
                 }
             }
         } catch (IOException e) {
+            throw new RuntimeException("Failed to read", e);
         } finally {
             IOException ex = new IOException("Connection closed");
             for (CompletableFuture<JsonObject> f : pending.values()) {
