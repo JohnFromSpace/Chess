@@ -220,12 +220,16 @@ public class ClientHandler implements Runnable {
         send(m);
     }
 
-    void sendGameOver(Game game) {
+    void sendGameOver(Game game, boolean statsOk) {
         Message m = Message.of("gameOver", null)
                 .put("gameId", game.id)
                 .put("result", game.result.name())
                 .put("reason", game.resultReason != null ? game.resultReason : "");
         send(m);
+
+        if(!statsOk) {
+            System.err.println("Game finished, but stats could not be updated on the server.");
+        }
     }
 
     void sendDrawOffered(String gameId, String byUser) {

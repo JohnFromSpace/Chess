@@ -74,6 +74,8 @@ public class FileStores implements UserRepository, GameRepository {
             List<User> users = GSON.fromJson(json, USER_LIST_TYPE);
             return users != null ? users : new ArrayList<>();
         } catch (IOException e) {
+            System.err.println("Failed to load all users: " + e.getMessage());
+            e.printStackTrace();
             return new ArrayList<>();
         }
     }

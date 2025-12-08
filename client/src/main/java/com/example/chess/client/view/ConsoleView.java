@@ -10,10 +10,6 @@ public class ConsoleView {
     private final Scanner in;
     private final PrintStream out;
 
-    public ConsoleView() {
-        this(new Scanner(System.in), System.out);
-    }
-
     public ConsoleView(Scanner in, PrintStream out) {
         this.in = in;
         this.out = out;
@@ -82,24 +78,5 @@ public class ConsoleView {
 
     public void showDrawOffered(String from) {
         out.printf("%s offered a draw.%n", from);
-    }
-
-    public void printBoard(Board board) {
-        if (board == null) {
-            out.println("[No board loaded]");
-            return;
-        }
-        out.println("   +------------------------+");
-        for (int row = 0; row < 8; row++) {
-            out.print((8 - row) + "  | ");
-            for (int col = 0; col < 8; col++) {
-                char p = board.squares[row][col];
-                if (p == 0) p = '.';
-                out.print(p + " ");
-            }
-            out.println("|");
-        }
-        out.println("   +------------------------+");
-        out.println("      a b c d e f g h");
     }
 }

@@ -130,19 +130,18 @@ public class GameCoordinator {
         game.result = result;
         game.resultReason = reason;
 
-        updateStatsAndRatings(game);
-
+        boolean statsOk = updateStatsAndRatings(game);
         gameRepository.saveGame(game);
 
         ClientHandler whiteHandler = onlineHandlers.get(game.whiteUser);
         ClientHandler blackHandler = onlineHandlers.get(game.blackUser);
 
         if(whiteHandler != null) {
-            whiteHandler.sendGameOver(game);
+            whiteHandler.sendGameOver(game, statsOk);
         }
 
         if(blackHandler != null) {
-            blackHandler.sendGameOver(game);
+            blackHandler.sendGameOver(game, statsOk);
         }
 
         activeGames.remove(game.id);
@@ -228,13 +227,13 @@ public class GameCoordinator {
         return opponent == null ? null : onlineHandlers.get(opponent);
     }
 
-    private void updateStatsAndRatings(Game game) {
+    private boolean updateStatsAndRatings(Game game) {
         try {
             Optional<User> white = userRepository.findByUsername(game.whiteUser);
             Optional<User> black = userRepository.findByUsername(game.blackUser);
 
             if(white.isEmpty() || black.isEmpty()) {
-                return;
+                return false;
             }
 
             Stats ws = white.get().stats;
@@ -262,7 +261,7 @@ public class GameCoordinator {
                     sb = 0.5;
                 }
                 default -> {
-                    return;
+                    return false;
                 }
             }
 
@@ -283,7 +282,11 @@ public class GameCoordinator {
             userRepository.saveUser(black.get());
         } catch (Exception e) {
             System.err.println("Failed to update stats/ratings: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
+
+        return true;
     }
 
     public void makeMove(String gameId, User user, String moveStr) {
