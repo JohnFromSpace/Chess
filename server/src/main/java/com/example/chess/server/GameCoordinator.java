@@ -149,7 +149,7 @@ public class GameCoordinator {
     }
 
     public void offerDraw(String gameId, User user) {
-        Game game = activeGames.get(gameId);
+        Game game = requireActiveGame(gameId);
         synchronized (game) {
             if (game == null || game.result != Result.ONGOING) {
                 throw new IllegalArgumentException("Game not active.");
@@ -173,7 +173,7 @@ public class GameCoordinator {
     }
 
     public void respondDraw(String gameId, User user, boolean accepted) {
-        Game game = activeGames.get(gameId);
+        Game game = requireActiveGame(gameId);
         synchronized (game) {
             if (game == null || game.result != Result.ONGOING) {
                 throw new IllegalArgumentException("Game not found or already finished.");
@@ -209,7 +209,7 @@ public class GameCoordinator {
     }
 
     public void resign(String gameId, User user) {
-        Game game = activeGames.get(gameId);
+        Game game = requireActiveGame(gameId);
 
         synchronized (game) {
             if (game == null || game.result != Result.ONGOING) {
