@@ -17,7 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 
-public class FileStores implements UserRepository, GameRepository {
+public class FileStores extends UserRepository implements GameRepository {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type USER_LIST_TYPE = new TypeToken<List<User>>() {}.getType();
 
@@ -64,7 +64,7 @@ public class FileStores implements UserRepository, GameRepository {
         writeAllUsers(users);
     }
 
-    private List<User> loadAllUsers() {
+    public List<User> loadAllUsers() {
         try {
             Files.createDirectories(root);
             if (!Files.exists(usersDir)) {
@@ -150,5 +150,21 @@ public class FileStores implements UserRepository, GameRepository {
         } catch (IOException e) {
             throw new RuntimeException("Failed to write game file: " + file, e);
         }
+    }
+
+    public Map<String, Game> loadAllGames() {
+        Map<String, Game> result = new HashMap<>();
+        try (DirectoryStream<Path> ds = Files.newDirectoryStream(gamesDir, "*.json")) {
+            for (Path p : ds) {
+                String json = Files.readString(p);
+                Game g = GSON.fromJson(json, Game.class);
+                if (g != null && g.id != null) {
+                    result.put(g.id, g);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to load all games: " + e.getMessage());
+        }
+        return result;
     }
 }

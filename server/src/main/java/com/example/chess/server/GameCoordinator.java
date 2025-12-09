@@ -96,30 +96,32 @@ public class GameCoordinator {
         long now = System.currentTimeMillis();
 
         for (Game game : activeGames.values()) {
-            if (game.result != Result.ONGOING) {
-                continue;
-            }
-
-            long elapsed = now - game.lastUpdate;
-            if (elapsed <= 0) {
-                continue;
-            }
-
-            if (game.whiteMove) {
-                game.whiteTimeMs -= elapsed;
-                if (game.whiteTimeMs <= 0) {
-                    game.whiteTimeMs = 0;
-                    finishGame(game, Result.BLACK_WIN, "timeout");
+            synchronized (game) {
+                if (game.result != Result.ONGOING) {
+                    continue;
                 }
-            } else {
-                game.blackTimeMs -= elapsed;
-                if (game.blackTimeMs <= 0) {
-                    game.blackTimeMs = 0;
-                    finishGame(game, Result.WHITE_WIN, "timeout");
-                }
-            }
 
-            game.lastUpdate = now;
+                long elapsed = now - game.lastUpdate;
+                if (elapsed <= 0) {
+                    continue;
+                }
+
+                if (game.whiteMove) {
+                    game.whiteTimeMs -= elapsed;
+                    if (game.whiteTimeMs <= 0) {
+                        game.whiteTimeMs = 0;
+                        finishGame(game, Result.BLACK_WIN, "timeout");
+                    }
+                } else {
+                    game.blackTimeMs -= elapsed;
+                    if (game.blackTimeMs <= 0) {
+                        game.blackTimeMs = 0;
+                        finishGame(game, Result.WHITE_WIN, "timeout");
+                    }
+                }
+
+                game.lastUpdate = now;
+            }
         }
     }
 

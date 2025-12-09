@@ -1,0 +1,31 @@
+package com.example.chess.common.proto;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ResponseMessage extends Message {
+    public final boolean error;
+    public final String message;
+    public final Map<String, Object> payload;
+
+    public ResponseMessage(String type, String corrId,
+                           boolean error, String message,
+                           Map<String, Object> payload) {
+        super(type, corrId);
+        this.error = error;
+        this.message = message;
+        this.payload = payload;
+    }
+
+    public static ResponseMessage ok(String type, String corrId) {
+        return new ResponseMessage(type, corrId, false, null, new HashMap<>());
+    }
+
+    public static ResponseMessage error(String corrId, String message) {
+        return new ResponseMessage("error", corrId, true, message, new java.util.HashMap<>());
+    }
+
+    public boolean isError() {
+        return error;
+    }
+}
