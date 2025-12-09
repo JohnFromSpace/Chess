@@ -11,6 +11,7 @@ import com.example.chess.server.fs.repository.UserRepository;
 import com.example.chess.server.logic.RulesEngine;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,7 +27,7 @@ public class GameCoordinator {
     private final Deque<ClientHandler> waitingQueue = new ArrayDeque<>();
 
     // active games
-    private final Map<String, Game> activeGames = new HashMap<>();
+    private final Map<String, Game> activeGames = new ConcurrentHashMap<>();
 
     public final ScheduledExecutorService scheduler;
 
@@ -37,11 +38,11 @@ public class GameCoordinator {
         scheduler.scheduleAtFixedRate(this::tickClocks, 1, 1, TimeUnit.SECONDS);
     }
 
-    public synchronized void onUserOnline(ClientHandler handler, User user) {
+    public void onUserOnline(ClientHandler handler, User user) {
         onlineHandlers.put(user.username, handler);
     }
 
-    public synchronized void onUserOffline(ClientHandler handler, User user) {
+    public void onUserOffline(ClientHandler handler, User user) {
         if (user == null) {
             return;
         }
@@ -91,7 +92,7 @@ public class GameCoordinator {
         opponentHandler.onGameStarted(game, game.whiteUser.equals(opponentUser.username));
     }
 
-    private synchronized void tickClocks() {
+    private void tickClocks() {
         long now = System.currentTimeMillis();
 
         for (Game game : activeGames.values()) {
@@ -122,7 +123,7 @@ public class GameCoordinator {
         }
     }
 
-    private synchronized void finishGame(Game game, Result result, String reason) {
+    private void finishGame(Game game, Result result, String reason) {
         if(game.result != Result.ONGOING) {
             return;
         }
@@ -147,74 +148,81 @@ public class GameCoordinator {
         activeGames.remove(game.id);
     }
 
-    public synchronized void offerDraw(String gameId, User user) {
+    public void offerDraw(String gameId, User user) {
         Game game = activeGames.get(gameId);
-        if(game == null || game.result != Result.ONGOING) {
-            throw new IllegalArgumentException("Game not active.");
-        }
+        synchronized (game) {
+            if (game == null || game.result != Result.ONGOING) {
+                throw new IllegalArgumentException("Game not active.");
+            }
 
-        if(!user.username.equals(game.whiteUser) && !user.username.equals(game.blackUser)) {
-            throw new IllegalArgumentException("You are not part of this game.");
-        }
+            if (!user.username.equals(game.whiteUser) && !user.username.equals(game.blackUser)) {
+                throw new IllegalArgumentException("You are not part of this game.");
+            }
 
-        if(game.drawOfferedBy != null) {
-            throw new IllegalArgumentException("There is already a pending draw.");
-        }
+            if (game.drawOfferedBy != null) {
+                throw new IllegalArgumentException("There is already a pending draw.");
+            }
 
-        game.drawOfferedBy = user.username;
+            game.drawOfferedBy = user.username;
 
-        ClientHandler opponent = getOpponentHandler(game, user.username);
-        if(opponent != null) {
-            opponent.sendDrawOffered(gameId, user.username);
+            ClientHandler opponent = getOpponentHandler(game, user.username);
+            if (opponent != null) {
+                opponent.sendDrawOffered(gameId, user.username);
+            }
         }
     }
 
-    public synchronized void respondDraw(String gameId, User user, boolean accepted) {
+    public void respondDraw(String gameId, User user, boolean accepted) {
         Game game = activeGames.get(gameId);
-        if(game == null || game.result != Result.ONGOING) {
-            throw new IllegalArgumentException("Game not found or already finished.");
-        }
+        synchronized (game) {
+            if (game == null || game.result != Result.ONGOING) {
+                throw new IllegalArgumentException("Game not found or already finished.");
+            }
 
-        if(game.drawOfferedBy == null) {
-            throw new IllegalArgumentException("No pending draw offered.");
-        }
+            if (game.drawOfferedBy == null) {
+                throw new IllegalArgumentException("No pending draw offered.");
+            }
 
-        String offerer = game.drawOfferedBy;
-        if(offerer.equals(user.username)) {
-            throw new IllegalArgumentException("You cannot respond to your own draw offer.");
-        }
+            String offerer = game.drawOfferedBy;
+            if (offerer.equals(user.username)) {
+                throw new IllegalArgumentException("You cannot respond to your own draw offer.");
+            }
 
-        ClientHandler offererHandler = onlineHandlers.get(offerer);
-        ClientHandler responderHandler = onlineHandlers.get(user.username);
+            ClientHandler offererHandler = onlineHandlers.get(offerer);
+            ClientHandler responderHandler = onlineHandlers.get(user.username);
 
-        if(!accepted) {
+            if (!accepted) {
+                game.drawOfferedBy = null;
+                if (offererHandler != null) {
+                    offererHandler.sendDrawDeclined(gameId, user.username);
+                }
+                if (responderHandler != null) {
+                    responderHandler.sendDrawDeclined(gameId, user.username);
+                }
+
+                return;
+            }
+
             game.drawOfferedBy = null;
-            if(offererHandler != null) {
-                offererHandler.sendDrawDeclined(gameId, user.username);
-            }
-            if(responderHandler != null) {
-                responderHandler.sendDrawDeclined(gameId, user.username);
-            }
-
-            return;
+            finishGame(game, Result.DRAW, "drawAgreed");
         }
-
-        game.drawOfferedBy = null;
-        finishGame(game, Result.DRAW, "drawAgreed");
     }
 
-    public synchronized void resign(String gameId, User user) {
+    public void resign(String gameId, User user) {
         Game game = activeGames.get(gameId);
-        if(game == null || game.result != Result.ONGOING) {
-            throw new IllegalArgumentException("Game is not active.");
-        }
 
-        if(user.username.equals(game.whiteUser)) {
-            finishGame(game, Result.BLACK_WIN, "resign");
-        } else if (user.username.equals(game.blackUser)) {
-            finishGame(game, Result.WHITE_WIN, "resign");
-        } else {
-            throw new IllegalArgumentException("You are not part of this game.");
+        synchronized (game) {
+            if (game == null || game.result != Result.ONGOING) {
+                throw new IllegalArgumentException("Game is not active.");
+            }
+
+            if (user.username.equals(game.whiteUser)) {
+                finishGame(game, Result.BLACK_WIN, "resign");
+            } else if (user.username.equals(game.blackUser)) {
+                finishGame(game, Result.WHITE_WIN, "resign");
+            } else {
+                throw new IllegalArgumentException("You are not part of this game.");
+            }
         }
     }
 
@@ -290,89 +298,125 @@ public class GameCoordinator {
     }
 
     public void makeMove(String gameId, User user, String moveStr) {
+        Game game = requireActiveGame(gameId);
+
+        synchronized (game) {
+            ensurePlayerInGame(game, user);
+            boolean isWhite = game.whiteUser.equals(user.username);
+
+            Move move = parseMove(moveStr);
+            ensureDifferentSquares(move);
+            char piece = getPieceAtSource(game, move);
+            ensurePieceBelongsToPlayer(piece, isWhite);
+            ensureTargetNotOwnPiece(game, piece, move);
+            ensureGeometricLegality(game, piece, move, isWhite);
+            ensureKingNotInCheckAfterMove(game, piece, move, isWhite);
+
+            applyMoveAndClock(game, piece, move, isWhite);
+            String sanOrLan = moveStr; // keep your current string; later you can derive SAN if you want
+            addMoveToHistory(game, sanOrLan);
+
+            // evaluate check / mate / stalemate
+            postMoveStatusAndMaybeFinish(game, sanOrLan);
+        }
+    }
+
+    private Game requireActiveGame(String gameId) {
         Game game = activeGames.get(gameId);
         if (game == null) {
-            throw new IllegalArgumentException("Game not found or not active.");
+            throw new IllegalArgumentException("Game not found.");
         }
-
         if (game.result != Result.ONGOING) {
             throw new IllegalArgumentException("Game is already finished.");
         }
+        return game;
+    }
 
-        boolean isWhitePlayer;
-        if (game.whiteUser.equals(user.username)) {
-            isWhitePlayer = true;
-        } else if (game.blackUser.equals(user.username)) {
-            isWhitePlayer = false;
-        } else {
+    private void ensurePlayerInGame(Game game, User user) {
+        if (!game.whiteUser.equals(user.username) && !game.blackUser.equals(user.username)) {
             throw new IllegalArgumentException("You are not part of this game.");
         }
+    }
 
-        // turn check
-        if (game.whiteMove != isWhitePlayer) {
-            throw new IllegalArgumentException("It's not your turn.");
+    private Move parseMove(String moveStr) {
+        Move move = Move.parse(moveStr);
+        if (move == null) {
+            throw new IllegalArgumentException("Invalid move format: " + moveStr);
         }
+        return move;
+    }
 
-        Move move = Move.parse(moveStr); // assumes long algebraic "e2e4" etc.
-
+    private void ensureDifferentSquares(Move move) {
         if (move.fromRow == move.toRow && move.fromCol == move.toCol) {
             throw new IllegalArgumentException("Target is the same square.");
         }
+    }
 
+    private char getPieceAtSource(Game game, Move move) {
         char piece = game.board.get(move.fromRow, move.fromCol);
         if (piece == '.' || piece == 0) {
             throw new IllegalArgumentException("No piece on this square.");
         }
+        return piece;
+    }
 
-        // color ownership
-        if (isWhitePlayer && !Character.isUpperCase(piece)) {
+    private void ensurePieceBelongsToPlayer(char piece, boolean isWhite) {
+        if (isWhite && !Character.isUpperCase(piece)) {
             throw new IllegalArgumentException("That's not your piece.");
         }
-        if (!isWhitePlayer && !Character.isLowerCase(piece)) {
+        if (!isWhite && !Character.isLowerCase(piece)) {
             throw new IllegalArgumentException("That's not your piece.");
         }
+    }
 
+    private void ensureTargetNotOwnPiece(Game game, char piece, Move move) {
         char dest = game.board.get(move.toRow, move.toCol);
         if (dest != '.' && dest != 0 && rulesEngine.sameColor(piece, dest)) {
             throw new IllegalArgumentException("Cannot capture your own piece.");
         }
+    }
 
-        // geometric / occupancy rules
-        if (!rulesEngine.isLegalMoveForPiece(game.board, piece, move, isWhitePlayer)) {
-            throw new IllegalArgumentException("Illegal move: " + moveStr);
+    private void ensureGeometricLegality(Game game, char piece, Move move, boolean isWhite) {
+        if (!rulesEngine.isLegalMoveForPiece(game.board, piece, move, isWhite)) {
+            throw new IllegalArgumentException("Illegal move: " + move);
         }
+    }
 
-        // simulate on a copy to check king safety
+    private void ensureKingNotInCheckAfterMove(Game game, char piece, Move move, boolean isWhite) {
         Board test = rulesEngine.copyBoard(game.board);
         test.set(move.toRow, move.toCol, piece);
         test.set(move.fromRow, move.fromCol, '.');
 
-        if (rulesEngine.isKingInCheck(test, isWhitePlayer)) {
-            throw new IllegalArgumentException("Illegal move: king would be in check.");
+        if (rulesEngine.isKingInCheck(test, isWhite)) {
+            throw new IllegalArgumentException("Illegal move: king is in check.");
         }
+    }
 
-        // apply increment
-        if (isWhitePlayer) {
+    private void applyMoveAndClock(Game game, char piece, Move move, boolean isWhite) {
+        long now = System.currentTimeMillis();
+
+        if (isWhite) {
             game.whiteTimeMs += game.incrementMs;
         } else {
             game.blackTimeMs += game.incrementMs;
         }
 
-        // apply move to real board
         game.board.set(move.toRow, move.toCol, piece);
         game.board.set(move.fromRow, move.fromCol, '.');
 
-        // append to history
+        game.whiteMove = !game.whiteMove;
+        game.lastUpdate = now;
+    }
+
+    private void addMoveToHistory(Game game, String moveStr) {
         if (game.moves == null) {
-            game.moves = new ArrayList<>();
+            game.moves = new java.util.ArrayList<>();
         }
         game.moves.add(moveStr);
+        gameRepository.saveGame(game);
+    }
 
-        // switch side to move and update timestamp
-        game.whiteMove = !game.whiteMove;
-        game.lastUpdate = System.currentTimeMillis();
-
-        // check / checkmate / stalemate evaluation
+    private void postMoveStatusAndMaybeFinish(Game game, String moveStr) {
         boolean whiteInCheckNow = rulesEngine.isKingInCheck(game.board, true);
         boolean blackInCheckNow = rulesEngine.isKingInCheck(game.board, false);
 
@@ -380,21 +424,14 @@ public class GameCoordinator {
         boolean sideToMoveInCheck = sideToMoveIsWhite ? whiteInCheckNow : blackInCheckNow;
         boolean sideToMoveHasMoves = rulesEngine.hasAnyLegalMove(game.board, sideToMoveIsWhite);
 
-        if(game.moves == null) {
-            game.moves = new java.util.ArrayList<>();
+        ClientHandler white = onlineHandlers.get(game.whiteUser);
+        ClientHandler black = onlineHandlers.get(game.blackUser);
+
+        if (white != null) {
+            white.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
         }
-        game.moves.add(moveStr);
-
-        gameRepository.saveGame(game);
-
-        ClientHandler whiteHandler = onlineHandlers.get(game.whiteUser);
-        ClientHandler blackHandler = onlineHandlers.get(game.blackUser);
-
-        if (whiteHandler != null) {
-            whiteHandler.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
-        }
-        if (blackHandler != null) {
-            blackHandler.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
+        if (black != null) {
+            black.sendMove(game, moveStr, whiteInCheckNow, blackInCheckNow);
         }
 
         if (sideToMoveInCheck && !sideToMoveHasMoves) {

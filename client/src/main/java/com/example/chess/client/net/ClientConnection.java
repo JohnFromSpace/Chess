@@ -60,11 +60,11 @@ public class ClientConnection {
                 line = line.trim();
                 if (line.isEmpty()) continue;
 
-                JsonObject msg;
+                JsonObject msg = null;
                 try {
                     msg = gson.fromJson(line, JsonObject.class);
                 } catch (Exception ex) {
-                    continue;
+                    System.err.println("Failed to extract text: " + ex.getMessage());
                 }
 
                 String corrId = msg.has("corrId") && !msg.get("corrId").isJsonNull()
