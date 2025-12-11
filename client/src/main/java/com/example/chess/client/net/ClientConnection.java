@@ -1,8 +1,11 @@
 package com.example.chess.client.net;
 
 import com.example.chess.client.ClientMessageListener;
+import com.example.chess.common.MessageCodec;
+import com.example.chess.common.proto.Message;
+import com.example.chess.common.proto.RequestMessage;
+import com.example.chess.common.proto.ResponseMessage;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 
 import java.io.*;
 import java.net.Socket;
@@ -22,8 +25,7 @@ public class ClientConnection {
     private BufferedReader in;
     private BufferedWriter out;
     private Thread readerThread;
-
-    private final Map<String, CompletableFuture<JsonObject>> pending = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<ResponseMessage>> pending = new ConcurrentHashMap<>();
 
     public ClientConnection(String host, int port, ClientMessageListener listener) {
         this.host = host;
@@ -41,14 +43,6 @@ public class ClientConnection {
         readerThread.start();
     }
 
-    public void stop() {
-        try {
-            if (socket != null) socket.close();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to stop", e);
-        }
-    }
-
     public void setListener(ClientMessageListener listener) {
         this.listener = listener;
     }
@@ -60,19 +54,28 @@ public class ClientConnection {
                 line = line.trim();
                 if (line.isEmpty()) continue;
 
-                JsonObject msg = null;
-                try {
-                    msg = gson.fromJson(line, JsonObject.class);
-                } catch (Exception ex) {
-                    System.err.println("Failed to extract text: " + ex.getMessage());
+                Message msg = MessageCodec.fromJson(line);
+
+                if ((msg instanceof ResponseMessage resp) && (resp.corrId != null)) {
+                    CompletableFuture<ResponseMessage> fut = pending.remove(resp.corrId);
+                    if (fut != null) {
+                        fut.complete(resp);
+                    } else {
+                        // async notification, if you have such (info, gameStarted, move, etc.)
+                        handleAsync(resp);
+                    }
+                } else {
+                    // server-pushed messages without corrId
+                    handleAsync(msg);
                 }
 
+                if (msg == null) throw new AssertionError("Empty message!");
                 String corrId = msg.has("corrId") && !msg.get("corrId").isJsonNull()
                         ? msg.get("corrId").getAsString()
                         : null;
 
                 if (corrId != null) {
-                    CompletableFuture<JsonObject> fut = pending.remove(corrId);
+                    CompletableFuture<ResponseMessage> fut = pending.remove(corrId);
                     if (fut != null) {
                         fut.complete(msg);
                         continue;
@@ -87,35 +90,34 @@ public class ClientConnection {
             throw new RuntimeException("Failed to read", e);
         } finally {
             IOException ex = new IOException("Connection closed");
-            for (CompletableFuture<JsonObject> f : pending.values()) {
+            for (CompletableFuture<ResponseMessage> f : pending.values()) {
                 f.completeExceptionally(ex);
             }
             pending.clear();
         }
     }
 
-    public synchronized void send(JsonObject msg) {
-        try {
-            String line = gson.toJson(msg) + "\n";
-            out.write(line);
-            out.flush();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to send to server", e);
-        }
-    }
-
-    public CompletableFuture<JsonObject> sendAndWait(JsonObject msg) {
-        String corrId;
-        if (msg.has("corrId") && !msg.get("corrId").isJsonNull()) {
-            corrId = msg.get("corrId").getAsString();
-        } else {
+    public CompletableFuture<ResponseMessage> sendAndWait(RequestMessage msg) {
+        String corrId = msg.corrId;
+        if (corrId == null) {
             corrId = UUID.randomUUID().toString();
-            msg.addProperty("corrId", corrId);
+            msg = new RequestMessage(msg.type, corrId, msg.payload);
         }
 
-        CompletableFuture<JsonObject> fut = new CompletableFuture<>();
+        CompletableFuture<ResponseMessage> fut = new CompletableFuture<>();
         pending.put(corrId, fut);
-        send(msg);
+
+        try {
+            String json = MessageCodec.toJson(msg);
+            synchronized (out) {
+                out.write(json);
+                out.flush();
+            }
+        } catch (IOException e) {
+            pending.remove(corrId);
+            fut.completeExceptionally(e);
+        }
+
         return fut;
     }
 }

@@ -65,6 +65,9 @@ public class GameModels {
         public long whiteTimeMs = timeControlMs;
         public long blackTimeMs = timeControlMs;
 
+        public long whiteOfflineSince = 0L;
+        public long blackOfflineSince = 0L;
+
         public Result result = Result.ONGOING;
         public String resultReason = "";
 

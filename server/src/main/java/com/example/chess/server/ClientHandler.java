@@ -1,7 +1,6 @@
 package com.example.chess.server;
 
 import com.example.chess.common.GameModels.Game;
-import com.example.chess.common.Message;
 import com.example.chess.common.MessageCodec;
 import com.example.chess.common.UserModels.User;
 import com.google.gson.JsonObject;

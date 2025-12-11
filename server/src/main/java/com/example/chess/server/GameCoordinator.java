@@ -23,6 +23,8 @@ public class GameCoordinator {
     private final Map<String, ClientHandler> onlineHandlers = new HashMap<>();
     private final RulesEngine rulesEngine = new RulesEngine();
 
+    private static final long OFFLINE_MAX_MS = 60_000L; // 1 minute
+
     // simple FIFO queue for pairing
     private final Deque<ClientHandler> waitingQueue = new ArrayDeque<>();
 
@@ -36,19 +38,6 @@ public class GameCoordinator {
         this.gameRepository = gameRepository;
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(this::tickClocks, 1, 1, TimeUnit.SECONDS);
-    }
-
-    public void onUserOnline(ClientHandler handler, User user) {
-        onlineHandlers.put(user.username, handler);
-    }
-
-    public void onUserOffline(ClientHandler handler, User user) {
-        if (user == null) {
-            return;
-        }
-
-        onlineHandlers.remove(user.username);
-        waitingQueue.remove(handler);
     }
 
     public synchronized void requestGame(ClientHandler handler, User user) {
@@ -102,28 +91,39 @@ public class GameCoordinator {
                 }
 
                 long elapsed = now - game.lastUpdate;
-                if (elapsed <= 0) {
+                if (elapsed > 0) {
+                    if (game.whiteMove) {
+                        game.whiteTimeMs -= elapsed;
+                        if (game.whiteTimeMs <= 0) {
+                            game.whiteTimeMs = 0;
+                            finishGame(game, Result.BLACK_WIN, "timeout");
+                            continue;
+                        }
+                    } else {
+                        game.blackTimeMs -= elapsed;
+                        if (game.blackTimeMs <= 0) {
+                            game.blackTimeMs = 0;
+                            finishGame(game, Result.WHITE_WIN, "timeout");
+                            continue;
+                        }
+                    }
+                    game.lastUpdate = now;
+                }
+
+                // if someone is offline for > 1 min, they lose
+                if (game.whiteOfflineSince > 0 &&
+                        now - game.whiteOfflineSince > OFFLINE_MAX_MS) {
+                    finishGame(game, Result.BLACK_WIN, "disconnected");
                     continue;
                 }
-
-                if (game.whiteMove) {
-                    game.whiteTimeMs -= elapsed;
-                    if (game.whiteTimeMs <= 0) {
-                        game.whiteTimeMs = 0;
-                        finishGame(game, Result.BLACK_WIN, "timeout");
-                    }
-                } else {
-                    game.blackTimeMs -= elapsed;
-                    if (game.blackTimeMs <= 0) {
-                        game.blackTimeMs = 0;
-                        finishGame(game, Result.WHITE_WIN, "timeout");
-                    }
+                if (game.blackOfflineSince > 0 &&
+                        now - game.blackOfflineSince > OFFLINE_MAX_MS) {
+                    finishGame(game, Result.WHITE_WIN, "disconnected");
                 }
-
-                game.lastUpdate = now;
             }
         }
     }
+
 
     private void finishGame(Game game, Result result, String reason) {
         if(game.result != Result.ONGOING) {
@@ -441,6 +441,55 @@ public class GameCoordinator {
             finishGame(game, result, "checkmate");
         } else if (!sideToMoveInCheck && !sideToMoveHasMoves) {
             finishGame(game, Result.DRAW, "stalemate");
+        }
+    }
+
+
+    public void onUserOnline(ClientHandler handler, User user) {
+        onlineHandlers.put(user.username, handler);
+
+        // resume any active game
+        Game game = findActiveGameForUser(user.username);
+        if (game != null) {
+            synchronized (game) {
+                boolean isWhite = game.whiteUser.equals(user.username);
+                if (isWhite) {
+                    game.whiteOfflineSince = 0L;
+                } else {
+                    game.blackOfflineSince = 0L;
+                }
+                handler.onGameStarted(game, isWhite); // same as fresh start
+            }
+        }
+    }
+
+    private Game findActiveGameForUser(String username) {
+        for (Game g : activeGames.values()) {
+            if (g.result == Result.ONGOING &&
+                    (username.equals(g.whiteUser) || username.equals(g.blackUser))) {
+                return g;
+            }
+        }
+        return null;
+    }
+
+
+    public void onUserOffline(ClientHandler handler, User user) {
+        if (user == null) return;
+
+        onlineHandlers.remove(user.username);
+        waitingQueue.remove(handler);
+
+        Game game = findActiveGameForUser(user.username);
+        if (game != null) {
+            synchronized (game) {
+                long now = System.currentTimeMillis();
+                if (user.username.equals(game.whiteUser)) {
+                    game.whiteOfflineSince = now;
+                } else if (user.username.equals(game.blackUser)) {
+                    game.blackOfflineSince = now;
+                }
+            }
         }
     }
 }

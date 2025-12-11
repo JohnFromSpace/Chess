@@ -79,4 +79,10 @@ public class ConsoleView {
     public void showDrawOffered(String from) {
         out.printf("%s offered a draw.%n", from);
     }
+
+    public int askInt(String string) {
+
+
+        return 0;
+    }
 }

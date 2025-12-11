@@ -1,12 +1,17 @@
 package com.example.chess.client.controller;
 
 import com.example.chess.client.ClientMessageListener;
+import com.example.chess.client.menu.Menu;
+import com.example.chess.client.menu.MenuItem;
 import com.example.chess.client.model.ClientModel;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.view.ConsoleView;
+import com.example.chess.common.proto.RequestMessage;
+import com.example.chess.common.proto.ResponseMessage;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.util.List;
 import java.util.UUID;
 
 public class ClientController implements ClientMessageListener {
@@ -15,14 +20,46 @@ public class ClientController implements ClientMessageListener {
     private final ConsoleView view;
     private final ClientConnection conn;
 
+    private final Menu loggedOutMenu;
+    private final Menu lobbyMenu;
+    private final Menu inGameMenu;
+
     public ClientController(ClientModel model, ConsoleView view, ClientConnection conn) {
         this.model = model;
         this.view = view;
         this.conn = conn;
+
+        this.loggedOutMenu = buildLoggedOutMenu();
+        this.lobbyMenu = buildLobbyMenu();
+        this.inGameMenu = buildInGameMenu();
     }
 
-    private String newCorrId() {
-        return UUID.randomUUID().toString();
+    private Menu buildLoggedOutMenu() {
+        return new Menu("Main",
+                List.of(
+                        new MenuItem(1, "Register", () -> { doRegister(); return true; }),
+                        new MenuItem(2, "Login",    () -> { doLogin();    return true; })
+                ));
+    }
+
+    private Menu buildLobbyMenu() {
+        return new Menu("Lobby",
+                List.of(
+                        new MenuItem(1, "Request game", () -> { requestGame(); return true; }),
+                        new MenuItem(2, "My stats",      () -> { showMyStats(); return true; }),
+                        new MenuItem(3, "My games",      () -> { listMyGames(); return true; }),
+                        new MenuItem(4, "Replay game",   () -> { replayGame();  return true; }),
+                        new MenuItem(5, "Logout",        () -> { logout();      return true; })
+                ));
+    }
+
+    private Menu buildInGameMenu() {
+        return new Menu("Game",
+                List.of(
+                        new MenuItem(1, "Make move",     () -> { doMove();    return true; }),
+                        new MenuItem(2, "Offer draw",    () -> { offerDraw(); return true; }),
+                        new MenuItem(3, "Resign",        () -> { resign();    return true; })
+                ));
     }
 
     public void run() {
@@ -30,18 +67,19 @@ public class ClientController implements ClientMessageListener {
 
         boolean running = true;
         while (running) {
-            int choice = view.showMainMenu(model.isLoggedIn(), model.hasActiveGame());
             if (!model.isLoggedIn()) {
-                running = handleLoggedOutMenu(choice);
+                running = loggedOutMenu.showAndHandle(view);
             } else if (!model.hasActiveGame()) {
-                running = handleLobbyMenu(choice);
+                running = lobbyMenu.showAndHandle(view);
             } else {
-                running = handleInGameMenu(choice);
+                running = inGameMenu.showAndHandle(view);
             }
         }
 
         view.showMessage("Goodbye!");
-        conn.stop();
+    }
+    private String newCorrId() {
+        return UUID.randomUUID().toString();
     }
 
     private boolean handleLoggedOutMenu(int choice) {
@@ -338,26 +376,16 @@ public class ClientController implements ClientMessageListener {
             return;
         }
 
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "move");
-        msg.addProperty("corrId", newCorrId());
-        msg.addProperty("gameId", gameId);
-        msg.addProperty("move", move);
+        RequestMessage msg = RequestMessage
+                .of("move")
+                .with("gameId", gameId)
+                .with("move", move);
 
-        try {
-            JsonObject resp = conn.sendAndWait(msg).join();
-            String type = resp.get("type").getAsString();
-
-            if ("error".equals(type)) {
-                view.showError(resp.get("message").getAsString());
-                return;
-            }
-
-            if ("moveOk".equals(type)) {
-                view.showMessage("Move sent.");
-            }
-        } catch (Exception e) {
-            view.showError("Failed to send move: " + e.getMessage());
+        ResponseMessage resp = conn.sendAndWait(msg).join();
+        if (resp.isError()) {
+            view.showError(resp.message);
+        } else {
+            view.showMessage("Move sent.");
         }
     }
 
