@@ -56,43 +56,23 @@ public class ClientConnection {
 
                 Message msg = MessageCodec.fromJson(line);
 
-                if ((msg instanceof ResponseMessage resp) && (resp.corrId != null)) {
+                if (msg instanceof ResponseMessage resp && resp.corrId != null) {
                     CompletableFuture<ResponseMessage> fut = pending.remove(resp.corrId);
                     if (fut != null) {
                         fut.complete(resp);
-                    } else {
-                        // async notification, if you have such (info, gameStarted, move, etc.)
-                        handleAsync(resp);
-                    }
-                } else {
-                    // server-pushed messages without corrId
-                    handleAsync(msg);
-                }
-
-                if (msg == null) throw new AssertionError("Empty message!");
-                String corrId = msg.has("corrId") && !msg.get("corrId").isJsonNull()
-                        ? msg.get("corrId").getAsString()
-                        : null;
-
-                if (corrId != null) {
-                    CompletableFuture<ResponseMessage> fut = pending.remove(corrId);
-                    if (fut != null) {
-                        fut.complete(msg);
                         continue;
                     }
                 }
 
-                if (listener != null) {
-                    listener.onMessage(msg);
+                if (listener != null && msg instanceof ResponseMessage resp) {
+                    listener.onMessage(resp);
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read", e);
-        } finally {
-            IOException ex = new IOException("Connection closed");
-            for (CompletableFuture<ResponseMessage> f : pending.values()) {
-                f.completeExceptionally(ex);
-            }
+            System.err.println("ClientConnection readLoop error: " + e.getMessage());
+            e.printStackTrace();
+            // Optionally fail all pending futures
+            pending.values().forEach(f -> f.completeExceptionally(e));
             pending.clear();
         }
     }
