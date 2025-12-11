@@ -9,6 +9,7 @@ public class ConsoleView {
 
     private final Scanner in;
     private final PrintStream out;
+    private Scanner scanner;
 
     public ConsoleView(Scanner in, PrintStream out) {
         this.in = in;
@@ -81,8 +82,14 @@ public class ConsoleView {
     }
 
     public int askInt(String string) {
-
-
-        return 0;
+        while (true) {
+            System.out.println(string);
+            String line = scanner.nextLine().trim();
+            try {
+                return Integer.parseInt(line);
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a number.");
+            }
+        }
     }
 }
