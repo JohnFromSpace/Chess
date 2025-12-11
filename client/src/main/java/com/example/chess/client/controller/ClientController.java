@@ -457,7 +457,7 @@ public class ClientController implements ClientMessageListener {
     }
 
     @Override
-    public void onMessage(JsonObject msg) {
+    public void onMessage(ResponseMessage msg) {
         String type = msg.get("type").getAsString();
         switch (type) {
             case "error" -> {

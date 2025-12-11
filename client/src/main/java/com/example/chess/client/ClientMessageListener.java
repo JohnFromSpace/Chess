@@ -1,8 +1,8 @@
 package com.example.chess.client;
 
-import com.google.gson.JsonObject;
+import com.example.chess.common.proto.ResponseMessage;
 
 public interface ClientMessageListener {
-    void onMessage(JsonObject msg);
+    void onMessage(ResponseMessage msg);
 }
 
