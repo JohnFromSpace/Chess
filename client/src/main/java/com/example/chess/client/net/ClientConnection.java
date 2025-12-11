@@ -99,7 +99,7 @@ public class ClientConnection {
 
     public CompletableFuture<ResponseMessage> sendAndWait(RequestMessage msg) {
         String corrId = msg.corrId;
-        if (corrId == null) {
+        if (corrId == null || corrId.isBlank()) {
             corrId = UUID.randomUUID().toString();
             msg = new RequestMessage(msg.type, corrId, msg.payload);
         }
