@@ -10,6 +10,7 @@ import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
 import com.example.chess.server.logic.RulesEngine;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -84,7 +85,12 @@ public class GameCoordinator {
     private void tickClocks() {
         long now = System.currentTimeMillis();
 
-        for (Game game : activeGames.values()) {
+        List<Game> gamesSnapshot;
+        synchronized (this) {
+            gamesSnapshot = new ArrayList<>(activeGames.values());
+        }
+
+        for (Game game : gamesSnapshot) {
             synchronized (game) {
                 if (game.result != Result.ONGOING) {
                     continue;
@@ -123,7 +129,6 @@ public class GameCoordinator {
             }
         }
     }
-
 
     private void finishGame(Game game, Result result, String reason) {
         if(game.result != Result.ONGOING) {
@@ -300,7 +305,10 @@ public class GameCoordinator {
     }
 
     public void makeMove(String gameId, User user, String moveStr) {
-        Game game = requireActiveGame(gameId);
+        Game game;
+         synchronized (this) {
+             game = requireActiveGame(gameId);
+         }
 
         synchronized (game) {
             ensurePlayerInGame(game, user);
@@ -472,7 +480,6 @@ public class GameCoordinator {
         }
         return null;
     }
-
 
     public void onUserOffline(ClientHandler handler, User user) {
         if (user == null) return;

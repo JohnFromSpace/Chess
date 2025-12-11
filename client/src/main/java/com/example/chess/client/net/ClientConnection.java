@@ -5,7 +5,6 @@ import com.example.chess.common.MessageCodec;
 import com.example.chess.common.proto.Message;
 import com.example.chess.common.proto.RequestMessage;
 import com.example.chess.common.proto.ResponseMessage;
-import com.google.gson.Gson;
 
 import java.io.*;
 import java.net.Socket;
@@ -19,7 +18,6 @@ public class ClientConnection {
     private final String host;
     private final int port;
     private ClientMessageListener listener;
-    private final Gson gson = new Gson();
 
     private Socket socket;
     private BufferedReader in;

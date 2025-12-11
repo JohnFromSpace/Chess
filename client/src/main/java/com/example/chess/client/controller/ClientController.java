@@ -6,6 +6,8 @@ import com.example.chess.client.menu.MenuItem;
 import com.example.chess.client.model.ClientModel;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.view.ConsoleView;
+import com.example.chess.common.GameModels;
+import com.example.chess.common.UserModels;
 import com.example.chess.common.proto.RequestMessage;
 import com.example.chess.common.proto.ResponseMessage;
 import com.google.gson.JsonArray;
@@ -82,38 +84,6 @@ public class ClientController implements ClientMessageListener {
         return UUID.randomUUID().toString();
     }
 
-    private boolean handleLoggedOutMenu(int choice) {
-        return switch (choice) {
-            case 1 -> { doRegister(); yield true; }
-            case 2 -> { doLogin();    yield true; }
-            case 0 -> false;
-            default -> { view.showError("Invalid choice."); yield true; }
-        };
-    }
-
-    private boolean handleLobbyMenu(int choice) {
-        switch (choice) {
-            case 1 -> requestGame();
-            case 2 -> showMyStats();
-            case 3 -> listMyGames();
-            case 4 -> replayGame();
-            case 0 -> logout();
-            default -> view.showError("Invalid choice.");
-        }
-        return true;
-    }
-
-    private boolean handleInGameMenu(int choice) {
-        switch (choice) {
-            case 1 -> doMove();
-            case 2 -> offerDraw();
-            case 3 -> resign();
-            case 0 -> leaveGame();
-            default -> view.showError("Invalid choice.");
-        }
-        return true;
-    }
-
     private void doRegister() {
         String username = view.askLine("Username: ");
         String name     = view.askLine("Name: ");
@@ -145,35 +115,33 @@ public class ClientController implements ClientMessageListener {
         String username = view.askLine("Username: ");
         String password = view.askLine("Password: ");
 
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "login");
-        msg.addProperty("corrId", newCorrId());
-        msg.addProperty("username", username);
-        msg.addProperty("password", password);
+        JsonObject payload = new JsonObject();
+        payload.addProperty("username", username);
+        payload.addProperty("password", password);
+
+        RequestMessage req = new RequestMessage("login", null, payload);
 
         try {
-            JsonObject resp = conn.sendAndWait(msg).join();
-            String type = resp.get("type").getAsString();
-            if ("loginOk".equals(type)) {
-                JsonObject u = resp.getAsJsonObject("user");
-                com.example.chess.common.UserModels.User user =
-                        new com.example.chess.common.UserModels.User();
+            ResponseMessage resp = conn.sendAndWait(req).join();
+            if ("loginOk".equals(resp.type)) {
+                JsonObject u = resp.payload.getAsJsonObject("user");
+                UserModels.User user = new UserModels.User();
                 user.username = u.get("username").getAsString();
                 user.name = u.get("name").getAsString();
                 user.stats.played = u.get("played").getAsInt();
                 user.stats.won = u.get("won").getAsInt();
                 user.stats.rating = u.get("rating").getAsInt();
+
                 model.setCurrentUser(user);
                 view.showMessage("Login successful. Welcome, " + user.name + "!");
-            } else if ("error".equals(type)) {
-                view.showError(resp.get("message").getAsString());
-            } else {
-                view.showError("Unexpected server response: " + type);
+            } else if ("error".equals(resp.type)) {
+                view.showError(resp.payload.get("message").toString());
             }
         } catch (Exception e) {
             view.showError("Failed to login: " + e.getMessage());
         }
     }
+
 
     private void requestGame() {
         if (!model.isLoggedIn()) {
@@ -458,54 +426,41 @@ public class ClientController implements ClientMessageListener {
 
     @Override
     public void onMessage(ResponseMessage msg) {
-        String type = msg.get("type").getAsString();
+        String type = msg.type;
+        JsonObject payload = msg.payload;
+
         switch (type) {
-            case "error" -> {
-                String message = msg.has("message")
-                        ? msg.get("message").getAsString()
-                        : "Unknown server error.";
-                view.showError(message);
-            }
-            case "info" -> {
-                String message = msg.has("message")
-                        ? msg.get("message").getAsString()
-                        : "";
-                if (!message.isEmpty()) {
-                    view.showMessage(message);
-                }
-            }
-            case "registerOk" -> view.showMessage("Registration successful.");
-            case "loginOk" -> view.showMessage("Login successful.");
             case "gameStarted" -> {
-                String gameId = msg.get("gameId").getAsString();
-                String color = msg.get("color").getAsString();
-                String opponent = msg.get("opponent").getAsString();
-                model.setActiveGameId(gameId);
-                view.showGameStarted(color, opponent);
+                GameModels.Game game = GameModels.Game.fromJson(payload);
+                model.setCurrentGame(game);
+                model.setCurrentGameId(game.id);
+                model.setWhite("white".equals(payload.get("color").getAsString()));
+
+                view.showMessage("Game started vs " + payload.get("opponent").getAsString());
+                view.showBoard(game.board);
             }
             case "move" -> {
-                String moveStr = msg.get("move").getAsString();
-                boolean whiteInCheck = msg.get("whiteInCheck").getAsBoolean();
-                boolean blackInCheck = msg.get("blackInCheck").getAsBoolean();
-                view.showMove(moveStr, whiteInCheck, blackInCheck);
+                String moveStr = payload.get("move").getAsString();
+                boolean whiteInCheck = payload.get("whiteInCheck").getAsBoolean();
+                boolean blackInCheck = payload.get("blackInCheck").getAsBoolean();
+
+                view.showMove(model.getCurrentUser(), moveStr, whiteInCheck, blackInCheck);
+                view.showBoard(model.getCurrentUser().board);
             }
             case "gameOver" -> {
-                String result = msg.get("result").getAsString();
-                String reason = msg.has("reason") ? msg.get("reason").getAsString() : "";
-                view.showGameOver(result, reason);
+                view.showGameOver(payload);
                 model.clearActiveGame();
             }
-            case "drawOffered" -> {
-                String from = msg.get("from").getAsString();
-                view.showDrawOffered(from);
+            case "info" -> {
+                view.showMessage(payload.get("message").getAsString());
             }
-            case "drawDeclined" -> {
-                String by = msg.get("by").getAsString();
-                view.showMessage("Draw offer declined by " + by + ".");
+            case "error" -> {
+                view.showError(payload.get("message").getAsString());
             }
-            case "gamesList", "gameData", "stats" -> {
+            default -> {
+                // Optional debug
+                System.out.println("[DEBUG] Unhandled async message: " + type);
             }
-            default -> view.showMessage("[SERVER] " + msg);
         }
     }
 }
