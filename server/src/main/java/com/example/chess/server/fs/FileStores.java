@@ -20,12 +20,14 @@ import java.util.*;
 public class FileStores extends UserRepository implements GameRepository {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type USER_LIST_TYPE = new TypeToken<List<User>>() {}.getType();
+    private static final FileStores fileStores = null;
 
     private final Path root;
     private final Path usersDir;
     private final Path gamesDir;
 
     public FileStores(Path root) {
+        super(fileStores);
         this.root = root;
         this.usersDir = root.resolve("users");
         this.gamesDir = root.resolve("games");
@@ -64,7 +66,7 @@ public class FileStores extends UserRepository implements GameRepository {
         writeAllUsers(users);
     }
 
-    public List<User> loadAllUsers() {
+    public Map<String, User> loadAllUsers() {
         try {
             Files.createDirectories(root);
             if (!Files.exists(usersDir)) {
@@ -80,14 +82,17 @@ public class FileStores extends UserRepository implements GameRepository {
         }
     }
 
-    private void writeAllUsers(List<User> users) {
+    public void writeAllUsers(Map<String, User> users) throws IOException {
         try {
             Files.createDirectories(root);
             String json = GSON.toJson(users, USER_LIST_TYPE);
             Files.writeString(usersDir, json);
         } catch (IOException e) {
-            System.err.println("Failed to write users.json: " + e.getMessage());
+            System.err.println("Error writing all users: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
+
     }
 
     private Path gameFile(String id) {
@@ -135,7 +140,7 @@ public class FileStores extends UserRepository implements GameRepository {
     }
 
     @Override
-    public synchronized void saveGame(Game game) {
+    public synchronized void saveGame(Game game) throws IOException {
         if (game == null || game.id == null || game.id.isBlank()) {
             throw new IllegalArgumentException("Game or game.id is null/blank");
         }
@@ -148,11 +153,14 @@ public class FileStores extends UserRepository implements GameRepository {
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to write game file: " + file, e);
+            System.err.println("Error writing current game: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
+
     }
 
-    public Map<String, Game> loadAllGames() {
+    public Map<String, Game> loadAllGames() throws IOException {
         Map<String, Game> result = new HashMap<>();
         try (DirectoryStream<Path> ds = Files.newDirectoryStream(gamesDir, "*.json")) {
             for (Path p : ds) {
@@ -163,7 +171,9 @@ public class FileStores extends UserRepository implements GameRepository {
                 }
             }
         } catch (IOException e) {
-            System.err.println("Failed to load all games: " + e.getMessage());
+            System.err.println("Error loading all games: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
         return result;
     }

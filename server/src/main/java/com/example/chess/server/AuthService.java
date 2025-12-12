@@ -3,10 +3,10 @@ package com.example.chess.server;
 import com.example.chess.common.UserModels.User;
 import com.example.chess.server.fs.repository.UserRepository;
 
+import java.io.IOException;
 import java.util.Optional;
 
 public class AuthService {
-
     private final UserRepository userRepository;
 
     public AuthService(UserRepository userRepository) {
@@ -24,7 +24,12 @@ public class AuthService {
         user.name = name;
         user.passHash = PasswordUtil.hash(password);
 
-        userRepository.saveUser(user);
+        try {
+            userRepository.saveUser(user);
+        } catch (IOException e) {
+            System.err.print("Failed to save user: " + e);
+            throw new RuntimeException(e);
+        }
         return user;
     }
 
