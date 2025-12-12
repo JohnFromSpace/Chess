@@ -36,10 +36,6 @@ public class UserRepository {
     }
 
     public Optional<User> findByUsername(String username) {
-        if (username == null) {
-            return Optional.empty();
-        }
-
         synchronized (userLock) {
             Map<String, User> all = fileStores.loadAllUsers();
             return Optional.ofNullable(all.get(username));
