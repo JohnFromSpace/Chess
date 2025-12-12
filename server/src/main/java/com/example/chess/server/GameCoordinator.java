@@ -386,13 +386,13 @@ public class GameCoordinator {
         }
     }
 
-    private void ensureGeometricLegality(Game game, char piece, Move move, boolean isWhite) {
-        if (!rulesEngine.isLegalMoveForPiece(game.board, piece, move, isWhite)) {
+    private void ensureGeometricLegality(Game game, Move move, boolean isWhite) {
+        if (!rulesEngine.isLegalMove(game.board, move)) {
             throw new IllegalArgumentException("Illegal move: " + move);
         }
     }
 
-    private void ensureKingNotInCheckAfterMove(Game game, char piece, Move move, boolean isWhite) {
+    private void ensureKingNotInCheckAfterMove(Game game, Move move, boolean isWhite) {
         Board test = rulesEngine.copyBoard(game.board);
         test.set(move.toRow, move.toCol, piece);
         test.set(move.fromRow, move.fromCol, '.');
