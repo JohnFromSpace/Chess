@@ -14,10 +14,10 @@ public class ServerMain {
     public static void main(String[] args) {
         int port = 5000;
         Path dataDir = Path.of("data");
-        FileStores fileStores = new FileStores(dataDir);
-
-        UserRepository userRepository = fileStores;
-        GameRepository gameRepository = fileStores;
+        FileStores stores = new FileStores(dataDir);
+        UserRepository userRepository = new UserRepository(stores);
+        GameRepository gameRepository = stores;
+        GameCoordinator coordinator = new GameCoordinator(userRepository, gameRepository);
 
         AuthService authService = new AuthService(userRepository);
         GameCoordinator gameCoordinator = new GameCoordinator(userRepository, gameRepository);
