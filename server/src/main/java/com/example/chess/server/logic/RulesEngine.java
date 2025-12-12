@@ -2,15 +2,14 @@ package com.example.chess.server.logic;
 
 import com.example.chess.common.GameModels.Board;
 import com.example.chess.common.GameModels.Move;
+import com.example.chess.common.pieces.Piece;
+import com.example.chess.common.pieces.PieceFactory;
 
 public class RulesEngine {
+
     public boolean sameColor(char a, char b) {
-        if (a == '.' || b == '.' || a == 0 || b == 0) {
-            return false;
-        }
-        boolean whiteA = Character.isUpperCase(a);
-        boolean whiteB = Character.isUpperCase(b);
-        return whiteA == whiteB;
+        if (a == '.' || b == '.' || a == 0 || b == 0) return false;
+        return Character.isUpperCase(a) == Character.isUpperCase(b);
     }
 
     public Board copyBoard(Board b) {
@@ -23,120 +22,51 @@ public class RulesEngine {
         return nb;
     }
 
-    public boolean isLegalMoveForPiece(Board board, char piece, Move m, boolean isWhite) {
-        char p = Character.toLowerCase(piece);
+    public boolean isLegalMove(Board board, Move m) {
+        char src = board.get(m.fromRow, m.fromCol);
+        if (src == '.' || src == 0) return false;
 
-        int dx = Math.abs(m.toCol - m.fromCol);
-        int dy = Math.abs(m.toRow - m.fromRow);
+        Piece piece = PieceFactory.fromChar(src).orElse(null);
+        if (piece == null) return false;
 
-        int adx = Math.abs(dx);
-        int ady = Math.abs(dy);
-
-        return switch (p) {
-            case 'p' -> isLegalPawnMove(board, m, isWhite);
-            case 'n' -> adx * adx + ady * ady == 5;
-            case 'b' -> {
-                if (adx != ady) yield false;
-                yield isPathClear(board, m.fromRow, m.fromCol, m.toRow, m.toCol);
-            }
-            case 'r' -> {
-                if (!(dx == 0 || dy == 0)) yield false;
-                yield isPathClear(board, m.fromRow, m.fromCol, m.toRow, m.toCol);
-            }
-            case 'q' -> {
-                if (!(dx == 0 || dy == 0 || adx == ady)) yield false;
-                yield isPathClear(board, m.fromRow, m.fromCol, m.toRow, m.toCol);
-            }
-            case 'k' -> adx <= 1 && ady <= 1;
-            default -> false;
-        };
-    }
-
-    private boolean isLegalPawnMove(Board board, Move m, boolean isWhite) {
-        int dir = isWhite ? -1 : 1;
-        int startRow = isWhite ? 6 : 1;
-
-        int dx = m.toCol - m.fromCol;
-        int dy = m.toRow - m.fromRow;
-
+        // can't capture own piece
         char dest = board.get(m.toRow, m.toCol);
+        if (dest != '.' && dest != 0 && sameColor(src, dest)) return false;
 
-        // forward moves
-        if (dx == 0) {
-            // single push
-            if (dy == dir && dest == '.') {
-                return true;
-            }
-            // double push from start
-            if (m.fromRow == startRow && dy == 2 * dir) {
-                int midRow = m.fromRow + dir;
-                return board.get(midRow, m.fromCol) == '.' && dest == '.';
-            }
-            return false;
-        }
-
-        // captures
-        if (Math.abs(dx) == 1 && dy == dir) {
-            return dest != '.' && !sameColor(board.get(m.fromRow, m.fromCol), dest);
-        }
-
-        return false;
+        return piece.canMove(board, m);
     }
 
-    private boolean isPathClear(Board board, int fromRow, int fromCol, int toRow, int toCol) {
-        int dRow = Integer.signum(toRow - fromRow);
-        int dCol = Integer.signum(toCol - fromCol);
+    public boolean isKingInCheck(Board board, boolean isWhiteKing) {
+        char king = isWhiteKing ? 'K' : 'k';
+        int kr = -1, kc = -1;
 
-        int r = fromRow + dRow;
-        int c = fromCol + dCol;
-
-        while (r != toRow || c != toCol) {
-            char p = board.get(r, c);
-            if (p != '.' && p != 0) return false;
-            r += dRow;
-            c += dCol;
-        }
-        return true;
-    }
-
-    public boolean isKingInCheck(Board board, boolean isWhite) {
-        char king = isWhite ? 'K' : 'k';
-        int kr = -1;
-        int kc = -1;
-
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                if (board.get(row, col) == king) {
-                    kr = row;
-                    kc = col;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (board.get(r, c) == king) {
+                    kr = r;
+                    kc = c;
+                    break;
                 }
             }
         }
 
-        if (kr == -1) {
-            // treat as in check (broken board)
-            return true;
-        }
+        if (kr == -1) return true;
 
-        return isSquareAttacked(board, kr, kc, !isWhite);
+        return isSquareAttacked(board, kr, kc, !isWhiteKing);
     }
 
     public boolean hasAnyLegalMove(Board board, boolean forWhite) {
         for (int fromRow = 0; fromRow < 8; fromRow++) {
             for (int fromCol = 0; fromCol < 8; fromCol++) {
-                char piece = board.get(fromRow, fromCol);
-                if (piece == '.' || piece == 0) continue;
+                char src = board.get(fromRow, fromCol);
+                if (src == '.' || src == 0) continue;
 
-                boolean pieceIsWhite = Character.isUpperCase(piece);
+                boolean pieceIsWhite = Character.isUpperCase(src);
                 if (pieceIsWhite != forWhite) continue;
 
                 for (int toRow = 0; toRow < 8; toRow++) {
                     for (int toCol = 0; toCol < 8; toCol++) {
                         if (fromRow == toRow && fromCol == toCol) continue;
-
-                        char dest = board.get(toRow, toCol);
-                        // can't capture own piece
-                        if (dest != '.' && dest != 0 && sameColor(piece, dest)) continue;
 
                         Move m = new Move();
                         m.fromRow = fromRow;
@@ -144,16 +74,16 @@ public class RulesEngine {
                         m.toRow = toRow;
                         m.toCol = toCol;
 
-                        // geometric & occupancy rules
-                        if (!isLegalMoveForPiece(board, piece, m, forWhite)) continue;
+                        // piece movement rules (via Piece classes)
+                        if (!isLegalMove(board, m)) continue;
 
-                        // simulate on a copy and check king safety
+                        // simulate move
                         Board test = copyBoard(board);
-                        test.set(m.toRow, m.toCol, piece);
+                        test.set(m.toRow, m.toCol, src);
                         test.set(m.fromRow, m.fromCol, '.');
 
+                        // must not leave king in check
                         if (!isKingInCheck(test, forWhite)) {
-                            // found at least one legal move
                             return true;
                         }
                     }
@@ -171,10 +101,8 @@ public class RulesEngine {
             while (r >= 0 && r < 8 && c >= 0 && c < 8) {
                 char p = board.get(r, c);
                 if (p != '.' && p != 0) {
-                    if (byWhite && Character.isUpperCase(p) &&
-                            (p == 'R' || p == 'Q')) return true;
-                    if (!byWhite && Character.isLowerCase(p) &&
-                            (p == 'r' || p == 'q')) return true;
+                    if (byWhite && Character.isUpperCase(p) && (p == 'R' || p == 'Q')) return true;
+                    if (!byWhite && Character.isLowerCase(p) && (p == 'r' || p == 'q')) return true;
                     break;
                 }
                 r += d[0];
@@ -189,10 +117,8 @@ public class RulesEngine {
             while (r >= 0 && r < 8 && c >= 0 && c < 8) {
                 char p = board.get(r, c);
                 if (p != '.' && p != 0) {
-                    if (byWhite && Character.isUpperCase(p) &&
-                            (p == 'B' || p == 'Q')) return true;
-                    if (!byWhite && Character.isLowerCase(p) &&
-                            (p == 'b' || p == 'q')) return true;
+                    if (byWhite && Character.isUpperCase(p) && (p == 'B' || p == 'Q')) return true;
+                    if (!byWhite && Character.isLowerCase(p) && (p == 'b' || p == 'q')) return true;
                     break;
                 }
                 r += d[0];
@@ -214,7 +140,7 @@ public class RulesEngine {
             }
         }
 
-        // pawns (attacking towards us)
+        // pawns (attacking direction)
         int dir = byWhite ? -1 : 1;
         int pawnRow = row + dir;
 

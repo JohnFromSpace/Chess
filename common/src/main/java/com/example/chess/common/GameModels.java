@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.example.chess.common.board.Square;
+import com.example.chess.common.pieces.Piece;
+import com.example.chess.common.pieces.PieceFactory;
 
 public class GameModels {
 
@@ -29,6 +31,22 @@ public class GameModels {
     }
 
     public static class Board {
+        public Piece getPieceAt(int row, int col) {
+            return PieceFactory.fromChar(get(row, col)).orElse(null);
+        }
+
+        public Piece getPieceAt(Square sq) {
+            return getPieceAt(sq.row, sq.col);
+        }
+
+        public void setPieceAt(int row, int col, com.example.chess.common.pieces.Piece p) {
+            set(row, col, p == null ? '.' : p.toChar());
+        }
+
+        public void setPieceAt(Square sq, com.example.chess.common.pieces.Piece p) {
+            setPieceAt(sq.row, sq.col, p);
+        }
+
         public char[][] squares = new char[8][8];
 
         public Board() {
