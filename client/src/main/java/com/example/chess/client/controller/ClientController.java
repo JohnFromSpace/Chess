@@ -6,7 +6,6 @@ import com.example.chess.client.menu.MenuItem;
 import com.example.chess.client.model.ClientModel;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.view.ConsoleView;
-import com.example.chess.common.GameModels;
 import com.example.chess.common.UserModels;
 import com.example.chess.common.proto.RequestMessage;
 import com.example.chess.common.proto.ResponseMessage;
@@ -89,23 +88,19 @@ public class ClientController implements ClientMessageListener {
         String name     = view.askLine("Name: ");
         String password = view.askLine("Password: ");
 
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "register");
-        msg.addProperty("corrId", newCorrId());
-        msg.addProperty("username", username);
-        msg.addProperty("name", name);
-        msg.addProperty("password", password);
+        RequestMessage req = RequestMessage
+                .of("register")
+                .with("username", username)
+                .with("name", name)
+                .with("password", password);
 
         try {
-            JsonObject resp = conn.sendAndWait(msg).join();
-            String type = resp.get("type").getAsString();
-            if ("registerOk".equals(type)) {
-                view.showMessage("Registered successfully.");
-            } else if ("error".equals(type)) {
-                view.showError(resp.get("message").getAsString());
-            } else {
-                view.showError("Unexpected server response: " + type);
+            ResponseMessage resp = conn.sendAndWait(req).join();
+            if (resp.isError()) {
+                view.showError(resp.message);
+                return;
             }
+            view.showMessage("Registered successfully.");
         } catch (Exception e) {
             view.showError("Failed to register: " + e.getMessage());
         }
@@ -142,18 +137,15 @@ public class ClientController implements ClientMessageListener {
         }
     }
 
-
     private void requestGame() {
         if (!model.isLoggedIn()) {
             view.showError("You must be logged in to request a game.");
             return;
         }
 
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "requestGame");
-        msg.addProperty("corrId", newCorrId());
+        RequestMessage req = RequestMessage.of("requestGame");
 
-        conn.sendAndWait(msg);
+        conn.sendAndWait(req); // fire-and-forget is fine (gameStarted comes async)
         view.showMessage("Requested a game. Waiting for pairing...");
     }
 
@@ -182,31 +174,21 @@ public class ClientController implements ClientMessageListener {
             return;
         }
 
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "getStats");
-        msg.addProperty("corrId", newCorrId());
+        RequestMessage req = RequestMessage.of("getStats");
 
         try {
-            JsonObject resp = conn.sendAndWait(msg).join();
-            String type = resp.get("type").getAsString();
-            if ("error".equals(type)) {
-                view.showError(resp.get("message").getAsString());
+            ResponseMessage resp = conn.sendAndWait(req).join();
+            if (resp.isError()) {
+                view.showError(resp.message);
                 return;
             }
-            if (!"stats".equals(type)) {
-                view.showError("Unexpected server response: " + type);
-                return;
-            }
-            int played = resp.get("played").getAsInt();
-            int won    = resp.get("won").getAsInt();
-            int drawn  = resp.get("drawn").getAsInt();
-            int rating = resp.get("rating").getAsInt();
-            view.showMessage(
-                    "Stats: played=" + played +
-                            ", won=" + won +
-                            ", drawn=" + drawn +
-                            ", rating=" + rating
-            );
+
+            int played = resp.payload.get("played").getAsInt();
+            int won    = resp.payload.get("won").getAsInt();
+            int drawn  = resp.payload.get("drawn").getAsInt();
+            int rating = resp.payload.get("rating").getAsInt();
+
+            view.showMessage("Stats: played=" + played + ", won=" + won + ", drawn=" + drawn + ", rating=" + rating);
         } catch (Exception e) {
             view.showError("Failed to load stats: " + e.getMessage());
         }
@@ -218,25 +200,16 @@ public class ClientController implements ClientMessageListener {
             return;
         }
 
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "listGames");
-        msg.addProperty("corrId", newCorrId());
-        msg.addProperty("username", model.getCurrentUser().username);
+        RequestMessage req = RequestMessage.of("listGames");
 
         try {
-            JsonObject resp = conn.sendAndWait(msg).join();
-            String type = resp.get("type").getAsString();
-
-            if ("error".equals(type)) {
-                view.showError(resp.get("message").getAsString());
-                return;
-            }
-            if (!"gamesList".equals(type)) {
-                view.showError("Unexpected server response: " + type);
+            ResponseMessage resp = conn.sendAndWait(req).join();
+            if (resp.isError()) {
+                view.showError(resp.message);
                 return;
             }
 
-            JsonArray games = resp.getAsJsonArray("games");
+            JsonArray games = resp.payload.getAsJsonArray("games");
             if (games == null || games.isEmpty()) {
                 view.showMessage("You have no recorded games.");
                 return;
@@ -245,21 +218,12 @@ public class ClientController implements ClientMessageListener {
             view.showMessage("Your games:");
             for (int i = 0; i < games.size(); i++) {
                 JsonObject g = games.get(i).getAsJsonObject();
-                String id       = g.get("id").getAsString();
-                String opponent = g.get("opponent").getAsString();
-                String color    = g.get("color").getAsString();
-                String result   = g.get("result").getAsString();
+                String id     = g.get("id").getAsString();
+                String opp    = g.get("opponent").getAsString();
+                String color  = g.get("color").getAsString();
+                String result = g.get("result").getAsString();
 
-                String line = String.format(
-                        "[%d] %s vs %s (%s), result=%s, id=%s",
-                        i + 1,
-                        model.getCurrentUser().username,
-                        opponent,
-                        color,
-                        result,
-                        id
-                );
-                view.showMessage(line);
+                view.showMessage("[" + (i + 1) + "] vs " + opp + " (" + color + "), result=" + result + ", id=" + id);
             }
         } catch (Exception e) {
             view.showError("Failed to load games: " + e.getMessage());
@@ -273,55 +237,35 @@ public class ClientController implements ClientMessageListener {
         }
 
         String gameId = view.askLine("Enter game id to replay (empty to cancel): ").trim();
-        if (gameId.isEmpty()) {
-            return;
-        }
+        if (gameId.isEmpty()) return;
 
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "getGameDetails");
-        msg.addProperty("corrId", newCorrId());
-        msg.addProperty("gameId", gameId);
+        RequestMessage req = RequestMessage.of("getGameDetails").with("gameId", gameId);
 
         try {
-            JsonObject resp = conn.sendAndWait(msg).join();
-            String type = resp.get("type").getAsString();
-
-            if ("error".equals(type)) {
-                view.showError(resp.get("message").getAsString());
-                return;
-            }
-            if (!"gameData".equals(type)) {
-                view.showError("Unexpected server response: " + type);
+            ResponseMessage resp = conn.sendAndWait(req).join();
+            if (resp.isError()) {
+                view.showError(resp.message);
                 return;
             }
 
-            JsonObject g = resp.getAsJsonObject("game");
+            JsonObject g = resp.payload.getAsJsonObject("game");
             if (g == null) {
                 view.showError("Malformed server response: missing game.");
                 return;
             }
 
-            String white   = g.get("whiteUser").getAsString();
-            String black   = g.get("blackUser").getAsString();
-            String result  = g.get("result").getAsString();
-            String created = g.get("createdAt").getAsString();
-
-            view.showMessage(String.format(
-                    "Replay %s vs %s | result=%s | created=%s",
-                    white, black, result, created
-            ));
+            view.showMessage("Replay: " + g.get("whiteUser").getAsString()
+                    + " vs " + g.get("blackUser").getAsString()
+                    + " | result=" + g.get("result").getAsString());
 
             JsonArray moves = g.getAsJsonArray("moves");
             if (moves == null || moves.isEmpty()) {
                 view.showMessage("No moves recorded for this game.");
                 return;
             }
-
             for (int i = 0; i < moves.size(); i++) {
-                String m = moves.get(i).getAsString();
-                view.showMessage(String.format("%d. %s", i + 1, m));
+                view.showMessage((i + 1) + ". " + moves.get(i).getAsString());
             }
-
         } catch (Exception e) {
             view.showError("Failed to replay game: " + e.getMessage());
         }
@@ -362,32 +306,10 @@ public class ClientController implements ClientMessageListener {
             view.showError("You have no active game.");
             return;
         }
-
-        String gameId = model.getActiveGameId();
-        if (gameId == null) {
-            view.showError("Internal error: no active game id.");
-            return;
-        }
-
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "offerDraw");
-        msg.addProperty("corrId", newCorrId());
-        msg.addProperty("gameId", gameId);
-
-        try {
-            JsonObject resp = conn.sendAndWait(msg).join();
-            String type = resp.get("type").getAsString();
-
-            if ("error".equals(type)) {
-                view.showError(resp.get("message").getAsString());
-                return;
-            }
-
-            view.showMessage("Draw offer sent. Waiting for opponent response...");
-
-        } catch (Exception e) {
-            view.showError("Failed to offer draw: " + e.getMessage());
-        }
+        RequestMessage req = RequestMessage.of("offerDraw").with("gameId", model.getActiveGameId());
+        ResponseMessage resp = conn.sendAndWait(req).join();
+        if (resp.isError()) view.showError(resp.message);
+        else view.showMessage("Draw offer sent.");
     }
 
     private void resign() {
@@ -395,72 +317,51 @@ public class ClientController implements ClientMessageListener {
             view.showError("You have no active game.");
             return;
         }
-
-        String gameId = model.getActiveGameId();
-        if (gameId == null) {
-            view.showError("Internal error: no active game id.");
-            return;
-        }
-
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type", "resign");
-        msg.addProperty("corrId", newCorrId());
-        msg.addProperty("gameId", gameId);
-
-        try {
-            JsonObject resp = conn.sendAndWait(msg).join();
-            String type = resp.get("type").getAsString();
-
-            if ("error".equals(type)) {
-                view.showError(resp.get("message").getAsString());
-                return;
-            }
-
-            view.showMessage("You resigned.\n");
+        RequestMessage req = RequestMessage.of("resign").with("gameId", model.getActiveGameId());
+        ResponseMessage resp = conn.sendAndWait(req).join();
+        if (resp.isError()) view.showError(resp.message);
+        else {
+            view.showMessage("You resigned.");
             model.clearActiveGame();
-
-        } catch (Exception e) {
-            view.showError("Failed to resign: " + e.getMessage());
         }
     }
 
     @Override
     public void onMessage(ResponseMessage msg) {
         String type = msg.type;
-        JsonObject payload = msg.payload;
+        JsonObject p = msg.payload;
 
         switch (type) {
             case "gameStarted" -> {
-                GameModels.Game game = GameModels.Game.fromJson(payload);
-                model.setCurrentGame(game);
-                model.setCurrentGameId(game.id);
-                model.setWhite("white".equals(payload.get("color").getAsString()));
+                String gameId = p.get("gameId").getAsString();
+                boolean isWhite = "white".equalsIgnoreCase(p.get("color").getAsString());
+                String opponent = p.get("opponent").getAsString();
 
-                view.showMessage("Game started vs " + payload.get("opponent").getAsString());
-                view.showBoard(game.board);
+                model.setActiveGameId(gameId);
+                model.setWhite(isWhite);
+                model.setHasActiveGame(true);
+
+                view.showMessage("Game started vs " + opponent + ". You are " + (isWhite ? "WHITE" : "BLACK") + ".");
+                // Optional: if server sends board, then print it. Otherwise client prints local board after moves.
             }
+
             case "move" -> {
-                String moveStr = payload.get("move").getAsString();
-                boolean whiteInCheck = payload.get("whiteInCheck").getAsBoolean();
-                boolean blackInCheck = payload.get("blackInCheck").getAsBoolean();
+                String moveStr = p.get("move").getAsString();
+                boolean whiteInCheck = p.get("whiteInCheck").getAsBoolean();
+                boolean blackInCheck = p.get("blackInCheck").getAsBoolean();
 
-                view.showMove(model.getCurrentUser(), moveStr, whiteInCheck, blackInCheck);
-                view.showBoard(model.getCurrentUser().board);
+                view.showMove(moveStr, whiteInCheck, blackInCheck); // use a signature that exists
             }
+
             case "gameOver" -> {
-                view.showGameOver(payload);
+                view.showGameOver(p);
                 model.clearActiveGame();
             }
-            case "info" -> {
-                view.showMessage(payload.get("message").getAsString());
-            }
-            case "error" -> {
-                view.showError(payload.get("message").getAsString());
-            }
-            default -> {
-                // Optional debug
-                System.out.println("[DEBUG] Unhandled async message: " + type);
-            }
+
+            case "info" -> view.showMessage(p.get("message").getAsString());
+            case "error" -> view.showError(p.get("message").getAsString());
+
+            default -> System.out.println("[DEBUG] Unhandled async message: " + type);
         }
     }
 }

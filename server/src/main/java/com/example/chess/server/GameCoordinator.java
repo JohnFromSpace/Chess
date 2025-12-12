@@ -41,7 +41,7 @@ public class GameCoordinator {
         scheduler.scheduleAtFixedRate(this::tickClocks, 1, 1, TimeUnit.SECONDS);
     }
 
-    public synchronized void requestGame(ClientHandler handler, User user) {
+    public synchronized void requestGame(ClientHandler handler, User user) throws IOException {
         // If no one is waiting, enqueue this player and stop.
         if (waitingQueue.isEmpty()) {
             waitingQueue.addLast(handler);
@@ -82,7 +82,7 @@ public class GameCoordinator {
         opponentHandler.onGameStarted(game, game.whiteUser.equals(opponentUser.username));
     }
 
-    private void tickClocks() {
+    private void tickClocks() throws IOException {
         long now = System.currentTimeMillis();
 
         List<Game> gamesSnapshot;
@@ -130,7 +130,7 @@ public class GameCoordinator {
         }
     }
 
-    private void finishGame(Game game, Result result, String reason) {
+    private void finishGame(Game game, Result result, String reason) throws IOException {
         if(game.result != Result.ONGOING) {
             return;
         }
@@ -179,7 +179,7 @@ public class GameCoordinator {
         }
     }
 
-    public void respondDraw(String gameId, User user, boolean accepted) {
+    public void respondDraw(String gameId, User user, boolean accepted) throws IOException {
         Game game = requireActiveGame(gameId);
         synchronized (game) {
             if (game == null || game.result != Result.ONGOING) {
@@ -215,7 +215,7 @@ public class GameCoordinator {
         }
     }
 
-    public void resign(String gameId, User user) {
+    public void resign(String gameId, User user) throws IOException {
         Game game = requireActiveGame(gameId);
 
         synchronized (game) {
@@ -304,7 +304,7 @@ public class GameCoordinator {
         return true;
     }
 
-    public void makeMove(String gameId, User user, String moveStr) {
+    public void makeMove(String gameId, User user, String moveStr) throws IOException {
         Game game;
          synchronized (this) {
              game = requireActiveGame(gameId);
@@ -418,7 +418,7 @@ public class GameCoordinator {
         game.lastUpdate = now;
     }
 
-    private void addMoveToHistory(Game game, String moveStr) {
+    private void addMoveToHistory(Game game, String moveStr) throws IOException {
         if (game.moves == null) {
             game.moves = new java.util.ArrayList<>();
         }
@@ -426,7 +426,7 @@ public class GameCoordinator {
         gameRepository.saveGame(game);
     }
 
-    private void postMoveStatusAndMaybeFinish(Game game, String moveStr) {
+    private void postMoveStatusAndMaybeFinish(Game game, String moveStr) throws IOException {
         boolean whiteInCheckNow = rulesEngine.isKingInCheck(game.board, true);
         boolean blackInCheckNow = rulesEngine.isKingInCheck(game.board, false);
 
