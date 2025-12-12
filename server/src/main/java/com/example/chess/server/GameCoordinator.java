@@ -38,7 +38,17 @@ public class GameCoordinator {
         this.userRepository = userRepository;
         this.gameRepository = gameRepository;
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(this::tickClocks, 1, 1, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                tickClocks();
+            } catch (IOException e) {
+                System.err.println("tickClocks failed: " + e.getMessage());
+                e.printStackTrace();
+            } catch (Exception e) {
+                System.err.println("tickClocks unexpected error: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, 1, 1, TimeUnit.SECONDS);
     }
 
     public synchronized void requestGame(ClientHandler handler, User user) throws IOException {
@@ -318,9 +328,8 @@ public class GameCoordinator {
             ensureDifferentSquares(move);
             char piece = getPieceAtSource(game, move);
             ensurePieceBelongsToPlayer(piece, isWhite);
-            ensureTargetNotOwnPiece(game, piece, move);
-            ensureGeometricLegality(game, piece, move, isWhite);
-            ensureKingNotInCheckAfterMove(game, piece, move, isWhite);
+            ensureGeometricLegality(game, move);
+            ensureKingNotInCheckAfterMove(game, move, isWhite);
 
             applyMoveAndClock(game, piece, move, isWhite);
             String sanOrLan = moveStr; // keep your current string; later you can derive SAN if you want
@@ -379,20 +388,15 @@ public class GameCoordinator {
         }
     }
 
-    private void ensureTargetNotOwnPiece(Game game, char piece, Move move) {
-        char dest = game.board.get(move.toRow, move.toCol);
-        if (dest != '.' && dest != 0 && rulesEngine.sameColor(piece, dest)) {
-            throw new IllegalArgumentException("Cannot capture your own piece.");
-        }
-    }
-
-    private void ensureGeometricLegality(Game game, Move move, boolean isWhite) {
+    private void ensureGeometricLegality(Game game, Move move) {
         if (!rulesEngine.isLegalMove(game.board, move)) {
             throw new IllegalArgumentException("Illegal move: " + move);
         }
     }
 
     private void ensureKingNotInCheckAfterMove(Game game, Move move, boolean isWhite) {
+        char piece = game.board.get(move.fromRow, move.fromCol);
+
         Board test = rulesEngine.copyBoard(game.board);
         test.set(move.toRow, move.toCol, piece);
         test.set(move.fromRow, move.fromCol, '.');
