@@ -3,6 +3,8 @@ package com.example.chess.common;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.chess.common.board.Square;
+
 public class GameModels {
 
     public enum Result { ONGOING, WHITE_WIN, BLACK_WIN, DRAW }
@@ -80,6 +82,13 @@ public class GameModels {
         public boolean whiteMove = true;
 
         public List<String> moves = new ArrayList<>();
+    }
+
+    public Square fromSquare() {
+        return Square.of(fromRow, fromCol);
+    }
+    public Square toSquare() {
+        return Square.of(toRow, toCol);
     }
 }
 
