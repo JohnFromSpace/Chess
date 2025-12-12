@@ -17,10 +17,8 @@ public class ServerMain {
         FileStores stores = new FileStores(dataDir);
         UserRepository userRepository = new UserRepository(stores);
         GameRepository gameRepository = stores;
-        GameCoordinator coordinator = new GameCoordinator(userRepository, gameRepository);
-
-        AuthService authService = new AuthService(userRepository);
         GameCoordinator gameCoordinator = new GameCoordinator(userRepository, gameRepository);
+        AuthService authService = new AuthService(userRepository);
 
         System.out.println("Chess server starting on port " + port + " ...");
 
