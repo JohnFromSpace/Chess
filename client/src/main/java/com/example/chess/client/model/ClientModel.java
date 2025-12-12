@@ -1,6 +1,5 @@
 package com.example.chess.client.model;
 
-import com.example.chess.common.GameModels.Game;
 import com.example.chess.common.UserModels.User;
 
 import java.util.ArrayList;

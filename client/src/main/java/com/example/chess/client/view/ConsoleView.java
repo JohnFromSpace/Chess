@@ -1,7 +1,5 @@
 package com.example.chess.client.view;
 
-import com.example.chess.common.GameModels.Board;
-
 import java.io.PrintStream;
 import java.util.Scanner;
 

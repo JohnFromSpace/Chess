@@ -1,7 +1,5 @@
 package com.example.chess.server.logic;
 
-import com.example.chess.common.GameModels.Board;
-import com.example.chess.common.GameModels.Move;
 import com.example.chess.common.pieces.Piece;
 import com.example.chess.common.pieces.PieceFactory;
 

@@ -1,9 +1,5 @@
 package com.example.chess.server;
 
-import com.example.chess.common.GameModels.Result;
-import com.example.chess.common.GameModels.Game;
-import com.example.chess.common.GameModels.Move;
-import com.example.chess.common.GameModels.Board;
 import com.example.chess.common.UserModels.User;
 import com.example.chess.common.UserModels.Stats;
 import com.example.chess.server.fs.repository.GameRepository;

@@ -1,6 +1,5 @@
 package com.example.chess.server.fs;
 
-import com.example.chess.common.GameModels.Game;
 import com.example.chess.common.UserModels.User;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.google.gson.Gson;

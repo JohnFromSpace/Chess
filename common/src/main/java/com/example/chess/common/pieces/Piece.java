@@ -1,6 +1,5 @@
 package com.example.chess.common.pieces;
 
-import com.example.chess.common.GameModels;
 import com.example.chess.common.board.Color;
 
 public abstract class Piece {
