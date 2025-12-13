@@ -2,6 +2,8 @@ package com.example.chess.server;
 
 import com.example.chess.common.UserModels.Stats;
 import com.example.chess.common.UserModels.User;
+import com.example.chess.common.board.Board;
+import com.example.chess.common.board.Move;
 import com.example.chess.common.model.Game;
 import com.example.chess.common.model.Result;
 import com.example.chess.server.fs.repository.GameRepository;
@@ -241,6 +243,199 @@ public class GameCoordinator {
             System.err.println("Failed to update stats/ratings: " + e.getMessage());
             e.printStackTrace();
             return false;
+        }
+    }
+
+    public void makeMove(String gameId, User user, String moveStr) throws IOException {
+        if (user == null) throw new IllegalArgumentException("You must be logged in.");
+        Game game = activeGames.get(gameId);
+        if (game == null) throw new IllegalArgumentException("Unknown or finished game.");
+
+        synchronized (game) {
+            if (game.result != Result.ONGOING) throw new IllegalArgumentException("Game already finished.");
+
+            boolean isWhite = user.username.equals(game.whiteUser);
+            boolean isBlack = user.username.equals(game.blackUser);
+            if (!isWhite && !isBlack) throw new IllegalArgumentException("You are not a player in this game.");
+
+            // Turn check
+            if (game.whiteMove != isWhite) throw new IllegalArgumentException("Not your turn.");
+
+            // Update clock since lastUpdate (tickClocks may not have accounted the last fraction)
+            long now = System.currentTimeMillis();
+            long elapsed = now - game.lastUpdate;
+            if (elapsed < 0) elapsed = 0;
+
+            if (game.whiteMove) {
+                game.whiteTimeMs -= elapsed;
+                if (game.whiteTimeMs <= 0) {
+                    game.whiteTimeMs = 0;
+                    finishGame(game, Result.BLACK_WIN, "timeout");
+                    return;
+                }
+            } else {
+                game.blackTimeMs -= elapsed;
+                if (game.blackTimeMs <= 0) {
+                    game.blackTimeMs = 0;
+                    finishGame(game, Result.WHITE_WIN, "timeout");
+                    return;
+                }
+            }
+            game.lastUpdate = now;
+
+            Move move = Move.parse(moveStr);
+
+            if (move.fromRow == move.toRow && move.fromCol == move.toCol) {
+                throw new IllegalArgumentException("Invalid move: from == to.");
+            }
+
+            Board board = game.board;
+            if (!board.inside(move.fromRow, move.fromCol) || !board.inside(move.toRow, move.toCol)) {
+                throw new IllegalArgumentException("Move out of bounds.");
+            }
+
+            char piece = board.get(move.fromRow, move.fromCol);
+            if (piece == '.' || piece == 0) throw new IllegalArgumentException("No piece at source square.");
+
+            boolean pieceIsWhite = Character.isUpperCase(piece);
+            if (pieceIsWhite != isWhite) throw new IllegalArgumentException("You don't own that piece.");
+
+            char dst = board.get(move.toRow, move.toCol);
+            if ((dst != '.' && dst != 0) && rulesEngine.sameColor(piece, dst)) {
+                throw new IllegalArgumentException("Destination is occupied by your piece.");
+            }
+
+            if (!rulesEngine.isLegalMove(board, move)) {
+                throw new IllegalArgumentException("Illegal move.");
+            }
+
+            // Simulate -> must not leave own king in check
+            Board test = rulesEngine.copyBoard(board);
+            test.set(move.toRow, move.toCol, piece);
+            test.set(move.fromRow, move.fromCol, '.');
+
+            if (rulesEngine.isKingInCheck(test, isWhite)) {
+                throw new IllegalArgumentException("Move leaves your king in check.");
+            }
+
+            // Apply on real board
+            board.set(move.toRow, move.toCol, piece);
+            board.set(move.fromRow, move.fromCol, '.');
+
+            // Increment after move
+            if (isWhite) game.whiteTimeMs += game.incrementMs;
+            else game.blackTimeMs += game.incrementMs;
+
+            // Any move cancels pending draw offer
+            game.drawOfferedBy = null;
+
+            String normalized = move.toString();
+            game.moves.add(normalized);
+
+            // Switch turn
+            game.whiteMove = !game.whiteMove;
+
+            // Persist state
+            gameRepository.saveGame(game);
+
+            boolean whiteInCheck = rulesEngine.isKingInCheck(game.board, true);
+            boolean blackInCheck = rulesEngine.isKingInCheck(game.board, false);
+
+            ClientHandler whiteH = onlineHandlers.get(game.whiteUser);
+            ClientHandler blackH = onlineHandlers.get(game.blackUser);
+
+            if (whiteH != null) whiteH.sendMove(game, normalized, whiteInCheck, blackInCheck);
+            if (blackH != null) blackH.sendMove(game, normalized, whiteInCheck, blackInCheck);
+
+            // Checkmate / stalemate for side to move
+            boolean sideToMoveIsWhite = game.whiteMove;
+            boolean inCheck = sideToMoveIsWhite ? whiteInCheck : blackInCheck;
+            boolean hasMoves = rulesEngine.hasAnyLegalMove(game.board, sideToMoveIsWhite);
+
+            if (!hasMoves) {
+                if (inCheck) {
+                    finishGame(game, sideToMoveIsWhite ? Result.BLACK_WIN : Result.WHITE_WIN, "checkmate");
+                } else {
+                    finishGame(game, Result.DRAW, "stalemate");
+                }
+            }
+        }
+    }
+
+    public void offerDraw(String gameId, User user) throws IOException {
+        if (user == null) throw new IllegalArgumentException("You must be logged in.");
+        Game game = activeGames.get(gameId);
+        if (game == null) throw new IllegalArgumentException("Unknown or finished game.");
+
+        synchronized (game) {
+            if (game.result != Result.ONGOING) throw new IllegalArgumentException("Game already finished.");
+
+            String u = user.username;
+            if (!u.equals(game.whiteUser) && !u.equals(game.blackUser)) {
+                throw new IllegalArgumentException("You are not a player in this game.");
+            }
+
+            if (game.drawOfferedBy != null && !game.drawOfferedBy.isBlank()) {
+                throw new IllegalArgumentException("A draw is already offered.");
+            }
+
+            game.drawOfferedBy = u;
+            gameRepository.saveGame(game);
+
+            String opp = game.opponentOf(u);
+            ClientHandler oppH = onlineHandlers.get(opp);
+            if (oppH != null) oppH.sendDrawOffered(game.id, u);
+        }
+    }
+
+    public void respondDraw(String gameId, User user, boolean accept) throws IOException {
+        if (user == null) throw new IllegalArgumentException("You must be logged in.");
+        Game game = activeGames.get(gameId);
+        if (game == null) throw new IllegalArgumentException("Unknown or finished game.");
+
+        synchronized (game) {
+            if (game.result != Result.ONGOING) throw new IllegalArgumentException("Game already finished.");
+
+            String u = user.username;
+            if (!u.equals(game.whiteUser) && !u.equals(game.blackUser)) {
+                throw new IllegalArgumentException("You are not a player in this game.");
+            }
+
+            if (game.drawOfferedBy == null || game.drawOfferedBy.isBlank()) {
+                throw new IllegalArgumentException("No draw offer to respond to.");
+            }
+
+            String offeredBy = game.drawOfferedBy;
+
+            if (accept) {
+                finishGame(game, Result.DRAW, "draw agreed");
+                return;
+            }
+
+            // decline
+            game.drawOfferedBy = null;
+            gameRepository.saveGame(game);
+
+            ClientHandler offerer = onlineHandlers.get(offeredBy);
+            if (offerer != null) offerer.sendDrawDeclined(game.id, u);
+        }
+    }
+
+    public void resign(String gameId, User user) throws IOException {
+        if (user == null) throw new IllegalArgumentException("You must be logged in.");
+        Game game = activeGames.get(gameId);
+        if (game == null) throw new IllegalArgumentException("Unknown or finished game.");
+
+        synchronized (game) {
+            if (game.result != Result.ONGOING) throw new IllegalArgumentException("Game already finished.");
+
+            String u = user.username;
+            if (!u.equals(game.whiteUser) && !u.equals(game.blackUser)) {
+                throw new IllegalArgumentException("You are not a player in this game.");
+            }
+
+            boolean resigningWhite = u.equals(game.whiteUser);
+            finishGame(game, resigningWhite ? Result.BLACK_WIN : Result.WHITE_WIN, "resign");
         }
     }
 }

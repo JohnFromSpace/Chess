@@ -72,15 +72,15 @@ public class ClientHandler implements Runnable {
 
         try {
             switch (type) {
-                case "ping"       -> handlePing(msg);
-                case "register"   -> handleRegister(msg);
-                case "login"      -> handleLogin(msg);
-                case "requestGame"-> handleRequestGame(msg);
-                case "makeMove"   -> handleMakeMove(msg);
-                case "offerDraw"  -> handleOfferDraw(msg);
-                case "acceptDraw" -> handleRespondDraw(msg, true);
-                case "declineDraw"-> handleRespondDraw(msg, false);
-                case "resign"     -> handleResign(msg);
+                case "ping"        -> handlePing(msg);
+                case "register"    -> handleRegister(msg);
+                case "login"       -> handleLogin(msg);
+                case "requestGame" -> handleRequestGame(msg);
+                case "makeMove"    -> handleMakeMove(msg);
+                case "offerDraw"   -> handleOfferDraw(msg);
+                case "acceptDraw"  -> handleRespondDraw(msg, true);
+                case "declineDraw" -> handleRespondDraw(msg, false);
+                case "resign"      -> handleResign(msg);
                 default -> send(ResponseMessage.error(corrId, "Unknown message type: " + type));
             }
         } catch (IllegalArgumentException ex) {
@@ -127,7 +127,6 @@ public class ClientHandler implements Runnable {
         User user = authService.login(username, password);
         this.currentUser = user;
 
-        // IMPORTANT: call onUserOnline AFTER setting currentUser
         gameCoordinator.onUserOnline(this, user);
 
         Map<String, Object> u = new HashMap<>();
@@ -162,11 +161,11 @@ public class ClientHandler implements Runnable {
         send(ResponseMessage.ok("makeMoveOk", inMsg.corrId));
     }
 
-    private void handleOfferDraw(RequestMessage inMsg) {
+    private void handleOfferDraw(RequestMessage inMsg) throws IOException {
         if (currentUser == null) throw new IllegalArgumentException("You must be logged in to offer a draw.");
         String gameId = reqStr(inMsg, "gameId");
 
-        clientController.offerDraw(gameId, currentUser);
+        gameCoordinator.offerDraw(gameId, currentUser);
         send(ResponseMessage.ok("offerDrawOk", inMsg.corrId));
     }
 
