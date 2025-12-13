@@ -5,6 +5,7 @@ import com.example.chess.server.fs.repository.GameRepository;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.example.chess.common.model.Game;
 
 import java.io.IOException;
 import java.lang.reflect.Type;

@@ -1,5 +1,7 @@
 package com.example.chess.server.logic;
 
+import com.example.chess.common.board.Board;
+import com.example.chess.common.board.Move;
 import com.example.chess.common.pieces.Piece;
 import com.example.chess.common.pieces.PieceFactory;
 
@@ -66,7 +68,7 @@ public class RulesEngine {
                     for (int toCol = 0; toCol < 8; toCol++) {
                         if (fromRow == toRow && fromCol == toCol) continue;
 
-                        Move m = new Move();
+                        Move m = new Move(fromRow, fromCol, toRow, toCol);
                         m.fromRow = fromRow;
                         m.fromCol = fromCol;
                         m.toRow = toRow;

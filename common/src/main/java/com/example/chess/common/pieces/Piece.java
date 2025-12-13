@@ -1,6 +1,8 @@
 package com.example.chess.common.pieces;
 
 import com.example.chess.common.board.Color;
+import com.example.chess.common.board.Board;
+import com.example.chess.common.board.Move;
 
 public abstract class Piece {
     private final Color color;
@@ -15,7 +17,7 @@ public abstract class Piece {
 
     public abstract char toChar();
 
-    public abstract boolean canMove(GameModels.Board board, GameModels.Move move);
+    public abstract boolean canMove(Board board, Move move);
 
     protected static boolean isEmpty(char c) {
         return c == '.' || c == 0;
@@ -26,7 +28,7 @@ public abstract class Piece {
         return Character.isUpperCase(a) == Character.isUpperCase(b);
     }
 
-    protected static boolean isPathClear(GameModels.Board board, int fromRow, int fromCol, int toRow, int toCol) {
+    protected static boolean isPathClear(Board board, int fromRow, int fromCol, int toRow, int toCol) {
         int dRow = Integer.signum(toRow - fromRow);
         int dCol = Integer.signum(toCol - fromCol);
 

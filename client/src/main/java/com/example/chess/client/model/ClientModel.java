@@ -1,6 +1,7 @@
 package com.example.chess.client.model;
 
 import com.example.chess.common.UserModels.User;
+import com.example.chess.common.model.Game;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,10 @@ public class ClientModel {
     private User currentUser;
 
     private String activeGameId;
-    private Game activeGame;
+
+    // extra context for UX
+    private boolean playingAsWhite;
+    private String opponent;
 
     private List<Game> myGames = new ArrayList<>();
 
@@ -30,26 +34,31 @@ public class ClientModel {
         return activeGameId;
     }
 
-    public Game getActiveGame() {
-        return activeGame;
-    }
-
-    public void setActiveGame(Game game) {
-        this.activeGame = game;
-        this.activeGameId = (game != null ? game.id : null);
-    }
-
     public void setActiveGameId(String gameId) {
         this.activeGameId = gameId;
     }
 
     public void clearActiveGame() {
-        this.activeGame = null;
         this.activeGameId = null;
+        this.playingAsWhite = false;
+        this.opponent = null;
     }
 
     public boolean hasActiveGame() {
         return activeGameId != null;
+    }
+
+    public boolean isPlayingAsWhite() {
+        return playingAsWhite;
+    }
+
+    public String getOpponent() {
+        return opponent;
+    }
+
+    public void setGameContext(boolean playingAsWhite, String opponent) {
+        this.playingAsWhite = playingAsWhite;
+        this.opponent = opponent;
     }
 
     public List<Game> getMyGames() {
@@ -60,4 +69,3 @@ public class ClientModel {
         this.myGames = (myGames != null ? myGames : new ArrayList<>());
     }
 }
-

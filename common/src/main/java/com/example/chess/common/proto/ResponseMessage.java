@@ -21,8 +21,16 @@ public class ResponseMessage extends Message {
         return new ResponseMessage(type, corrId, false, null, new HashMap<>());
     }
 
+    public static ResponseMessage ok(String type, String corrId, Map<String,Object> payload) {
+        return new ResponseMessage(type, corrId, false, null, payload);
+    }
+
+    public static ResponseMessage push(String type, Map<String, Object> payload) {
+        return new ResponseMessage(type, null, false, null, payload != null ? payload : new HashMap<>());
+    }
+
     public static ResponseMessage error(String corrId, String message) {
-        return new ResponseMessage("error", corrId, true, message, new java.util.HashMap<>());
+        return new ResponseMessage("error", corrId, true, message, new HashMap<>());
     }
 
     public boolean isError() {

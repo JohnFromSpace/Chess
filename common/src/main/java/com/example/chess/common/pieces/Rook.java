@@ -1,6 +1,8 @@
 package com.example.chess.common.pieces;
 
+import com.example.chess.common.board.Board;
 import com.example.chess.common.board.Color;
+import com.example.chess.common.board.Move;
 
 public final class Rook extends Piece {
     public Rook(Color color) { super(color); }
@@ -11,7 +13,7 @@ public final class Rook extends Piece {
     }
 
     @Override
-    public boolean canMove(GameModels.Board board, GameModels.Move m) {
+    public boolean canMove(Board board, Move m) {
         int dx = Math.abs(m.toCol - m.fromCol);
         int dy = Math.abs(m.toRow - m.fromRow);
         if (!(dx == 0 || dy == 0)) return false;

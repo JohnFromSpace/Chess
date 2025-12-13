@@ -1,8 +1,8 @@
 package com.example.chess.client;
 
-import com.example.chess.common.proto.ResponseMessage;
+import com.example.chess.common.proto.StatusMessage;
 
 public interface ClientMessageListener {
-    void onMessage(ResponseMessage msg);
+    void onMessage(StatusMessage msg);
 }
 

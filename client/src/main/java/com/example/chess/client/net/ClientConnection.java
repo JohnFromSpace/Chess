@@ -5,6 +5,7 @@ import com.example.chess.common.MessageCodec;
 import com.example.chess.common.proto.Message;
 import com.example.chess.common.proto.RequestMessage;
 import com.example.chess.common.proto.ResponseMessage;
+import com.example.chess.common.proto.StatusMessage;
 
 import java.io.*;
 import java.net.Socket;
@@ -17,13 +18,15 @@ public class ClientConnection {
 
     private final String host;
     private final int port;
-    private ClientMessageListener listener;
+    private volatile ClientMessageListener listener;
 
     private Socket socket;
     private BufferedReader in;
     private BufferedWriter out;
     private Thread readerThread;
-    private final Map<String, CompletableFuture<ResponseMessage>> pending = new ConcurrentHashMap<>();
+
+    // FIX: pending must store StatusMessage futures (not ResponseMessage)
+    private final Map<String, CompletableFuture<StatusMessage>> pending = new ConcurrentHashMap<>();
 
     public ClientConnection(String host, int port, ClientMessageListener listener) {
         this.host = host;
@@ -54,39 +57,45 @@ public class ClientConnection {
 
                 Message msg = MessageCodec.fromJson(line);
 
-                if (msg instanceof ResponseMessage resp && resp.corrId != null) {
-                    CompletableFuture<ResponseMessage> fut = pending.remove(resp.corrId);
-                    if (fut != null) {
-                        fut.complete(resp);
-                        continue;
-                    }
-                }
+                if (msg instanceof ResponseMessage resp) {
+                    StatusMessage status = StatusMessage.from(resp);
 
-                if (listener != null && msg instanceof ResponseMessage resp) {
-                    listener.onMessage(resp);
+                    // correlated response -> complete the waiting future
+                    if (resp.corrId != null) {
+                        CompletableFuture<StatusMessage> fut = pending.remove(resp.corrId);
+                        if (fut != null) {
+                            fut.complete(status);
+                            continue;
+                        }
+                    }
+
+                    // async push -> deliver to listener
+                    ClientMessageListener l = listener;
+                    if (l != null) {
+                        l.onMessage(status);
+                    }
                 }
             }
         } catch (IOException e) {
             System.err.println("ClientConnection readLoop error: " + e.getMessage());
             e.printStackTrace();
-            // Optionally fail all pending futures
             pending.values().forEach(f -> f.completeExceptionally(e));
             pending.clear();
         }
     }
 
-    public CompletableFuture<ResponseMessage> sendAndWait(RequestMessage msg) {
+    public CompletableFuture<StatusMessage> sendAndWait(RequestMessage msg) {
         String corrId = msg.corrId;
         if (corrId == null || corrId.isBlank()) {
             corrId = UUID.randomUUID().toString();
             msg = new RequestMessage(msg.type, corrId, msg.payload);
         }
 
-        CompletableFuture<ResponseMessage> fut = new CompletableFuture<>();
+        CompletableFuture<StatusMessage> fut = new CompletableFuture<>();
         pending.put(corrId, fut);
 
         try {
-            String json = MessageCodec.toJson(msg);
+            String json = MessageCodec.toJson(msg); // includes trailing newline
             synchronized (out) {
                 out.write(json);
                 out.flush();
@@ -99,5 +108,3 @@ public class ClientConnection {
         return fut;
     }
 }
-
-

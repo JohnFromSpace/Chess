@@ -1,6 +1,8 @@
 package com.example.chess.common.pieces;
 
+import com.example.chess.common.board.Board;
 import com.example.chess.common.board.Color;
+import com.example.chess.common.board.Move;
 
 public final class Pawn extends Piece {
     public Pawn(Color color) { super(color); }
@@ -11,7 +13,7 @@ public final class Pawn extends Piece {
     }
 
     @Override
-    public boolean canMove(GameModels.Board board, GameModels.Move m) {
+    public boolean canMove(Board board, Move m) {
         int dir = (getColor() == Color.WHITE) ? -1 : 1;
         int startRow = (getColor() == Color.WHITE) ? 6 : 1;
 
