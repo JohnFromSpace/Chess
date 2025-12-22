@@ -5,9 +5,14 @@ public class Move {
     public int fromCol;
     public int toRow;
     public int toCol;
+    public Character promotion;
 
-    public Move(int fr, int fc, int tr, int tc) {
-        this.fromRow=fr; this.fromCol=fc; this.toRow=tr; this.toCol=tc;
+    public Move(int fr, int fc, int tr, int tc, Character promotion) {
+        this.fromRow = fr;
+        this.fromCol = fc;
+        this.toRow = tr;
+        this.toCol = tc;
+        this.promotion = promotion;
     }
 
     public static Move parse(String uci) {
@@ -19,11 +24,22 @@ public class Move {
         int fr = 8 - (s.charAt(1) - '0');
         int tc = s.charAt(2) - 'a';
         int tr = 8 - (s.charAt(3) - '0');
-
-        return new Move(fr, fc, tr, tc);
+        Character promotion = null;
+        if(s.length() == 5) {
+            char p = s.charAt(4);
+            if(p == 'q' || p == 'r' || p == 'n' || p == 'b') {
+                promotion = p;
+            }
+            else {
+                throw new IllegalArgumentException("Bad promotion piece: " + p);
+            }
+        }
+        return new Move(fr, fc, tr, tc, promotion);
     }
 
     @Override public String toString() {
-        return ""+(char)('a'+fromCol)+(char)('8'-fromRow)+(char)('a'+toCol)+(char)('8'-toRow);
+        String base = ""+(char)('a'+fromCol)+(char)('8'-fromRow)+(char)('a'+toCol)+(char)('8'-toRow);
+
+        return promotion == null ? base : base + promotion;
     }
 }

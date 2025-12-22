@@ -31,6 +31,13 @@ public class Game {
     public Board board = Board.initial();
     public List<String> moves = new ArrayList<>();
 
+    // en passant target square for the *capturing pawn to move to* (or -1 if none)
+    public int enPassantRow = -1;
+    public int enPassantCol = -1;
+
+    // castling rights
+    public boolean wK = true, wQ = true, bK = true, bQ = true;
+
     public boolean isWhite(String username) { return username != null && username.equals(whiteUser); }
 
     public String opponentOf(String username) {
