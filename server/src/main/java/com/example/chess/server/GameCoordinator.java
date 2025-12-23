@@ -347,7 +347,11 @@ public class GameCoordinator {
             // Checkmate / stalemate for side to move
             boolean sideToMoveIsWhite = game.whiteMove;
             boolean inCheck = sideToMoveIsWhite ? whiteInCheck : blackInCheck;
-            boolean hasMoves = rulesEngine.hasAnyLegalMove(game.board, sideToMoveIsWhite);
+            boolean hasMoves = rulesEngine.hasAnyLegalMove(game, game.board, sideToMoveIsWhite);
+            if (!hasMoves) {
+                if (inCheck) finishGame(game, sideToMoveIsWhite ? Result.BLACK_WIN : Result.WHITE_WIN, "checkmate");
+                else finishGame(game, Result.DRAW, "stalemate");
+            }
 
             if (!hasMoves) {
                 if (inCheck) {

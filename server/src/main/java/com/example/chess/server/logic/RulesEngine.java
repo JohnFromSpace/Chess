@@ -248,49 +248,18 @@ public class RulesEngine {
         }
     }
 
-    // =========================
-    // Mate/stalemate helper
-    // =========================
-
-    /**
-     * Full legal-move existence check (includes special moves if Game is provided),
-     * and filters out moves that leave own king in check.
-     */
     public boolean hasAnyLegalMove(Game game, Board board, boolean whiteToMove) {
-        List<Move> moves = generateAllPseudoMoves(game, board, whiteToMove);
-        for (Move m : moves) {
-            if (!isLegalMove(game, board, m)) continue;
-
-            Board test = board.copy();
-            // simulation: do NOT update rights/enPassant
-            applyMove(test, game, m, false);
-
-            if (!isKingInCheck(test, whiteToMove)) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Backward-compatible overload (no Game state -> no castling/enPassant history).
-     * Still checks normal moves + king safety.
-     */
-    public boolean hasAnyLegalMove(Board board, boolean whiteToMove) {
         List<Move> moves = generateAllPseudoMoves(null, board, whiteToMove);
         for (Move m : moves) {
             if (!isLegalMove(board, m)) continue;
 
             Board test = board.copy();
-            // apply naive (no special updates possible)
             applyMoveNaive(test, m);
 
             if (!isKingInCheck(test, whiteToMove)) return true;
         }
         return false;
     }
-
-    // =========================
-    // Internal: pseudo move generation
-    // =========================
 
     private List<Move> generateAllPseudoMoves(Game game, Board board, boolean whiteToMove) {
         List<Move> out = new ArrayList<>();
@@ -553,10 +522,6 @@ public class RulesEngine {
     private boolean isEmpty(char x) {
         return x == '.' || x == 0;
     }
-
-    // =========================
-    // Naive apply (used only by hasAnyLegalMove(Board,...))
-    // =========================
 
     private void applyMoveNaive(Board board, Move move) {
         char piece = board.get(move.fromRow, move.fromCol);
