@@ -1,8 +1,7 @@
 package com.example.chess.client.ui;
 
-import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.SessionState;
-import com.example.chess.client.ui.menu.Command;
+import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.ui.menu.Menu;
 import com.example.chess.client.ui.menu.MenuItem;
 import com.example.chess.client.view.ConsoleView;
@@ -14,72 +13,73 @@ public class InGameScreen implements Screen {
     private final SessionState state;
 
     public InGameScreen(ClientConnection conn, ConsoleView view, SessionState state) {
-        this.conn = conn; this.view = view; this.state = state;
+        this.conn = conn;
+        this.view = view;
+        this.state = state;
     }
 
     @Override
     public void show() {
         Menu menu = new Menu("Game");
-        menu.add(new MenuItem("Move", new MoveCommand(conn, view, state)));
-        menu.add(new MenuItem("Offer draw", new OfferDrawCommand(conn, view, state)));
-        menu.add(new MenuItem("Resign", new ResignCommand(conn, view, state)));
-        menu.add(new MenuItem("Back to lobby", () -> state.clearGame()));
-        menu.add(new MenuItem("Print board", () -> view.showBoard(state.getLastBoard())));
+        menu.add(new MenuItem("Move", this::move));
+        menu.add(new MenuItem("Offer draw", this::offerDraw));
+        menu.add(new MenuItem("Resign", this::resign));
+        menu.add(new MenuItem("Print board", this::printBoard));
+        menu.add(new MenuItem("Back to lobby", state::clearGame));
 
         while (state.getUser() != null && state.isInGame()) {
+            state.drainUi();
             menu.render(view);
             menu.readAndExecute(view);
+            state.drainUi();
         }
     }
 
-    static final class MoveCommand implements Command {
-        private final ClientConnection conn;
-        private final ConsoleView view;
-        private final SessionState state;
-
-        MoveCommand(ClientConnection conn, ConsoleView view, SessionState state) {
-            this.conn = conn; this.view = view; this.state = state;
+    private void move() {
+        String gameId = state.getActiveGameId();
+        if (gameId == null || gameId.isBlank()) {
+            view.showError("No active game.");
+            return;
         }
 
-        @Override public void execute() {
-            String move = view.askLine("Enter move (e2e4 / e7e8q): ").trim();
-            var status = conn.makeMove(state.getActiveGameId(), move).join();
-            if (status.isError()) view.showError(status.getMessage());
-            else view.showMessage("Move sent.");
+        String move = view.askLine("Enter move (e2e4 / e7e8q): ").trim();
+        if (move.isBlank()) {
+            view.showError("Empty move.");
+            return;
         }
+
+        var status = conn.makeMove(gameId, move).join();
+        if (status.isError()) view.showError(status.getMessage());
+        else view.showMessage("Move sent.");
     }
 
-    static final class OfferDrawCommand implements Command {
-        private final ClientConnection conn;
-        private final ConsoleView view;
-        private final SessionState state;
-
-        OfferDrawCommand(ClientConnection conn, ConsoleView view, SessionState state) {
-            this.conn = conn; this.view = view; this.state = state;
+    private void offerDraw() {
+        String gameId = state.getActiveGameId();
+        if (gameId == null || gameId.isBlank()) {
+            view.showError("No active game.");
+            return;
         }
 
-        @Override
-        public void execute() {
-            var status = conn.offerDraw(state.getActiveGameId()).join();
-            if (status.isError()) view.showError(status.getMessage());
-            else view.showMessage("Draw offer sent.");
-        }
+        var status = conn.offerDraw(gameId).join();
+        if (status.isError()) view.showError(status.getMessage());
+        else view.showMessage("Draw offer sent.");
     }
 
-    static final class ResignCommand implements Command {
-        private final ClientConnection conn;
-        private final ConsoleView view;
-        private final SessionState state;
-
-        ResignCommand(ClientConnection conn, ConsoleView view, SessionState state) {
-            this.conn = conn; this.view = view; this.state = state;
+    private void resign() {
+        String gameId = state.getActiveGameId();
+        if (gameId == null || gameId.isBlank()) {
+            view.showError("No active game.");
+            return;
         }
 
-        @Override
-        public void execute() {
-            var status = conn.resign(state.getActiveGameId()).join();
-            if (status.isError()) view.showError(status.getMessage());
-            else view.showMessage("Resigned.");
-        }
+        var status = conn.resign(gameId).join();
+        if (status.isError()) view.showError(status.getMessage());
+        else view.showMessage("Resigned.");
+    }
+
+    private void printBoard() {
+        String b = state.getLastBoard();
+        if (b == null || b.isBlank()) view.showMessage("No board received yet.");
+        else view.showBoard(b);
     }
 }
