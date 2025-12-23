@@ -49,7 +49,11 @@ public class ClientController {
                 state.setWhite("white".equalsIgnoreCase(color));
 
                 String boardStr = asString(p, "board");
-                if (boardStr != null && !boardStr.isBlank()) state.setLastBoard(boardStr);
+                if (boardStr != null && !boardStr.isBlank()) {
+                    String oriented = orientBoardForPlayer(boardStr, state.isWhite());
+                    state.setLastBoard(oriented);
+                    view.showBoard(oriented);
+                }
 
                 state.postUi(() -> {
                     String opponent = asString(p, "opponent");
@@ -86,7 +90,10 @@ public class ClientController {
                 Boolean wtm = asBoolObj(p, "whiteToMove");
 
                 String boardStr = asString(p, "board");
-                if (boardStr != null && !boardStr.isBlank()) state.setLastBoard(boardStr);
+                if (boardStr != null && !boardStr.isBlank()) {
+                    String oriented = orientBoardForPlayer(boardStr, state.isWhite());
+                    state.setLastBoard(oriented);
+                }
 
                 boolean isMine = moveStr != null && moveStr.equalsIgnoreCase(state.getLastSentMove());
                 if (isMine) state.setLastSentMove(null);
@@ -98,9 +105,9 @@ public class ClientController {
                         view.showMove(moveStr, whiteInCheck, blackInCheck);
                     }
 
-                    if ((state.isAutoShowBoard() || whiteInCheck || blackInCheck)
-                            && state.getLastBoard() != null) {
-                        view.showBoard(state.getLastBoard());
+                    if (state.isAutoShowBoard()) {
+                        String boardState = state.getLastBoard();
+                        if (boardState != null && !boardState.isBlank()) view.showBoard(boardState);
                     } else {
                         view.showMessage("(Board updated. Use 'Print board' to view.)");
                     }

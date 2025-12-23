@@ -55,4 +55,26 @@ public class ConsoleView {
         }
         out.println(boardText);
     }
+
+    public Integer askIntWithTimeout(String prompt, long timeoutMs) {
+        out.print(prompt);
+
+        long end = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < end) {
+            try {
+                if (System.in.available() > 0) {
+                    String line = in.nextLine().trim();
+                    try {
+                        return Integer.parseInt(line);
+                    } catch (NumberFormatException e) {
+                        out.println("Please enter a number.");
+                        out.print(prompt);
+                    }
+                }
+                Thread.sleep(50);
+            } catch (Exception ignored) {
+            }
+        }
+        return null; // timed out
+    }
 }
