@@ -37,7 +37,7 @@ public class AuthService {
         User currentUser = userRepository.findByUsername(username).
                 orElseThrow(() -> new IllegalArgumentException("Invalid credentials."));
 
-        if (!PasswordUtil.hash(password).equals(currentUser.passHash)) {
+        if (!PasswordUtil.verify(password, currentUser.passHash)) {
             throw new IllegalArgumentException("Invalid credentials.");
         }
 
