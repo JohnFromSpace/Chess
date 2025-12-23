@@ -213,6 +213,10 @@ public class ClientHandler implements Runnable {
 
         payload.put("board", game.board.toPrettyString());
 
+        payload.put("whiteTimeMs", game.whiteTimeMs);
+        payload.put("blackTimeMs", game.blackTimeMs);
+        payload.put("whiteToMove", game.whiteMove);
+
         send(ResponseMessage.push("move", payload));
     }
 
