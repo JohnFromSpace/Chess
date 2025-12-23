@@ -1,8 +1,8 @@
 package com.example.chess.client.controller;
 
 import com.example.chess.client.ClientMessageListener;
-import com.example.chess.client.menu.Menu;
-import com.example.chess.client.menu.MenuItem;
+import com.example.chess.client.ui.menu.Menu;
+import com.example.chess.client.ui.menu.MenuItem;
 import com.example.chess.client.model.ClientModel;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.view.ConsoleView;

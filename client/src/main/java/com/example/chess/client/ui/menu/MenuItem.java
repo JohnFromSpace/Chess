@@ -1,4 +1,4 @@
-package com.example.chess.client.menu;
+package com.example.chess.client.ui.menu;
 
 public class MenuItem {
     private final int number;
