@@ -15,6 +15,19 @@ public class SessionState {
 
     private final Queue<Runnable> uiActions = new ConcurrentLinkedQueue<>();
 
+    private boolean waitingForMatch;
+    private boolean autoShowBoard = true;
+    private String lastSentMove;
+
+    public boolean isWaitingForMatch() { return waitingForMatch; }
+    public void setWaitingForMatch(boolean waitingForMatch) { this.waitingForMatch = waitingForMatch; }
+
+    public boolean isAutoShowBoard() { return autoShowBoard; }
+    public void setAutoShowBoard(boolean autoShowBoard) { this.autoShowBoard = autoShowBoard; }
+
+    public String getLastSentMove() { return lastSentMove; }
+    public void setLastSentMove(String lastSentMove) { this.lastSentMove = lastSentMove; }
+
     public String getLastBoard() { return lastBoard; }
     public void setLastBoard(String lastBoard) { this.lastBoard = lastBoard; }
 
