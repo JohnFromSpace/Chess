@@ -48,6 +48,8 @@ public class SessionState {
         this.inGame = false;
         this.isWhite = false;
         this.lastBoard = null;
+        this.waitingForMatch = false;
+        this.lastSentMove = null;
     }
 
     public void postUi(Runnable r) {
