@@ -5,6 +5,10 @@ import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.ui.*;
 import com.example.chess.client.view.ConsoleView;
 import com.example.chess.common.proto.ResponseMessage;
+import com.example.chess.client.ui.menu.Menu;
+import com.example.chess.client.ui.menu.MenuItem;
+
+import java.util.List;
 
 public class ClientController {
 
@@ -31,17 +35,23 @@ public class ClientController {
     private void onPush(ResponseMessage msg) {
         switch (msg.type) {
             case "gameStarted" -> {
-                String gameId = (String) msg.payload.get("gameId");
-                state.setActiveGameId(gameId);
-                state.setInGame(true);
-                Object color = msg.payload.get("color");
-                state.setWhite("white".equals(color));
-                view.showMessage("Game started. You are " + color + ". GameId=" + gameId);
+                String boardStr = asString(p, "board");
+                if (boardStr != null) {
+                    model.setLastBoard(boardStr);
+                    view.showBoard(boardStr);
+                }
             }
             case "move" -> {
-                view.showMessage("Move: " + msg.payload.get("move")
-                        + (Boolean.TRUE.equals(msg.payload.get("whiteInCheck")) ? " (white in check)" : "")
-                        + (Boolean.TRUE.equals(msg.payload.get("blackInCheck")) ? " (black in check)" : ""));
+                String moveStr = asString(p, "move");
+                boolean whiteInCheck = asBool(p, "whiteInCheck", false);
+                boolean blackInCheck = asBool(p, "blackInCheck", false);
+                view.showMove(moveStr, whiteInCheck, blackInCheck);
+
+                String boardStr = asString(p, "board");
+                if (boardStr != null) {
+                    model.setLastBoard(boardStr);
+                    view.showBoard(boardStr);
+                }
             }
             case "drawOffered" -> view.showMessage("Draw offered by: " + msg.payload.get("by"));
             case "drawDeclined" -> view.showMessage("Draw declined by: " + msg.payload.get("by"));
@@ -52,5 +62,21 @@ public class ClientController {
             case "info" -> view.showMessage(String.valueOf(msg.payload.get("message")));
             default -> view.showMessage("Push: " + msg.type + " " + msg.payload);
         }
+    }
+
+    private Menu buildInGameMenu() {
+        return new Menu("Game",
+                List.of(
+                        new MenuItem(1, "Make move",     () -> { doMove();      return true; }),
+                        new MenuItem(2, "Offer draw",    () -> { offerDraw();   return true; }),
+                        new MenuItem(3, "Resign",        () -> { resign();      return true; }),
+                        new MenuItem(4, "Print board",   () -> { printBoard();  return true; })
+                ));
+    }
+
+    private void printBoard() {
+        String b = model.getLastBoard();
+        if (b == null) view.showMessage("No board received yet.");
+        else view.showBoard(b);
     }
 }

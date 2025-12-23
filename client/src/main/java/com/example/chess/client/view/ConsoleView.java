@@ -47,4 +47,12 @@ public class ConsoleView {
             }
         }
     }
+
+    public void showBoard(String boardText) {
+        if (boardText == null || boardText.isBlank()) {
+            out.println("(no board)");
+            return;
+        }
+        out.println(boardText);
+    }
 }

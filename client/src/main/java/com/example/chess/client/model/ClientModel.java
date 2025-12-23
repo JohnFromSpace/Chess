@@ -18,6 +18,11 @@ public class ClientModel {
 
     private List<Game> myGames = new ArrayList<>();
 
+    private String lastBoard;
+
+    public String getLastBoard() { return lastBoard; }
+    public void setLastBoard(String board) { this.lastBoard = board; }
+
     public User getCurrentUser() {
         return currentUser;
     }
@@ -42,6 +47,7 @@ public class ClientModel {
         this.activeGameId = null;
         this.playingAsWhite = false;
         this.opponent = null;
+        this.lastBoard = null;
     }
 
     public boolean hasActiveGame() {
