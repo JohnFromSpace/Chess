@@ -107,4 +107,8 @@ public class ClientConnection {
 
         return fut;
     }
+
+    public void setPushHandler(Object onPush) {
+
+    }
 }
