@@ -25,11 +25,13 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Offer draw", this::offerDraw));
         menu.add(new MenuItem("Resign", this::resign));
         menu.add(new MenuItem("Print board", this::printBoard));
+        menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
         menu.add(new MenuItem("Back to lobby", state::clearGame));
 
         while (state.getUser() != null && state.isInGame()) {
             state.drainUi();
             menu.render(view);
+            view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
             menu.readAndExecute(view);
             state.drainUi();
         }
@@ -49,8 +51,23 @@ public class InGameScreen implements Screen {
         }
 
         var status = conn.makeMove(gameId, move).join();
-        if (status.isError()) view.showError(status.getMessage());
-        else view.showMessage("Move sent.");
+        if (status.isError()) {
+            view.showError(status.getMessage());
+        } else {
+            state.setLastSentMove(move); // <-- NEW (so pushes can say "You played")
+            view.showMessage("Move sent.");
+        }
+    }
+
+    private void toggleAutoBoard() {
+        state.setAutoShowBoard(!state.isAutoShowBoard());
+        view.showMessage("Auto-board is now " + (state.isAutoShowBoard() ? "ON" : "OFF"));
+    }
+
+    private void printBoard() {
+        String b = state.getLastBoard();
+        if (b == null || b.isBlank()) view.showMessage("No board received yet.");
+        else view.showBoard(b);
     }
 
     private void offerDraw() {
@@ -75,11 +92,5 @@ public class InGameScreen implements Screen {
         var status = conn.resign(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Resigned.");
-    }
-
-    private void printBoard() {
-        String b = state.getLastBoard();
-        if (b == null || b.isBlank()) view.showMessage("No board received yet.");
-        else view.showBoard(b);
     }
 }
