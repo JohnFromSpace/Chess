@@ -1,1 +1,24 @@
-[{"initialFen":"startpos","timeControlMs":300000,"incrementMs":2000,"whiteTimeMs":300000,"blackTimeMs":300000,"result":"ONGOING","resultReason":"","createdAt":0,"lastUpdate":0,"board":{"squares":[["r","n","b","q","k","b","n","r"],["p","p","p","p","p","p","p","p"],[".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".","."],["\u0000","\u0000","\u0000","\u0000","\u0000","\u0000","\u0000","\u0000"],["p","p","p","p","p","p","p","p"],["R","N","B","Q","K","B","N","R"]]},"whiteMove":true,"moves":[]},{"initialFen":"startpos","timeControlMs":300000,"incrementMs":2000,"whiteTimeMs":300000,"blackTimeMs":300000,"result":"ONGOING","resultReason":"","createdAt":0,"lastUpdate":0,"board":{"squares":[["r","n","b","q","k","b","n","r"],["p","p","p","p","p","p","p","p"],[".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".","."],["\u0000","\u0000","\u0000","\u0000","\u0000","\u0000","\u0000","\u0000"],["p","p","p","p","p","p","p","p"],["R","N","B","Q","K","B","N","R"]]},"whiteMove":true,"moves":[]},{"initialFen":"startpos","timeControlMs":300000,"incrementMs":2000,"whiteTimeMs":300000,"blackTimeMs":300000,"result":"ONGOING","resultReason":"","createdAt":0,"lastUpdate":0,"board":{"squares":[["r","n","b","q","k","b","n","r"],["p","p","p","p","p","p","p","p"],[".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".","."],["\u0000","\u0000","\u0000","\u0000","\u0000","\u0000","\u0000","\u0000"],["p","p","p","p","p","p","p","p"],["R","N","B","Q","K","B","N","R"]]},"whiteMove":true,"moves":[]},{"id":"a617aab6-a17c-4e8a-81bf-39d954f4e76f","whiteUser":"bb","blackUser":"borko","initialFen":"startpos","timeControlMs":300000,"incrementMs":2000,"whiteTimeMs":263024,"blackTimeMs":300000,"result":"BLACK_WIN","resultReason":"resign","createdAt":1763834200198,"lastUpdate":1763834237174,"board":{"squares":[["r","n","b","q","k","b","n","r"],["p","p","p","p","p","p","p","p"],[".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".","."],["\u0000","\u0000","\u0000","\u0000","\u0000","\u0000","\u0000","\u0000"],["p","p","p","p","p","p","p","p"],["R","N","B","Q","K","B","N","R"]]},"whiteMove":true,"moves":[]}]
+{
+  "borko": {
+    "username": "borko",
+    "name": "boril ignatov",
+    "passHash": "pbkdf2$65536$Pei08168dMLwCGqGF+O4/g\u003d\u003d$bOOto/8kspBKWL+kykDVLHC20sFPYJkQZoixYbhdZgI\u003d",
+    "stats": {
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "rating": 1216
+    }
+  },
+  "admin": {
+    "username": "admin",
+    "name": "0000",
+    "passHash": "pbkdf2$65536$VUCS6+V37KRwnI0ok6XiiQ\u003d\u003d$tJDL7eThkshdWly9Rm2LhtfSHrCh0g0XoU9qy9I1Jyg\u003d",
+    "stats": {
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "rating": 1184
+    }
+  }
+}

@@ -2,6 +2,9 @@ package com.example.chess.client;
 
 import com.example.chess.common.UserModels.User;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 public class SessionState {
     private User user;
     private String activeGameId;
@@ -9,6 +12,8 @@ public class SessionState {
     private boolean isWhite;
 
     private String lastBoard;
+
+    private final Queue<Runnable> uiActions = new ConcurrentLinkedQueue<>();
 
     public String getLastBoard() { return lastBoard; }
     public void setLastBoard(String lastBoard) { this.lastBoard = lastBoard; }
@@ -30,5 +35,16 @@ public class SessionState {
         this.inGame = false;
         this.isWhite = false;
         this.lastBoard = null;
+    }
+
+    public void postUi(Runnable r) {
+        if (r != null) uiActions.add(r);
+    }
+
+    public void drainUi() {
+        Runnable r;
+        while ((r = uiActions.poll()) != null) {
+            try { r.run(); } catch (Exception ignored) {}
+        }
     }
 }
