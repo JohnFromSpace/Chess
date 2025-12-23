@@ -42,7 +42,7 @@ public class InGameScreen implements Screen {
         }
 
         @Override public void execute() {
-            String move = view.readLine("Enter move (e2e4 / e7e8q): ").trim();
+            String move = view.askLine("Enter move (e2e4 / e7e8q): ").trim();
             var status = conn.makeMove(state.getActiveGameId(), move).join();
             if (status.isError()) view.showError(status.getMessage());
             else view.showMessage("Move sent.");
@@ -58,7 +58,8 @@ public class InGameScreen implements Screen {
             this.conn = conn; this.view = view; this.state = state;
         }
 
-        @Override public void execute() {
+        @Override
+        public void execute() {
             var status = conn.offerDraw(state.getActiveGameId()).join();
             if (status.isError()) view.showError(status.getMessage());
             else view.showMessage("Draw offer sent.");
@@ -74,7 +75,8 @@ public class InGameScreen implements Screen {
             this.conn = conn; this.view = view; this.state = state;
         }
 
-        @Override public void execute() {
+        @Override
+        public void execute() {
             var status = conn.resign(state.getActiveGameId()).join();
             if (status.isError()) view.showError(status.getMessage());
             else view.showMessage("Resigned.");

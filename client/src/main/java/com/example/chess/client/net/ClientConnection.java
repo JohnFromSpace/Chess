@@ -1,6 +1,5 @@
 package com.example.chess.client.net;
 
-import com.example.chess.client.ClientMessageListener;
 import com.example.chess.common.MessageCodec;
 import com.example.chess.common.proto.Message;
 import com.example.chess.common.proto.RequestMessage;
@@ -20,9 +19,6 @@ public class ClientConnection {
     private final String host;
     private final int port;
 
-    // legacy listener (StatusMessage-based)
-    private volatile ClientMessageListener listener;
-
     // new push handler (ResponseMessage-based)
     private volatile Consumer<ResponseMessage> pushHandler = m -> {
     };
@@ -34,10 +30,9 @@ public class ClientConnection {
 
     private final Map<String, CompletableFuture<StatusMessage>> pending = new ConcurrentHashMap<>();
 
-    public ClientConnection(String host, int port, ClientMessageListener listener) {
+    public ClientConnection(String host, int port) {
         this.host = host;
         this.port = port;
-        this.listener = listener;
     }
 
     public void start() throws IOException {
@@ -48,10 +43,6 @@ public class ClientConnection {
         readerThread = new Thread(this::readLoop, "client-reader");
         readerThread.setDaemon(true);
         readerThread.start();
-    }
-
-    public void setListener(ClientMessageListener listener) {
-        this.listener = listener;
     }
 
     public void setPushHandler(Consumer<ResponseMessage> h) {
@@ -81,10 +72,6 @@ public class ClientConnection {
                     // async push -> deliver to pushHandler
                     Consumer<ResponseMessage> ph = pushHandler;
                     if (ph != null) ph.accept(resp);
-
-                    // also keep legacy listener if present (optional)
-                    ClientMessageListener l = listener;
-                    if (l != null) l.onMessage(StatusMessage.from(resp));
                 }
             }
         } catch (IOException e) {

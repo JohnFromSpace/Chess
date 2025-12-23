@@ -15,7 +15,7 @@ public class ClientMain {
         ConsoleView view = new ConsoleView(new Scanner(System.in), System.out);
 
         try {
-            ClientConnection connection = new ClientConnection(host, port, null);
+            ClientConnection connection = new ClientConnection(host, port);
             connection.start();
 
             ClientController controller = new ClientController(connection, view);
