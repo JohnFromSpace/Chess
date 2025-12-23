@@ -28,15 +28,26 @@ public class LobbyScreen implements Screen {
         while (state.getUser() != null && !state.isInGame()) {
             state.drainUi();
             menu.render(view);
+            if (state.isWaitingForMatch()) view.showMessage("(Waiting for match...)");
             menu.readAndExecute(view);
             state.drainUi();
         }
     }
 
     private void requestGame() {
+        if(state.isWaitingForMatch()) {
+            view.showMessage("Already waiting for match...");
+            return;
+        }
+
         var status = conn.requestGame().join();
-        if (status.isError()) view.showError(status.getMessage());
-        else view.showMessage("Queued / matched. Waiting for server...");
+        if (status.isError()) {
+            view.showError(status.getMessage());
+            return;
+        }
+
+        state.setWaitingForMatch(true);
+        view.showMessage("Queued / matched. Waiting for server...");
     }
 
     private void logout() {
