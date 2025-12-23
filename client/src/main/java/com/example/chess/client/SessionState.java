@@ -19,6 +19,33 @@ public class SessionState {
     private boolean autoShowBoard = true;
     private String lastSentMove;
 
+    private long whiteTimeMs;
+    private long blackTimeMs;
+    private boolean whiteToMove;
+    private long lastClockSyncAtMs; // System.currentTimeMillis()
+
+    public long getWhiteTimeMs() { return whiteTimeMs; }
+    public long getBlackTimeMs() { return blackTimeMs; }
+    public boolean isWhiteToMove() { return whiteToMove; }
+
+    public void syncClocks(long whiteMs, long blackMs, boolean whiteToMove) {
+        this.whiteTimeMs = Math.max(0, whiteMs);
+        this.blackTimeMs = Math.max(0, blackMs);
+        this.whiteToMove = whiteToMove;
+        this.lastClockSyncAtMs = System.currentTimeMillis();
+    }
+
+    public void tickClocks() {
+        long now = System.currentTimeMillis();
+        long dt = now - lastClockSyncAtMs;
+        if (dt <= 0) return;
+
+        if (whiteToMove) whiteTimeMs = Math.max(0, whiteTimeMs - dt);
+        else blackTimeMs = Math.max(0, blackTimeMs - dt);
+
+        lastClockSyncAtMs = now;
+    }
+
     public boolean isWaitingForMatch() { return waitingForMatch; }
     public void setWaitingForMatch(boolean waitingForMatch) { this.waitingForMatch = waitingForMatch; }
 
@@ -50,6 +77,10 @@ public class SessionState {
         this.lastBoard = null;
         this.waitingForMatch = false;
         this.lastSentMove = null;
+        whiteTimeMs = 0;
+        blackTimeMs = 0;
+        whiteToMove = false;
+        lastClockSyncAtMs = 0;
     }
 
     public void postUi(Runnable r) {
