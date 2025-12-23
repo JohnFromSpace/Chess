@@ -9,6 +9,8 @@ import com.example.chess.common.model.Result;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
 import com.example.chess.server.logic.RulesEngine;
+import com.example.chess.common.board.Color;
+import com.example.chess.common.pieces.Piece;
 
 import java.io.IOException;
 import java.util.*;
@@ -285,7 +287,7 @@ public class GameCoordinator {
 
             Move move = Move.parse(moveStr);
 
-            if (move.fromRow == move.toRow && move.fromCol == move.toCol) {
+            if (move.fromSquare().equals(move.toSquare())) {
                 throw new IllegalArgumentException("Invalid move: from == to.");
             }
 
@@ -294,29 +296,31 @@ public class GameCoordinator {
                 throw new IllegalArgumentException("Move out of bounds.");
             }
 
-            char piece = board.get(move.fromRow, move.fromCol);
-            if (piece == '.' || piece == 0) throw new IllegalArgumentException("No piece at source square.");
+            Piece piece = board.getPieceAt(move.fromSquare());
+            if (piece == null) throw new IllegalArgumentException("No piece at source square.");
 
-            boolean pieceIsWhite = Character.isUpperCase(piece);
+            boolean pieceIsWhite = (piece.getColor() == Color.WHITE);
             if (pieceIsWhite != isWhite) throw new IllegalArgumentException("You don't own that piece.");
 
-            char dst = board.get(move.toRow, move.toCol);
-            if ((dst != '.' && dst != 0) && rulesEngine.sameColor(piece, dst)) {
+            Piece dst = board.getPieceAt(move.toSquare());
+            if (dst != null && dst.getColor() == piece.getColor()) {
                 throw new IllegalArgumentException("Destination is occupied by your piece.");
             }
 
-            if (!rulesEngine.isLegalMove(game, game.board, move)) {
+            if (!rulesEngine.isLegalMove(game, board, move)) {
                 throw new IllegalArgumentException("Illegal move.");
             }
 
-            Board test = game.board.copy();
+            Board test = board.copy();
             rulesEngine.applyMove(test, game, move, false);
             if (rulesEngine.isKingInCheck(test, isWhite)) {
                 throw new IllegalArgumentException("Move leaves your king in check.");
             }
 
+            rulesEngine.applyMove(board, game, move, true);
+
             // Apply on real board
-            board.set(move.toRow, move.toCol, piece);
+            board.set(move.toRow, move.toCol, piece.toChar());
             board.set(move.fromRow, move.fromCol, '.');
 
             // Increment after move
