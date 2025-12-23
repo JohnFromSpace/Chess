@@ -8,6 +8,7 @@ import com.example.chess.client.ui.LobbyScreen;
 import com.example.chess.client.view.ConsoleView;
 import com.example.chess.common.proto.ResponseMessage;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class ClientController {
@@ -20,7 +21,7 @@ public class ClientController {
         this.conn = conn;
         this.view = view;
 
-        // push handler
+        // Push handler runs on network thread -> only enqueue UI actions.
         this.conn.setPushHandler(this::onPush);
     }
 
@@ -35,10 +36,12 @@ public class ClientController {
     private void onPush(ResponseMessage msg) {
         if (msg == null) return;
 
-        Map<String, Object> p = (msg.payload != null) ? msg.payload : Map.of();
+        // Copy payload so we don't depend on mutable map across threads.
+        Map<String, Object> p = (msg.payload == null) ? Map.of() : new HashMap<>(msg.payload);
+        String type = msg.type;
 
-        switch (msg.type) {
-            case "gameStarted" -> {
+        switch (type) {
+            case "gameStarted" -> state.postUi(() -> {
                 String gameId = asString(p, "gameId");
                 String color = asString(p, "color");
                 String opponent = asString(p, "opponent");
@@ -53,49 +56,58 @@ public class ClientController {
                         + ". You are " + (state.isWhite() ? "WHITE" : "BLACK")
                         + ". GameId=" + gameId);
 
+                // Show board once at game start
                 String boardStr = asString(p, "board");
                 if (boardStr != null && !boardStr.isBlank()) {
                     state.setLastBoard(boardStr);
                     view.showBoard(boardStr);
                 }
-            }
+            });
 
-            case "move" -> {
+            case "move" -> state.postUi(() -> {
                 String moveStr = asString(p, "move");
                 boolean whiteInCheck = asBool(p, "whiteInCheck", false);
                 boolean blackInCheck = asBool(p, "blackInCheck", false);
 
-                if (moveStr != null) {
+                if (moveStr != null && !moveStr.isBlank()) {
                     view.showMove(moveStr, whiteInCheck, blackInCheck);
                 }
 
+                // Update cached board, but don't print it every time (reduces clutter)
                 String boardStr = asString(p, "board");
                 if (boardStr != null && !boardStr.isBlank()) {
                     state.setLastBoard(boardStr);
-                    view.showBoard(boardStr);
                 }
-            }
 
-            case "drawOffered" ->
-                    view.showMessage("Draw offered by: " + asString(p, "by"));
+                // Optional: if check happened, auto-show board
+                if (whiteInCheck || blackInCheck) {
+                    String b = state.getLastBoard();
+                    if (b != null && !b.isBlank()) view.showBoard(b);
+                }
+            });
 
-            case "drawDeclined" ->
-                    view.showMessage("Draw declined by: " + asString(p, "by"));
+            case "drawOffered" -> state.postUi(() ->
+                    view.showMessage("Draw offered by: " + asString(p, "by")));
 
-            case "gameOver" -> {
+            case "drawDeclined" -> state.postUi(() ->
+                    view.showMessage("Draw declined by: " + asString(p, "by")));
+
+            case "info" -> state.postUi(() ->
+                    view.showMessage(asString(p, "message")));
+
+            case "error" -> state.postUi(() ->
+                    view.showError(msg.message != null ? msg.message : asString(p, "message")));
+
+            case "gameOver" -> state.postUi(() -> {
                 view.showMessage("Game over: " + asString(p, "result")
                         + " reason=" + asString(p, "reason"));
-                state.clearGame(); // make sure clearGame() clears lastBoard too
+                state.clearGame();            // makes InGameScreen exit naturally
+                view.showMessage("Returning to lobby...");
+            });
+
+            default -> {
+                // Ignore unknown pushes to avoid clutter.
             }
-
-            case "info" ->
-                    view.showMessage(asString(p, "message"));
-
-            case "error" ->
-                    view.showError(msg.message != null ? msg.message : asString(p, "message"));
-
-            default ->
-                    view.showMessage("Push: " + msg.type + " " + p);
         }
     }
 
