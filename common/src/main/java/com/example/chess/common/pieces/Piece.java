@@ -18,7 +18,6 @@ public abstract class Piece {
 
     public abstract char toChar();
 
-    // “normal movement” only (castling / en passant / promotion are handled in RulesEngine)
     public abstract boolean canMove(Board board, Move move);
 
     protected final boolean sameColor(Piece other) {

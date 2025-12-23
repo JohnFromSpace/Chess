@@ -23,4 +23,19 @@ public final class PieceFactory {
             default -> Optional.empty();
         };
     }
+
+    public static Piece fromCharOrNull(char c) {
+        return fromChar(c).orElse(null);
+    }
+
+    public static Piece promotionPiece(Color color, Character promotion) {
+        char p = (promotion == null) ? 'q' : Character.toLowerCase(promotion);
+        return switch (p) {
+            case 'q' -> new Queen(color);
+            case 'r' -> new Rook(color);
+            case 'b' -> new Bishop(color);
+            case 'n' -> new Knight(color);
+            default  -> new Queen(color);
+        };
+    }
 }
