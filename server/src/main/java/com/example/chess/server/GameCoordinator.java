@@ -207,40 +207,34 @@ public class GameCoordinator {
 
     private boolean updateStatsAndRatings(Game game) {
         try {
-            Optional<User> white = userRepository.findByUsername(game.whiteUser);
-            Optional<User> black = userRepository.findByUsername(game.blackUser);
-            if (white.isEmpty() || black.isEmpty()) return false;
+            return userRepository.updateUsersAtomically(game.whiteUser, game.blackUser, (white, black) -> {
+                Stats ws = white.stats;
+                Stats bs = black.stats;
 
-            Stats ws = white.get().stats;
-            Stats bs = black.get().stats;
+                ws.played++;
+                bs.played++;
 
-            ws.played++;
-            bs.played++;
+                double sw, sb;
+                switch (game.result) {
+                    case WHITE_WIN -> { ws.won++; sw = 1.0; sb = 0.0; }
+                    case BLACK_WIN -> { bs.won++; sw = 0.0; sb = 1.0; }
+                    case DRAW      -> { ws.drawn++; bs.drawn++; sw = 0.5; sb = 0.5; }
+                    default        -> { sw = 0.0; sb = 0.0; }
+                }
 
-            double sw, sb;
-            switch (game.result) {
-                case WHITE_WIN -> { ws.won++; sw = 1.0; sb = 0.0; }
-                case BLACK_WIN -> { bs.won++; sw = 0.0; sb = 1.0; }
-                case DRAW -> { ws.drawn++; bs.drawn++; sw = 0.5; sb = 0.5; }
-                default -> { return false; }
-            }
+                double rw = ws.rating;
+                double rb = bs.rating;
 
-            double rw = ws.rating;
-            double rb = bs.rating;
+                double expectedW = 1.0 / (1.0 + Math.pow(10.0, (rb - rw) / 400.0));
+                double expectedB = 1.0 - expectedW;
 
-            double expectedW = 1.0 / (1.0 + Math.pow(10.0, (rb - rw) / 400.0));
-            double expectedB = 1.0 - expectedW;
+                double K = 32.0;
+                rw = rw + K * (sw - expectedW);
+                rb = rb + K * (sb - expectedB);
 
-            double K = 32.0;
-            rw = rw + K * (sw - expectedW);
-            rb = rb + K * (sb - expectedB);
-
-            ws.rating = (int) Math.round(rw);
-            bs.rating = (int) Math.round(rb);
-
-            userRepository.saveUser(white.get());
-            userRepository.saveUser(black.get());
-            return true;
+                ws.rating = (int) Math.round(rw);
+                bs.rating = (int) Math.round(rb);
+            });
         } catch (Exception e) {
             System.err.println("Failed to update stats/ratings: " + e.getMessage());
             e.printStackTrace();
@@ -414,7 +408,6 @@ public class GameCoordinator {
             throw new IllegalArgumentException("Move out of bounds.");
         }
 
-        // SAP #3 style: get Piece, not char (assumes you applied #3 bridge)
         Piece piece = board.getPieceAt(move.fromSquare());
         if (piece == null) throw new IllegalArgumentException("No piece at source square.");
 
