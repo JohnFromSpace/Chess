@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class ClientConnection {
 
@@ -25,7 +26,6 @@ public class ClientConnection {
     private BufferedWriter out;
     private Thread readerThread;
 
-    // FIX: pending must store StatusMessage futures (not ResponseMessage)
     private final Map<String, CompletableFuture<StatusMessage>> pending = new ConcurrentHashMap<>();
 
     public ClientConnection(String host, int port, ClientMessageListener listener) {
@@ -108,7 +108,8 @@ public class ClientConnection {
         return fut;
     }
 
-    public void setPushHandler(Object onPush) {
-
+    public void setPushHandler(Consumer<ResponseMessage> h) {
+        Consumer<ResponseMessage> pushHandler = (h == null) ? (m -> {
+        }) : h;
     }
 }
