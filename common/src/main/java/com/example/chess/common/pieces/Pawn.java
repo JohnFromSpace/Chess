@@ -8,9 +8,7 @@ public final class Pawn extends Piece {
     public Pawn(Color color) { super(color); }
 
     @Override
-    public char toChar() {
-        return getColor() == Color.WHITE ? 'P' : 'p';
-    }
+    public char toChar() { return getColor() == Color.WHITE ? 'P' : 'p'; }
 
     @Override
     public boolean canMove(Board board, Move m) {
@@ -20,8 +18,7 @@ public final class Pawn extends Piece {
         int dx = m.toCol - m.fromCol;
         int dy = m.toRow - m.fromRow;
 
-        char dest = board.get(m.toRow, m.toCol);
-        char src = board.get(m.fromRow, m.fromCol);
+        Piece dest = board.getPieceAt(m.toRow, m.toCol);
 
         // forward
         if (dx == 0) {
@@ -29,14 +26,14 @@ public final class Pawn extends Piece {
 
             if (m.fromRow == startRow && dy == 2 * dir) {
                 int midRow = m.fromRow + dir;
-                return isEmpty(board.get(midRow, m.fromCol)) && isEmpty(dest);
+                return isEmpty(board.getPieceAt(midRow, m.fromCol)) && isEmpty(dest);
             }
             return false;
         }
 
         // capture
         if (Math.abs(dx) == 1 && dy == dir) {
-            return !isEmpty(dest) && !sameColor(src, dest);
+            return dest != null && isEnemy(dest);
         }
 
         return false;
