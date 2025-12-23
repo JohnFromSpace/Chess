@@ -199,6 +199,8 @@ public class ClientHandler implements Runnable {
         payload.put("blackTimeMs", game.blackTimeMs);
         payload.put("whiteToMove", game.whiteMove);
 
+        payload.put("board", game.board.toPrettyString());
+
         send(ResponseMessage.push("gameStarted", payload));
     }
 
@@ -208,6 +210,9 @@ public class ClientHandler implements Runnable {
         payload.put("move", moveStr);
         payload.put("whiteInCheck", whiteInCheck);
         payload.put("blackInCheck", blackInCheck);
+
+        payload.put("board", game.board.toPrettyString());
+
         send(ResponseMessage.push("move", payload));
     }
 
