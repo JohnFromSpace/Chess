@@ -24,6 +24,7 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Offer draw", new OfferDrawCommand(conn, view, state)));
         menu.add(new MenuItem("Resign", new ResignCommand(conn, view, state)));
         menu.add(new MenuItem("Back to lobby", () -> state.clearGame()));
+        menu.add(new MenuItem("Print board", () -> view.showBoard(state.getLastBoard())));
 
         while (state.getUser() != null && state.isInGame()) {
             menu.render(view);

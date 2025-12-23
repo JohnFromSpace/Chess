@@ -8,6 +8,11 @@ public class SessionState {
     private boolean inGame;
     private boolean isWhite;
 
+    private String lastBoard;
+
+    public String getLastBoard() { return lastBoard; }
+    public void setLastBoard(String lastBoard) { this.lastBoard = lastBoard; }
+
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 
@@ -24,5 +29,6 @@ public class SessionState {
         this.activeGameId = null;
         this.inGame = false;
         this.isWhite = false;
+        this.lastBoard = null;
     }
 }
