@@ -1,5 +1,8 @@
 package com.example.chess.common.board;
 
+import com.example.chess.common.pieces.Piece;
+import com.example.chess.common.pieces.PieceFactory;
+
 import java.util.Arrays;
 
 public class Board {
@@ -22,8 +25,34 @@ public class Board {
     public void set(int row, int col, char piece) { squares[row][col] = piece; }
 
     public boolean inside(int row, int col) {
-        return row>=0 && row<8 && col>=0 && col<8;
+        return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
+
+    // ---- Piece API (use this everywhere else) ----
+    public Piece getPieceAt(int row, int col) {
+        if (!inside(row, col)) return null;
+        return PieceFactory.fromCharOrNull(get(row, col));
+    }
+
+    public Piece getPieceAt(Square sq) {
+        return getPieceAt(sq.row, sq.col);
+    }
+
+    public void setPieceAt(int row, int col, Piece piece) {
+        if (!inside(row, col)) return;
+        set(row, col, piece == null ? '.' : piece.toChar());
+    }
+
+    public void setPieceAt(Square sq, Piece piece) {
+        setPieceAt(sq.row, sq.col, piece);
+    }
+
+    public boolean isEmptyAt(int row, int col) {
+        char c = inside(row, col) ? get(row, col) : 0;
+        return c == '.' || c == 0;
+    }
+
+    public boolean isEmptyAt(Square sq) { return isEmptyAt(sq.row, sq.col); }
 
     public Board copy() {
         Board b = new Board();
@@ -35,7 +64,7 @@ public class Board {
         StringBuilder sb = new StringBuilder();
         sb.append("  a b c d e f g h\n");
         for (int r = 0; r < 8; r++) {
-            int rank = 8-r;
+            int rank = 8 - r;
             sb.append(rank).append(' ');
             for (int c = 0; c < 8; c++) sb.append(squares[r][c]).append(' ');
             sb.append(rank).append('\n');
