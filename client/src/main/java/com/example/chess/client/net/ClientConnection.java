@@ -19,7 +19,13 @@ public class ClientConnection {
 
     private final String host;
     private final int port;
+
+    // legacy listener (StatusMessage-based)
     private volatile ClientMessageListener listener;
+
+    // new push handler (ResponseMessage-based)
+    private volatile Consumer<ResponseMessage> pushHandler = m -> {
+    };
 
     private Socket socket;
     private BufferedReader in;
@@ -48,6 +54,11 @@ public class ClientConnection {
         this.listener = listener;
     }
 
+    public void setPushHandler(Consumer<ResponseMessage> h) {
+        this.pushHandler = (h == null) ? (m -> {
+        }) : h;
+    }
+
     private void readLoop() {
         try {
             String line;
@@ -58,22 +69,22 @@ public class ClientConnection {
                 Message msg = MessageCodec.fromJson(line);
 
                 if (msg instanceof ResponseMessage resp) {
-                    StatusMessage status = StatusMessage.from(resp);
-
                     // correlated response -> complete the waiting future
                     if (resp.corrId != null) {
                         CompletableFuture<StatusMessage> fut = pending.remove(resp.corrId);
                         if (fut != null) {
-                            fut.complete(status);
+                            fut.complete(StatusMessage.from(resp));
                             continue;
                         }
                     }
 
-                    // async push -> deliver to listener
+                    // async push -> deliver to pushHandler
+                    Consumer<ResponseMessage> ph = pushHandler;
+                    if (ph != null) ph.accept(resp);
+
+                    // also keep legacy listener if present (optional)
                     ClientMessageListener l = listener;
-                    if (l != null) {
-                        l.onMessage(status);
-                    }
+                    if (l != null) l.onMessage(StatusMessage.from(resp));
                 }
             }
         } catch (IOException e) {
@@ -108,8 +119,34 @@ public class ClientConnection {
         return fut;
     }
 
-    public void setPushHandler(Consumer<ResponseMessage> h) {
-        Consumer<ResponseMessage> pushHandler = (h == null) ? (m -> {
-        }) : h;
+    // ---- Convenience API used by Screens ----
+
+    public CompletableFuture<StatusMessage> login(String username, String password) {
+        return sendAndWait(new RequestMessage("login", UUID.randomUUID().toString(),
+                Map.of("username", username, "password", password)));
+    }
+
+    public CompletableFuture<StatusMessage> register(String username, String name, String password) {
+        return sendAndWait(new RequestMessage("register", UUID.randomUUID().toString(),
+                Map.of("username", username, "name", name, "password", password)));
+    }
+
+    public CompletableFuture<StatusMessage> requestGame() {
+        return sendAndWait(new RequestMessage("requestGame", UUID.randomUUID().toString(), Map.of()));
+    }
+
+    public CompletableFuture<StatusMessage> makeMove(String gameId, String move) {
+        return sendAndWait(new RequestMessage("makeMove", UUID.randomUUID().toString(),
+                Map.of("gameId", gameId, "move", move)));
+    }
+
+    public CompletableFuture<StatusMessage> offerDraw(String gameId) {
+        return sendAndWait(new RequestMessage("offerDraw", UUID.randomUUID().toString(),
+                Map.of("gameId", gameId)));
+    }
+
+    public CompletableFuture<StatusMessage> resign(String gameId) {
+        return sendAndWait(new RequestMessage("resign", UUID.randomUUID().toString(),
+                Map.of("gameId", gameId)));
     }
 }
