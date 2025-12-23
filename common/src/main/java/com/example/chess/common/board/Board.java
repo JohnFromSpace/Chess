@@ -28,7 +28,6 @@ public class Board {
         return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
 
-    // ---- Piece API (use this everywhere else) ----
     public Piece getPieceAt(int row, int col) {
         if (!inside(row, col)) return null;
         return PieceFactory.fromCharOrNull(get(row, col));
