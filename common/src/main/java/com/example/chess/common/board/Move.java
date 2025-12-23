@@ -15,6 +15,9 @@ public class Move {
         this.promotion = promotion;
     }
 
+    public Square fromSquare() { return Square.of(fromRow, fromCol); }
+    public Square toSquare()   { return Square.of(toRow, toCol); }
+
     public static Move parse(String uci) {
         if (uci == null) throw new IllegalArgumentException("Move is null");
         String s = uci.trim().toLowerCase();
@@ -24,22 +27,18 @@ public class Move {
         int fr = 8 - (s.charAt(1) - '0');
         int tc = s.charAt(2) - 'a';
         int tr = 8 - (s.charAt(3) - '0');
+
         Character promotion = null;
-        if(s.length() == 5) {
+        if (s.length() == 5) {
             char p = s.charAt(4);
-            if(p == 'q' || p == 'r' || p == 'n' || p == 'b') {
-                promotion = p;
-            }
-            else {
-                throw new IllegalArgumentException("Bad promotion piece: " + p);
-            }
+            if (p == 'q' || p == 'r' || p == 'n' || p == 'b') promotion = p;
+            else throw new IllegalArgumentException("Bad promotion piece: " + p);
         }
         return new Move(fr, fc, tr, tc, promotion);
     }
 
     @Override public String toString() {
         String base = ""+(char)('a'+fromCol)+(char)('8'-fromRow)+(char)('a'+toCol)+(char)('8'-toRow);
-
         return promotion == null ? base : base + promotion;
     }
 }
