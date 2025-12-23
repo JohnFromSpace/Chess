@@ -248,122 +248,32 @@ public class GameCoordinator {
         }
     }
 
-    public void makeMove(String gameId, User user, String moveStr) throws IOException {
+    void makeMove(String gameId, User user, String moveStr) throws IOException {
         if (user == null) throw new IllegalArgumentException("You must be logged in.");
-        Game game = activeGames.get(gameId);
-        if (game == null) throw new IllegalArgumentException("Unknown or finished game.");
+
+        Game game = requireActiveGame(gameId);
 
         synchronized (game) {
-            if (game.result != Result.ONGOING) throw new IllegalArgumentException("Game already finished.");
+            ensureOngoing(game);
 
-            boolean isWhite = user.username.equals(game.whiteUser);
-            boolean isBlack = user.username.equals(game.blackUser);
-            if (!isWhite && !isBlack) throw new IllegalArgumentException("You are not a player in this game.");
+            boolean isWhite = requirePlayerSide(game, user);
+            ensureTurn(game, isWhite);
 
-            // Turn check
-            if (game.whiteMove != isWhite) throw new IllegalArgumentException("Not your turn.");
+            if (updateClockAndFinishOnTimeout(game)) return;
 
-            // Update clock since lastUpdate (tickClocks may not have accounted the last fraction)
-            long now = System.currentTimeMillis();
-            long elapsed = now - game.lastUpdate;
-            if (elapsed < 0) elapsed = 0;
-
-            if (game.whiteMove) {
-                game.whiteTimeMs -= elapsed;
-                if (game.whiteTimeMs <= 0) {
-                    game.whiteTimeMs = 0;
-                    finishGame(game, Result.BLACK_WIN, "timeout");
-                    return;
-                }
-            } else {
-                game.blackTimeMs -= elapsed;
-                if (game.blackTimeMs <= 0) {
-                    game.blackTimeMs = 0;
-                    finishGame(game, Result.WHITE_WIN, "timeout");
-                    return;
-                }
-            }
-            game.lastUpdate = now;
-
-            Move move = Move.parse(moveStr);
-
-            if (move.fromSquare().equals(move.toSquare())) {
-                throw new IllegalArgumentException("Invalid move: from == to.");
-            }
-
+            Move move = parseMove(moveStr);
             Board board = game.board;
-            if (!board.inside(move.fromRow, move.fromCol) || !board.inside(move.toRow, move.toCol)) {
-                throw new IllegalArgumentException("Move out of bounds.");
-            }
 
-            Piece piece = board.getPieceAt(move.fromSquare());
-            if (piece == null) throw new IllegalArgumentException("No piece at source square.");
+            Piece piece = ensureMoveBasicsAndOwnership(board, move, isWhite);
 
-            boolean pieceIsWhite = (piece.getColor() == Color.WHITE);
-            if (pieceIsWhite != isWhite) throw new IllegalArgumentException("You don't own that piece.");
-
-            Piece dst = board.getPieceAt(move.toSquare());
-            if (dst != null && dst.getColor() == piece.getColor()) {
-                throw new IllegalArgumentException("Destination is occupied by your piece.");
-            }
-
-            if (!rulesEngine.isLegalMove(game, board, move)) {
-                throw new IllegalArgumentException("Illegal move.");
-            }
-
-            Board test = board.copy();
-            rulesEngine.applyMove(test, game, move, false);
-            if (rulesEngine.isKingInCheck(test, isWhite)) {
-                throw new IllegalArgumentException("Move leaves your king in check.");
-            }
+            ensureLegalByRulesEngine(game, board, move, isWhite);
 
             rulesEngine.applyMove(board, game, move, true);
 
-            // Apply on real board
-            board.set(move.toRow, move.toCol, piece.toChar());
-            board.set(move.fromRow, move.fromCol, '.');
+            afterSuccessfulMove(game, isWhite, move);
 
-            // Increment after move
-            if (isWhite) game.whiteTimeMs += game.incrementMs;
-            else game.blackTimeMs += game.incrementMs;
-
-            // Any move cancels pending draw offer
-            game.drawOfferedBy = null;
-
-            String normalized = move.toString();
-            game.moves.add(normalized);
-
-            // Switch turn
-            game.whiteMove = !game.whiteMove;
-
-            // Persist state
-            gameRepository.saveGame(game);
-
-            boolean whiteInCheck = rulesEngine.isKingInCheck(game.board, true);
-            boolean blackInCheck = rulesEngine.isKingInCheck(game.board, false);
-
-            ClientHandler whiteH = onlineHandlers.get(game.whiteUser);
-            ClientHandler blackH = onlineHandlers.get(game.blackUser);
-
-            if (whiteH != null) whiteH.sendMove(game, normalized, whiteInCheck, blackInCheck);
-            if (blackH != null) blackH.sendMove(game, normalized, whiteInCheck, blackInCheck);
-
-            // Checkmate / stalemate for side to move
-            boolean sideToMoveIsWhite = game.whiteMove;
-            boolean inCheck = sideToMoveIsWhite ? whiteInCheck : blackInCheck;
-            boolean hasMoves = rulesEngine.hasAnyLegalMove(game, game.board, sideToMoveIsWhite);
-            if (!hasMoves) {
-                if (inCheck) finishGame(game, sideToMoveIsWhite ? Result.BLACK_WIN : Result.WHITE_WIN, "checkmate");
-                else finishGame(game, Result.DRAW, "stalemate");
-            }
-
-            if (!hasMoves) {
-                if (inCheck) {
-                    finishGame(game, sideToMoveIsWhite ? Result.BLACK_WIN : Result.WHITE_WIN, "checkmate");
-                } else {
-                    finishGame(game, Result.DRAW, "stalemate");
-                }
-            }
+            // End conditions for side to move
+            checkAndFinishIfNoMoves(game);
         }
     }
 
@@ -441,6 +351,135 @@ public class GameCoordinator {
 
             boolean resigningWhite = u.equals(game.whiteUser);
             finishGame(game, resigningWhite ? Result.BLACK_WIN : Result.WHITE_WIN, "resign");
+        }
+    }
+
+    private Game requireActiveGame(String gameId) {
+        Game game = activeGames.get(gameId);
+        if (game == null) throw new IllegalArgumentException("Unknown or finished game.");
+        return game;
+    }
+
+    private void ensureOngoing(Game game) {
+        if (game.result != Result.ONGOING) throw new IllegalArgumentException("Game already finished.");
+    }
+
+    private boolean requirePlayerSide(Game game, User user) {
+        boolean isWhite = user.username.equals(game.whiteUser);
+        boolean isBlack = user.username.equals(game.blackUser);
+        if (!isWhite && !isBlack) throw new IllegalArgumentException("You are not a player in this game.");
+        return isWhite;
+    }
+
+    private void ensureTurn(Game game, boolean isWhite) {
+        if (game.whiteMove != isWhite) throw new IllegalArgumentException("Not your turn.");
+    }
+
+    private boolean updateClockAndFinishOnTimeout(Game game) throws IOException {
+        long now = System.currentTimeMillis();
+        long elapsed = now - game.lastUpdate;
+        if (elapsed < 0) elapsed = 0;
+
+        if (game.whiteMove) {
+            game.whiteTimeMs -= elapsed;
+            if (game.whiteTimeMs <= 0) {
+                game.whiteTimeMs = 0;
+                finishGame(game, Result.BLACK_WIN, "timeout");
+                return true;
+            }
+        } else {
+            game.blackTimeMs -= elapsed;
+            if (game.blackTimeMs <= 0) {
+                game.blackTimeMs = 0;
+                finishGame(game, Result.WHITE_WIN, "timeout");
+                return true;
+            }
+        }
+
+        game.lastUpdate = now;
+        return false;
+    }
+
+    private Move parseMove(String moveStr) {
+        Move move = Move.parse(moveStr);
+
+        if (move.fromRow == move.toRow && move.fromCol == move.toCol) {
+            throw new IllegalArgumentException("Invalid move: from == to.");
+        }
+        return move;
+    }
+
+    private Piece ensureMoveBasicsAndOwnership(Board board, Move move, boolean isWhite) {
+        if (!board.inside(move.fromRow, move.fromCol) || !board.inside(move.toRow, move.toCol)) {
+            throw new IllegalArgumentException("Move out of bounds.");
+        }
+
+        // SAP #3 style: get Piece, not char (assumes you applied #3 bridge)
+        Piece piece = board.getPieceAt(move.fromSquare());
+        if (piece == null) throw new IllegalArgumentException("No piece at source square.");
+
+        boolean pieceIsWhite = (piece.getColor() == Color.WHITE);
+        if (pieceIsWhite != isWhite) throw new IllegalArgumentException("You don't own that piece.");
+
+        Piece dst = board.getPieceAt(move.toSquare());
+        if (dst != null && dst.getColor() == piece.getColor()) {
+            throw new IllegalArgumentException("Destination is occupied by your piece.");
+        }
+
+        return piece;
+    }
+
+    private void ensureLegalByRulesEngine(Game game, Board board, Move move, boolean isWhite) {
+        if (!rulesEngine.isLegalMove(game, board, move)) {
+            throw new IllegalArgumentException("Illegal move.");
+        }
+
+        Board test = board.copy();
+        rulesEngine.applyMove(test, game, move, false);
+
+        if (rulesEngine.isKingInCheck(test, isWhite)) {
+            throw new IllegalArgumentException("Move leaves your king in check.");
+        }
+    }
+
+    private void afterSuccessfulMove(Game game, boolean moverIsWhite, Move move) throws IOException {
+        // Increment after move
+        if (moverIsWhite) game.whiteTimeMs += game.incrementMs;
+        else game.blackTimeMs += game.incrementMs;
+
+        // Any move cancels pending draw offer
+        game.drawOfferedBy = null;
+
+        String normalized = move.toString();
+        game.moves.add(normalized);
+
+        // Switch turn
+        game.whiteMove = !game.whiteMove;
+
+        // Persist state
+        gameRepository.saveGame(game);
+
+        boolean whiteInCheck = rulesEngine.isKingInCheck(game.board, true);
+        boolean blackInCheck = rulesEngine.isKingInCheck(game.board, false);
+
+        ClientHandler whiteH = onlineHandlers.get(game.whiteUser);
+        ClientHandler blackH = onlineHandlers.get(game.blackUser);
+
+        if (whiteH != null) whiteH.sendMove(game, normalized, whiteInCheck, blackInCheck);
+        if (blackH != null) blackH.sendMove(game, normalized, whiteInCheck, blackInCheck);
+    }
+
+    private void checkAndFinishIfNoMoves(Game game) throws IOException {
+        boolean whiteInCheck = rulesEngine.isKingInCheck(game.board, true);
+        boolean blackInCheck = rulesEngine.isKingInCheck(game.board, false);
+
+        boolean sideToMoveIsWhite = game.whiteMove;
+        boolean inCheck = sideToMoveIsWhite ? whiteInCheck : blackInCheck;
+
+        boolean hasMoves = rulesEngine.hasAnyLegalMove(game, game.board, sideToMoveIsWhite);
+        if (!hasMoves) {
+            if (inCheck) finishGame(game, sideToMoveIsWhite ? Result.BLACK_WIN : Result.WHITE_WIN, "checkmate");
+            else finishGame(game, Result.DRAW, "stalemate");
         }
     }
 }
