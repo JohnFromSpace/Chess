@@ -119,8 +119,6 @@ public class ClientConnection {
         return fut;
     }
 
-    // ---- Convenience API used by Screens ----
-
     public CompletableFuture<StatusMessage> login(String username, String password) {
         return sendAndWait(new RequestMessage("login", UUID.randomUUID().toString(),
                 Map.of("username", username, "password", password)));

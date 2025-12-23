@@ -2,36 +2,34 @@ package com.example.chess.client.ui.menu;
 
 import com.example.chess.client.view.ConsoleView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Menu {
     private final String title;
-    private final List<MenuItem> items;
+    private final List<MenuItem> items = new ArrayList<>();
 
-    public Menu(String title, List<MenuItem> items) {
+    public Menu(String title) {
         this.title = title;
-        this.items = items;
     }
 
-    public boolean showAndHandle(ConsoleView view) {
+    public void add(MenuItem item) {
+        items.add(item);
+    }
+
+    public void render(ConsoleView view) {
         view.showMessage("\n=== " + title + " ===");
-        for (MenuItem item : items) {
-            view.showMessage(item.getNumber() + ") " + item.getLabel());
+        for (int i = 0; i < items.size(); i++) {
+            view.showMessage((i + 1) + ") " + items.get(i).getLabel());
         }
-        view.showMessage("0) Exit");
+    }
 
+    public void readAndExecute(ConsoleView view) {
         int choice = view.askInt("Choose: ");
-        if (choice == 0) {
-            return false;
+        if (choice < 1 || choice > items.size()) {
+            view.showError("Invalid choice.");
+            return;
         }
-
-        for (MenuItem item : items) {
-            if (item.getNumber() == choice) {
-                return item.getCommand().execute();
-            }
-        }
-
-        view.showError("Invalid choice.");
-        return true;
+        items.get(choice - 1).getCommand().execute();
     }
 }
