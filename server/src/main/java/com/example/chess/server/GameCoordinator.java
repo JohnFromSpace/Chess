@@ -305,15 +305,12 @@ public class GameCoordinator {
                 throw new IllegalArgumentException("Destination is occupied by your piece.");
             }
 
-            if (!rulesEngine.isLegalMove(board, move)) {
+            if (!rulesEngine.isLegalMove(game, game.board, move)) {
                 throw new IllegalArgumentException("Illegal move.");
             }
 
-            // Simulate -> must not leave own king in check
-            Board test = rulesEngine.copyBoard(board);
-            test.set(move.toRow, move.toCol, piece);
-            test.set(move.fromRow, move.fromCol, '.');
-
+            Board test = game.board.copy();
+            rulesEngine.applyMove(test, game, move, false);
             if (rulesEngine.isKingInCheck(test, isWhite)) {
                 throw new IllegalArgumentException("Move leaves your king in check.");
             }
