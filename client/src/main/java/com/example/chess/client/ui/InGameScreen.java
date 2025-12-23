@@ -11,6 +11,8 @@ public class InGameScreen implements Screen {
     private final ClientConnection conn;
     private final ConsoleView view;
     private final SessionState state;
+    private volatile boolean runningTicker;
+    private Thread tickerThread;
 
     public InGameScreen(ClientConnection conn, ConsoleView view, SessionState state) {
         this.conn = conn;
@@ -28,12 +30,21 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
         menu.add(new MenuItem("Back to lobby", state::clearGame));
 
-        while (state.getUser() != null && state.isInGame()) {
-            state.drainUi();
-            menu.render(view);
-            view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
-            menu.readAndExecute(view);
-            state.drainUi();
+        startTicker();
+        try {
+            while (state.getUser() != null && state.isInGame()) {
+                state.drainUi();
+                state.tickClocks();
+                view.showMessage(renderClocksLine());
+                menu.render(view);
+                menu.readAndExecute(view);
+                state.drainUi();
+            }
+        } catch (Exception e) {
+            view.showError("Unexpected error:" + e.getMessage());
+            state.clearGame();
+        } finally {
+          stopTicker();
         }
     }
 
@@ -54,7 +65,7 @@ public class InGameScreen implements Screen {
         if (status.isError()) {
             view.showError(status.getMessage());
         } else {
-            state.setLastSentMove(move); // <-- NEW (so pushes can say "You played")
+            state.setLastSentMove(move);
             view.showMessage("Move sent.");
         }
     }
@@ -92,5 +103,35 @@ public class InGameScreen implements Screen {
         var status = conn.resign(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Resigned.");
+    }
+
+    private void startTicker() {
+        runningTicker = true;
+        tickerThread = new Thread(() -> {
+            while (runningTicker && state.isInGame()) {
+                try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+                state.postUi(() -> {});
+            }
+        }, "ui-ticker");
+        tickerThread.setDaemon(true);
+        tickerThread.start();
+    }
+
+    private void stopTicker() {
+        runningTicker = false;
+    }
+
+    private String renderClocksLine() {
+        String w = fmt(state.getWhiteTimeMs());
+        String b = fmt(state.getBlackTimeMs());
+        String turn = state.isWhiteToMove() ? "WHITE to move" : "BLACK to move";
+        return "[Clock] White: " + w + " | Black: " + b + " | " + turn;
+    }
+
+    private static String fmt(long ms) {
+        long s = Math.max(0, ms / 1000);
+        long m = s / 60;
+        long r = s % 60;
+        return String.format("%02d:%02d", m, r);
     }
 }

@@ -64,9 +64,16 @@ public class ClientController {
                         view.showBoard(state.getLastBoard());
                     }
 
-                    // Helpful hint
                     view.showMessage("Tip: Use 'Print board' any time. Auto-board is "
                             + (state.isAutoShowBoard() ? "ON" : "OFF") + ".");
+
+                    Long w = asLong(p, "whiteTimeMs");
+                    Long b = asLong(p, "blackTimeMs");
+                    Boolean wtm = asBoolObj(p, "whiteToMove");
+
+                    if (w != null && b != null && wtm != null) {
+                        state.syncClocks(w, b, wtm);
+                    }
                 });
             }
 
@@ -74,6 +81,9 @@ public class ClientController {
                 String moveStr = asString(p, "move");
                 boolean whiteInCheck = asBool(p, "whiteInCheck", false);
                 boolean blackInCheck = asBool(p, "blackInCheck", false);
+                Long w = asLong(p, "whiteTimeMs");
+                Long b = asLong(p, "blackTimeMs");
+                Boolean wtm = asBoolObj(p, "whiteToMove");
 
                 String boardStr = asString(p, "board");
                 if (boardStr != null && !boardStr.isBlank()) state.setLastBoard(boardStr);
@@ -93,6 +103,10 @@ public class ClientController {
                         view.showBoard(state.getLastBoard());
                     } else {
                         view.showMessage("(Board updated. Use 'Print board' to view.)");
+                    }
+
+                    if (w != null && b != null && wtm != null) {
+                        state.syncClocks(w, b, wtm);
                     }
                 });
             }
@@ -132,5 +146,64 @@ public class ClientController {
         if (v == null) return def;
         if (v instanceof Boolean b) return b;
         return Boolean.parseBoolean(String.valueOf(v));
+    }
+
+    private static Long asLong(Map<String, Object> p, String k) {
+        Object v = p.get(k);
+        if (v == null) return null;
+        if (v instanceof Number n) return n.longValue();
+        try { return Long.parseLong(String.valueOf(v)); } catch (Exception e) { return null; }
+    }
+
+    private static Boolean asBoolObj(Map<String, Object> p, String k) {
+        Object v = p.get(k);
+        if (v == null) return null;
+        if (v instanceof Boolean b) return b;
+        return Boolean.parseBoolean(String.valueOf(v));
+    }
+
+    private static String orientBoardForPlayer(String raw, boolean isWhitePlayer) {
+        if (raw == null || raw.isBlank()) return raw;
+        if (isWhitePlayer) return raw;
+
+        try {
+            String[] lines = raw.split("\\R");
+            // rank -> pieces[8], ranks 1..8
+            java.util.Map<Integer, String[]> rankMap = new java.util.HashMap<>();
+
+            for (String line : lines) {
+                String t = line.trim();
+                if (t.isEmpty()) continue;
+
+                String[] tok = t.split("\\s+");
+                if (tok.length >= 10 && tok[0].matches("[1-8]") && tok[tok.length - 1].matches("[1-8]")) {
+                    int rank = Integer.parseInt(tok[0]);
+                    String[] pieces = new String[8];
+                    for (int i = 0; i < 8; i++) pieces[i] = tok[i + 1];
+                    rankMap.put(rank, pieces);
+                }
+            }
+
+            // If we couldn't parse ranks, fallback
+            if (rankMap.size() < 8) return raw;
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("  h g f e d c b a\n");
+            // black view: top shows rank 1 ... bottom rank 8
+            for (int rank = 1; rank <= 8; rank++) {
+                String[] pieces = rankMap.get(rank);
+                if (pieces == null) pieces = new String[]{".",".",".",".",".",".",".","."};
+
+                sb.append(rank).append(' ');
+                for (int f = 7; f >= 0; f--) {
+                    sb.append(pieces[f]).append(' ');
+                }
+                sb.append(rank).append('\n');
+            }
+            sb.append("  h g f e d c b a\n");
+            return sb.toString();
+        } catch (Exception e) {
+            return raw;
+        }
     }
 }
