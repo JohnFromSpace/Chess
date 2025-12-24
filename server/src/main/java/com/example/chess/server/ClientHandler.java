@@ -125,9 +125,12 @@ public class ClientHandler implements Runnable {
         String password = reqStr(inMsg, "password");
 
         User user = authService.login(username, password);
-        this.currentUser = user;
 
+        // register online first; may throw if already logged in elsewhere
         gameCoordinator.onUserOnline(this, user);
+
+        // set only after successful registration
+        this.currentUser = user;
 
         Map<String, Object> u = new HashMap<>();
         u.put("username", user.username);
@@ -199,18 +202,23 @@ public class ClientHandler implements Runnable {
         payload.put("blackTimeMs", game.blackTimeMs);
         payload.put("whiteToMove", game.whiteMove);
 
+        // board must be present at game start
         payload.put("board", game.board.toPrettyString());
 
         send(ResponseMessage.push("gameStarted", payload));
     }
 
-    void sendMove(Game game, String moveStr, boolean whiteInCheck, boolean blackInCheck) {
+    void sendMove(Game game, String moveStr, String byUser, boolean whiteInCheck, boolean blackInCheck) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("gameId", game.id);
+
+        payload.put("by", byUser);
+
         payload.put("move", moveStr);
         payload.put("whiteInCheck", whiteInCheck);
         payload.put("blackInCheck", blackInCheck);
 
+        // always include board on every move
         payload.put("board", game.board.toPrettyString());
 
         payload.put("whiteTimeMs", game.whiteTimeMs);

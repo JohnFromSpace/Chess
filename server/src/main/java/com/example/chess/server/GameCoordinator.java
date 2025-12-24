@@ -60,13 +60,13 @@ public class GameCoordinator {
         }
 
         ClientHandler opponentHandler = waitingQueue.pollFirst();
-        if (opponentHandler == handler || opponentHandler == null || opponentHandler.getCurrentUser() == null) {
+        User opponentUser = opponentHandler.getCurrentUser();
+        if (opponentUser.username.equals(user.username)) {
+            waitingQueue.addFirst(opponentHandler);
             waitingQueue.addLast(handler);
             handler.sendInfo("Waiting for opponent's response.");
             return;
         }
-
-        User opponentUser = opponentHandler.getCurrentUser();
 
         Game game = new Game();
         game.id = UUID.randomUUID().toString();
@@ -157,7 +157,14 @@ public class GameCoordinator {
     }
 
     public synchronized void onUserOnline(ClientHandler handler, User user) {
-        // Replace session if user logs from another client
+        // Disallow multiple concurrent logins with same username
+        ClientHandler existing = onlineHandlers.get(user.username);
+        if (existing != null && existing != handler) {
+            throw new IllegalArgumentException(
+                    "User '" + user.username + "' is already logged in from another client."
+            );
+        }
+
         onlineHandlers.put(user.username, handler);
 
         Game game = findActiveGameForUser(user.username);
@@ -170,12 +177,29 @@ public class GameCoordinator {
 
             handler.sendGameStarted(game, isWhite, true);
 
-            // Optional UX: notify opponent
             String opponent = isWhite ? game.blackUser : game.whiteUser;
             ClientHandler oppHandler = onlineHandlers.get(opponent);
             if (oppHandler != null) {
                 oppHandler.sendInfo(user.username + " reconnected.");
             }
+        }
+    }
+
+    public synchronized void onUserOffline(ClientHandler handler, User user) {
+        if (user == null) return;
+
+        // Remove only if this handler is the currently registered one
+        onlineHandlers.remove(user.username, handler);
+
+        waitingQueue.remove(handler);
+
+        Game game = findActiveGameForUser(user.username);
+        if (game == null) return;
+
+        synchronized (game) {
+            long now = System.currentTimeMillis();
+            if (user.username.equals(game.whiteUser)) game.whiteOfflineSince = now;
+            else if (user.username.equals(game.blackUser)) game.blackOfflineSince = now;
         }
     }
 
@@ -187,22 +211,6 @@ public class GameCoordinator {
             }
         }
         return null;
-    }
-
-    public synchronized void onUserOffline(ClientHandler handler, User user) {
-        if (user == null) return;
-
-        onlineHandlers.remove(user.username);
-        waitingQueue.remove(handler);
-
-        Game game = findActiveGameForUser(user.username);
-        if (game == null) return;
-
-        synchronized (game) {
-            long now = System.currentTimeMillis();
-            if (user.username.equals(game.whiteUser)) game.whiteOfflineSince = now;
-            else if (user.username.equals(game.blackUser)) game.blackOfflineSince = now;
-        }
     }
 
     private boolean updateStatsAndRatings(Game game) {
@@ -266,7 +274,6 @@ public class GameCoordinator {
 
             afterSuccessfulMove(game, isWhite, move);
 
-            // End conditions for side to move
             checkAndFinishIfNoMoves(game);
         }
     }
@@ -283,7 +290,6 @@ public class GameCoordinator {
             if (!u.equals(game.whiteUser) && !u.equals(game.blackUser)) {
                 throw new IllegalArgumentException("You are not a player in this game.");
             }
-
             if (game.drawOfferedBy != null && !game.drawOfferedBy.isBlank()) {
                 throw new IllegalArgumentException("A draw is already offered.");
             }
@@ -292,8 +298,15 @@ public class GameCoordinator {
             gameRepository.saveGame(game);
 
             String opp = game.opponentOf(u);
+
+            ClientHandler offererH = onlineHandlers.get(u);
             ClientHandler oppH = onlineHandlers.get(opp);
-            if (oppH != null) oppH.sendDrawOffered(game.id, u);
+
+            if (offererH != null) offererH.sendInfo("You offered a draw to " + opp + ".");
+            if (oppH != null) {
+                oppH.sendDrawOffered(game.id, u);
+                oppH.sendInfo(u + " offered you a draw.");
+            }
         }
     }
 
@@ -315,9 +328,16 @@ public class GameCoordinator {
             }
 
             String offeredBy = game.drawOfferedBy;
+            String opp = game.opponentOf(u);
+
+            ClientHandler uH = onlineHandlers.get(u);
+            ClientHandler oppH = onlineHandlers.get(opp);
+            ClientHandler offererH = onlineHandlers.get(offeredBy);
 
             if (accept) {
-                finishGame(game, Result.DRAW, "draw agreed");
+                if (uH != null) uH.sendInfo("You accepted the draw.");
+                if (oppH != null) oppH.sendInfo(u + " accepted the draw.");
+                finishGame(game, Result.DRAW, "drawAgreed");
                 return;
             }
 
@@ -325,8 +345,9 @@ public class GameCoordinator {
             game.drawOfferedBy = null;
             gameRepository.saveGame(game);
 
-            ClientHandler offerer = onlineHandlers.get(offeredBy);
-            if (offerer != null) offerer.sendDrawDeclined(game.id, u);
+            if (uH != null) uH.sendInfo("You declined the draw.");
+            if (offererH != null) offererH.sendDrawDeclined(game.id, u);
+            if (oppH != null) oppH.sendInfo(u + " declined the draw.");
         }
     }
 
@@ -458,8 +479,10 @@ public class GameCoordinator {
         ClientHandler whiteH = onlineHandlers.get(game.whiteUser);
         ClientHandler blackH = onlineHandlers.get(game.blackUser);
 
-        if (whiteH != null) whiteH.sendMove(game, normalized, whiteInCheck, blackInCheck);
-        if (blackH != null) blackH.sendMove(game, normalized, whiteInCheck, blackInCheck);
+        String byUser = moverIsWhite ? game.whiteUser : game.blackUser;
+
+        if (whiteH != null) whiteH.sendMove(game, normalized, byUser, whiteInCheck, blackInCheck);
+        if (blackH != null) blackH.sendMove(game, normalized, byUser, whiteInCheck, blackInCheck);
     }
 
     private void checkAndFinishIfNoMoves(Game game) throws IOException {

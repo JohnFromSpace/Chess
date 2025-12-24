@@ -27,16 +27,22 @@ public class LobbyScreen implements Screen {
 
         while (state.getUser() != null && !state.isInGame()) {
             state.drainUi();
+
+            if (state.isWaitingForMatch()) {
+                try { Thread.sleep(150); } catch (InterruptedException ignored) {}
+                continue;
+            }
+
             menu.render(view);
-            if (state.isWaitingForMatch()) view.showMessage("(Waiting for match...)");
             menu.readAndExecute(view);
+
             state.drainUi();
         }
     }
 
     private void requestGame() {
-        if(state.isWaitingForMatch()) {
-            view.showMessage("Already waiting for match...");
+        if (state.isWaitingForMatch()) {
+            view.showMessage("Already waiting for a match...");
             return;
         }
 
@@ -53,6 +59,7 @@ public class LobbyScreen implements Screen {
     private void logout() {
         state.setUser(null);
         state.clearGame();
+        state.setWaitingForMatch(false);
         view.showMessage("Logged out.");
     }
 }

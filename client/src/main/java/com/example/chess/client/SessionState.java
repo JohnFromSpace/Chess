@@ -15,9 +15,12 @@ public class SessionState {
 
     private final Queue<Runnable> uiActions = new ConcurrentLinkedQueue<>();
 
-    private boolean waitingForMatch;
     private boolean autoShowBoard = true;
     private String lastSentMove;
+
+    private volatile boolean waitingForMatch;
+    public boolean isWaitingForMatch() { return waitingForMatch; }
+    public void setWaitingForMatch(boolean v) { waitingForMatch = v; }
 
     private long whiteTimeMs;
     private long blackTimeMs;
@@ -45,9 +48,6 @@ public class SessionState {
 
         lastClockSyncAtMs = now;
     }
-
-    public boolean isWaitingForMatch() { return waitingForMatch; }
-    public void setWaitingForMatch(boolean waitingForMatch) { this.waitingForMatch = waitingForMatch; }
 
     public boolean isAutoShowBoard() { return autoShowBoard; }
     public void setAutoShowBoard(boolean autoShowBoard) { this.autoShowBoard = autoShowBoard; }

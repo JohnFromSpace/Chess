@@ -1,0 +1,111 @@
+{
+  "id": "da53a24f-6e86-48d3-87eb-7b0066d6d7f6",
+  "whiteUser": "admin",
+  "blackUser": "borko",
+  "whiteMove": true,
+  "createdAt": 1766533409348,
+  "lastUpdate": 1766533650988,
+  "timeControlMs": 300000,
+  "incrementMs": 0,
+  "whiteTimeMs": 205014,
+  "blackTimeMs": 153346,
+  "whiteOfflineSince": 0,
+  "blackOfflineSince": 0,
+  "result": "ONGOING",
+  "board": {
+    "squares": [
+      [
+        "r",
+        "n",
+        "b",
+        "q",
+        "k",
+        "b",
+        "n",
+        "r"
+      ],
+      [
+        "p",
+        "p",
+        "p",
+        ".",
+        "p",
+        "p",
+        "p",
+        "p"
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        "p",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        "P",
+        "P",
+        "P",
+        "P",
+        "K",
+        "P",
+        "P",
+        "P"
+      ],
+      [
+        "R",
+        "N",
+        "B",
+        "Q",
+        ".",
+        "B",
+        "N",
+        "R"
+      ]
+    ]
+  },
+  "moves": [
+    "e2e4",
+    "d7d5",
+    "e1e2",
+    "d5e4"
+  ],
+  "enPassantRow": -1,
+  "enPassantCol": -1,
+  "wK": false,
+  "wQ": false,
+  "bK": true,
+  "bQ": true
+}

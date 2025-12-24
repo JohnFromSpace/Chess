@@ -56,10 +56,9 @@ public class ConsoleView {
         out.println(boardText);
     }
 
-    public Integer askIntWithTimeout(String prompt, long timeoutMs) {
-        out.print(prompt);
-
+    public Integer askIntWithTimeout(long timeoutMs) {
         long end = System.currentTimeMillis() + timeoutMs;
+
         while (System.currentTimeMillis() < end) {
             try {
                 if (System.in.available() > 0) {
@@ -68,13 +67,13 @@ public class ConsoleView {
                         return Integer.parseInt(line);
                     } catch (NumberFormatException e) {
                         out.println("Please enter a number.");
-                        out.print(prompt);
+                        return -1; // signal "bad input"
                     }
                 }
                 Thread.sleep(50);
             } catch (Exception ignored) {
             }
         }
-        return null; // timed out
+        return null; // timeout
     }
 }

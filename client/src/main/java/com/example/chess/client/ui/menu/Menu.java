@@ -34,9 +34,14 @@ public class Menu {
     }
 
     public void readAndExecuteNonBlocking(ConsoleView view, java.util.function.BooleanSupplier shouldExit) {
-        Integer choice = view.askIntWithTimeout("Choose: ", 300);
-        if (shouldExit.getAsBoolean()) return;     // gameStarted arrived -> leave immediately
-        if (choice == null) return;                // timeout -> caller loop continues
+        // print prompt once per call-site render
+        Integer choice = view.askIntWithTimeout(300);
+
+        if (shouldExit.getAsBoolean()) return;
+        if (choice == null) return;         // timeout -> caller loop continues
+        if (choice == -1) {                 // bad input already warned
+            return;
+        }
 
         if (choice < 1 || choice > items.size()) {
             view.showError("Invalid choice.");

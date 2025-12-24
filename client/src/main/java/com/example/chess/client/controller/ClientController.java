@@ -8,6 +8,7 @@ import com.example.chess.client.ui.LobbyScreen;
 import com.example.chess.client.view.ConsoleView;
 import com.example.chess.common.proto.ResponseMessage;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class ClientController {
@@ -19,8 +20,6 @@ public class ClientController {
     public ClientController(ClientConnection conn, ConsoleView view) {
         this.conn = conn;
         this.view = view;
-
-        // Push handler runs on network thread -> only enqueue UI actions.
         this.conn.setPushHandler(this::onPush);
     }
 
@@ -35,92 +34,99 @@ public class ClientController {
     private void onPush(ResponseMessage msg) {
         if (msg == null) return;
 
-        Map<String, Object> p = (msg.payload != null) ? new java.util.HashMap<>(msg.payload) : java.util.Map.of();
+        Map<String, Object> p = (msg.payload == null) ? Map.of() : new HashMap<>(msg.payload);
 
         switch (msg.type) {
             case "gameStarted" -> {
-                // Update state immediately so Lobby loop exits even before UI drain
+                // stop waiting immediately (Lobby will stop idling)
+                state.setWaitingForMatch(false);
+
                 String gameId = asString(p, "gameId");
                 String color = asString(p, "color");
-                state.setWaitingForMatch(false);
+                String opponent = asString(p, "opponent");
+                boolean resumed = asBool(p, "resumed", false);
 
                 if (gameId != null) state.setActiveGameId(gameId);
                 state.setInGame(true);
                 state.setWhite("white".equalsIgnoreCase(color));
 
-                String boardStr = asString(p, "board");
-                if (boardStr != null && !boardStr.isBlank()) {
-                    String oriented = orientBoardForPlayer(boardStr, state.isWhite());
-                    state.setLastBoard(oriented);
-                    view.showBoard(oriented);
+                String boardRaw = asString(p, "board");
+                if (boardRaw != null && !boardRaw.isBlank()) {
+                    state.setLastBoard(orientBoardForPlayer(boardRaw, state.isWhite()));
                 }
 
                 state.postUi(() -> {
-                    String opponent = asString(p, "opponent");
-                    boolean resumed = asBool(p, "resumed", false);
-
                     view.showMessage((resumed ? "Resumed" : "Game started")
                             + " vs " + opponent
                             + ". You are " + (state.isWhite() ? "WHITE" : "BLACK")
                             + ". GameId=" + state.getActiveGameId());
 
-                    if (state.getLastBoard() != null) {
-                        view.showBoard(state.getLastBoard());
-                    }
+                    String b = state.getLastBoard();
+                    if (b != null && !b.isBlank()) view.showBoard(b);
 
-                    view.showMessage("Tip: Use 'Print board' any time. Auto-board is "
-                            + (state.isAutoShowBoard() ? "ON" : "OFF") + ".");
-
-                    Long w = asLong(p, "whiteTimeMs");
-                    Long b = asLong(p, "blackTimeMs");
-                    Boolean wtm = asBoolObj(p, "whiteToMove");
-
-                    if (w != null && b != null && wtm != null) {
-                        state.syncClocks(w, b, wtm);
-                    }
+                    view.showMessage("Auto-board is " + (state.isAutoShowBoard() ? "ON" : "OFF") + ".");
                 });
             }
 
             case "move" -> {
+                // server should send board every move; we handle even if missing
                 String moveStr = asString(p, "move");
+                String by = asString(p, "by"); // may be null if server doesn't send it
+
                 boolean whiteInCheck = asBool(p, "whiteInCheck", false);
                 boolean blackInCheck = asBool(p, "blackInCheck", false);
-                Long w = asLong(p, "whiteTimeMs");
-                Long b = asLong(p, "blackTimeMs");
-                Boolean wtm = asBoolObj(p, "whiteToMove");
 
-                String boardStr = asString(p, "board");
-                if (boardStr != null && !boardStr.isBlank()) {
-                    String oriented = orientBoardForPlayer(boardStr, state.isWhite());
-                    state.setLastBoard(oriented);
+                String boardRaw = asString(p, "board");
+                if (boardRaw != null && !boardRaw.isBlank()) {
+                    state.setLastBoard(orientBoardForPlayer(boardRaw, state.isWhite()));
                 }
 
-                boolean isMine = moveStr != null && moveStr.equalsIgnoreCase(state.getLastSentMove());
+                // Determine if it's our move (fallback to lastSentMove if "by" absent)
+                boolean isMine = false;
+                if (state.getUser() != null && by != null) {
+                    isMine = by.equalsIgnoreCase(state.getUser().username);
+                } else if (moveStr != null && state.getLastSentMove() != null) {
+                    isMine = moveStr.equalsIgnoreCase(state.getLastSentMove());
+                }
                 if (isMine) state.setLastSentMove(null);
 
+                final boolean isMineFinal = isMine;
                 state.postUi(() -> {
-                    if (moveStr != null) {
-                        String who = isMine ? "You played" : "Opponent played";
-                        view.showMessage(who + ": " + moveStr);
+                    if (moveStr != null && !moveStr.isBlank()) {
+                        view.showMessage((isMineFinal ? "You played: " : "Opponent played: ") + moveStr);
                         view.showMove(moveStr, whiteInCheck, blackInCheck);
                     }
 
+                    // FIX #6: auto-board must show after EVERY move for BOTH players
                     if (state.isAutoShowBoard()) {
-                        String boardState = state.getLastBoard();
-                        if (boardState != null && !boardState.isBlank()) view.showBoard(boardState);
+                        String b = state.getLastBoard();
+                        if (b != null && !b.isBlank()) view.showBoard(b);
+                        else view.showMessage("(Board not received from server.)");
                     } else {
                         view.showMessage("(Board updated. Use 'Print board' to view.)");
-                    }
-
-                    if (w != null && b != null && wtm != null) {
-                        state.syncClocks(w, b, wtm);
                     }
                 });
             }
 
+            case "drawOffered" -> state.postUi(() ->
+                    view.showMessage("Opponent offered a draw."));
+
+            case "drawDeclined" -> state.postUi(() ->
+                    view.showMessage("Opponent declined the draw."));
+
+            case "info" -> state.postUi(() ->
+                    view.showMessage(asString(p, "message")));
+
+            case "error" -> state.postUi(() ->
+                    view.showError(msg.message != null ? msg.message : asString(p, "message")));
+
             case "gameOver" -> {
+                // End the game immediately in state so InGame exits cleanly
+                state.setWaitingForMatch(false);
+
                 String result = asString(p, "result");
                 String reason = asString(p, "reason");
+
                 state.clearGame();
 
                 state.postUi(() -> {
@@ -129,17 +135,9 @@ public class ClientController {
                 });
             }
 
-            case "drawOffered" ->
-                    state.postUi(() -> view.showMessage("Draw offered by: " + asString(p, "by")));
-
-            case "drawDeclined" ->
-                    state.postUi(() -> view.showMessage("Draw declined by: " + asString(p, "by")));
-
-            case "info" ->
-                    state.postUi(() -> view.showMessage(asString(p, "message")));
-
-            case "error" ->
-                    state.postUi(() -> view.showError(msg.message != null ? msg.message : asString(p, "message")));
+            default -> {
+                // ignore unknown push
+            }
         }
     }
 
@@ -155,27 +153,13 @@ public class ClientController {
         return Boolean.parseBoolean(String.valueOf(v));
     }
 
-    private static Long asLong(Map<String, Object> p, String k) {
-        Object v = p.get(k);
-        if (v == null) return null;
-        if (v instanceof Number n) return n.longValue();
-        try { return Long.parseLong(String.valueOf(v)); } catch (Exception e) { return null; }
-    }
-
-    private static Boolean asBoolObj(Map<String, Object> p, String k) {
-        Object v = p.get(k);
-        if (v == null) return null;
-        if (v instanceof Boolean b) return b;
-        return Boolean.parseBoolean(String.valueOf(v));
-    }
-
+    // board flip: black sees reversed ranks/files
     private static String orientBoardForPlayer(String raw, boolean isWhitePlayer) {
         if (raw == null || raw.isBlank()) return raw;
         if (isWhitePlayer) return raw;
 
         try {
             String[] lines = raw.split("\\R");
-            // rank -> pieces[8], ranks 1..8
             java.util.Map<Integer, String[]> rankMap = new java.util.HashMap<>();
 
             for (String line : lines) {
@@ -191,20 +175,16 @@ public class ClientController {
                 }
             }
 
-            // If we couldn't parse ranks, fallback
             if (rankMap.size() < 8) return raw;
 
             StringBuilder sb = new StringBuilder();
             sb.append("  h g f e d c b a\n");
-            // black view: top shows rank 1 ... bottom rank 8
             for (int rank = 1; rank <= 8; rank++) {
                 String[] pieces = rankMap.get(rank);
                 if (pieces == null) pieces = new String[]{".",".",".",".",".",".",".","."};
 
                 sb.append(rank).append(' ');
-                for (int f = 7; f >= 0; f--) {
-                    sb.append(pieces[f]).append(' ');
-                }
+                for (int f = 7; f >= 0; f--) sb.append(pieces[f]).append(' ');
                 sb.append(rank).append('\n');
             }
             sb.append("  h g f e d c b a\n");
