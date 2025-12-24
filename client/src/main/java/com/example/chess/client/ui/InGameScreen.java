@@ -26,14 +26,19 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Resign", this::resign));
         menu.add(new MenuItem("Print board", this::printBoard));
         menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
-        menu.add(new MenuItem("Back to lobby", this::backToLobby)); // FIXED
+        menu.add(new MenuItem("Back to lobby", this::backToLobby));
 
         while (state.getUser() != null && state.isInGame()) {
             state.drainUi();
+
+            // FIX: tick locally before rendering so it doesn’t stay stuck at 00:00
+            state.tickClocks();
+
             menu.render(view);
             view.showMessage(renderClocksLine());
             view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
             menu.readAndExecute(view);
+
             state.drainUi();
         }
     }
@@ -81,7 +86,8 @@ public class InGameScreen implements Screen {
         var status = conn.resign(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Resigned.");
-        // server will push gameOver; locally we can also clear now
+
+        // server will push gameOver, but we can exit immediately
         state.clearGame();
     }
 
@@ -89,11 +95,8 @@ public class InGameScreen implements Screen {
         String gameId = state.getActiveGameId();
         if (gameId != null && !gameId.isBlank()) {
             var status = conn.resign(gameId).join();
-            if (status.isError()) {
-                view.showError(status.getMessage());
-            } else {
-                view.showMessage("Left game (counted as resignation). Returning to lobby...");
-            }
+            if (status.isError()) view.showError(status.getMessage());
+            else view.showMessage("Left game (counted as resignation). Returning to lobby...");
         }
         state.clearGame();
     }

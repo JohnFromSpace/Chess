@@ -78,6 +78,7 @@ public class ClientHandler implements Runnable {
                 case "requestGame" -> handleRequestGame(msg);
                 case "makeMove"    -> handleMakeMove(msg);
                 case "offerDraw"   -> handleOfferDraw(msg);
+                case "getStats"    -> handleGetStats(msg);
                 case "acceptDraw"  -> handleRespondDraw(msg, true);
                 case "declineDraw" -> handleRespondDraw(msg, false);
                 case "resign"      -> handleResign(msg);
@@ -137,6 +138,7 @@ public class ClientHandler implements Runnable {
         u.put("name", user.name);
         u.put("played", user.stats.played);
         u.put("won", user.stats.won);
+        u.put("lost", user.stats.lost);
         u.put("drawn", user.stats.drawn);
         u.put("rating", user.stats.rating);
 
@@ -144,6 +146,28 @@ public class ClientHandler implements Runnable {
         payload.put("user", u);
 
         send(ResponseMessage.ok("loginOk", inMsg.corrId, payload));
+    }
+
+    private void handleGetStats(RequestMessage inMsg) {
+        if (currentUser == null) {
+            send(ResponseMessage.error(inMsg.corrId, "Not logged in."));
+            return;
+        }
+
+        User user = authService.getByUsername(currentUser.username); // add this helper
+        Map<String, Object> u = new HashMap<>();
+        u.put("username", user.username);
+        u.put("name", user.name);
+        u.put("played", user.stats.played);
+        u.put("won", user.stats.won);
+        u.put("lost", user.stats.lost);
+        u.put("drawn", user.stats.drawn);
+        u.put("rating", user.stats.rating);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("user", u);
+
+        send(ResponseMessage.ok("statsOk", inMsg.corrId, payload));
     }
 
     private void handleRequestGame(RequestMessage inMsg) throws IOException {

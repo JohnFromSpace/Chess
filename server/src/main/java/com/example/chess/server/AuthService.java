@@ -43,5 +43,10 @@ public class AuthService {
 
         return currentUser;
     }
+
+    public User getByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown user."));
+    }
 }
 

@@ -6,57 +6,37 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SessionState {
+
     private User user;
+
     private String activeGameId;
     private boolean inGame;
     private boolean isWhite;
-
     private String lastBoard;
 
-    private final Queue<Runnable> uiActions = new ConcurrentLinkedQueue<>();
-
+    private boolean waitingForMatch;
     private boolean autoShowBoard = true;
     private String lastSentMove;
 
-    private volatile boolean waitingForMatch;
-    public boolean isWaitingForMatch() { return waitingForMatch; }
-    public void setWaitingForMatch(boolean v) { waitingForMatch = v; }
+    private long timeControlMs = 5 * 60_000L; // default 05:00
+    private long incrementMs = 3_000L;        // default +3s
+    private long whiteTimeMs = timeControlMs;
+    private long blackTimeMs = timeControlMs;
+    private boolean whiteToMove = true;
+    private long lastClockSyncAtMs = System.currentTimeMillis();
 
-    private long whiteTimeMs;
-    private long blackTimeMs;
-    private boolean whiteToMove;
-    private long lastClockSyncAtMs; // System.currentTimeMillis()
+    private final Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 
-    public long getWhiteTimeMs() { return whiteTimeMs; }
-    public long getBlackTimeMs() { return blackTimeMs; }
-    public boolean isWhiteToMove() { return whiteToMove; }
-
-    public void syncClocks(long whiteMs, long blackMs, boolean whiteToMove) {
-        this.whiteTimeMs = Math.max(0, whiteMs);
-        this.blackTimeMs = Math.max(0, blackMs);
-        this.whiteToMove = whiteToMove;
-        this.lastClockSyncAtMs = System.currentTimeMillis();
+    public void postUi(Runnable r) {
+        if (r != null) uiQueue.add(r);
     }
 
-    public void tickClocks() {
-        long now = System.currentTimeMillis();
-        long dt = now - lastClockSyncAtMs;
-        if (dt <= 0) return;
-
-        if (whiteToMove) whiteTimeMs = Math.max(0, whiteTimeMs - dt);
-        else blackTimeMs = Math.max(0, blackTimeMs - dt);
-
-        lastClockSyncAtMs = now;
+    public void drainUi() {
+        Runnable r;
+        while ((r = uiQueue.poll()) != null) {
+            try { r.run(); } catch (Exception ignored) {}
+        }
     }
-
-    public boolean isAutoShowBoard() { return autoShowBoard; }
-    public void setAutoShowBoard(boolean autoShowBoard) { this.autoShowBoard = autoShowBoard; }
-
-    public String getLastSentMove() { return lastSentMove; }
-    public void setLastSentMove(String lastSentMove) { this.lastSentMove = lastSentMove; }
-
-    public String getLastBoard() { return lastBoard; }
-    public void setLastBoard(String lastBoard) { this.lastBoard = lastBoard; }
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
@@ -65,10 +45,58 @@ public class SessionState {
     public void setActiveGameId(String activeGameId) { this.activeGameId = activeGameId; }
 
     public boolean isInGame() { return inGame; }
-    public void setInGame(boolean inGame) { this.inGame = inGame; }
+    public void setInGame(boolean inGame) {
+        this.inGame = inGame;
+        this.lastClockSyncAtMs = System.currentTimeMillis();
+    }
 
     public boolean isWhite() { return isWhite; }
     public void setWhite(boolean white) { isWhite = white; }
+
+    public String getLastBoard() { return lastBoard; }
+    public void setLastBoard(String lastBoard) { this.lastBoard = lastBoard; }
+
+    public boolean isWaitingForMatch() { return waitingForMatch; }
+    public void setWaitingForMatch(boolean waitingForMatch) { this.waitingForMatch = waitingForMatch; }
+
+    public boolean isAutoShowBoard() { return autoShowBoard; }
+    public void setAutoShowBoard(boolean autoShowBoard) { this.autoShowBoard = autoShowBoard; }
+
+    public String getLastSentMove() { return lastSentMove; }
+    public void setLastSentMove(String lastSentMove) { this.lastSentMove = lastSentMove; }
+
+    public void setTimeControlMs(long ms) {
+        if (ms > 0) this.timeControlMs = ms;
+    }
+
+    public void setIncrementMs(long ms) {
+        if (ms >= 0) this.incrementMs = ms;
+    }
+
+    // server-sync (authoritative)
+    public synchronized void syncClocks(long whiteMs, long blackMs, Boolean whiteToMoveMaybe) {
+        if (whiteMs >= 0) this.whiteTimeMs = whiteMs;
+        if (blackMs >= 0) this.blackTimeMs = blackMs;
+        if (whiteToMoveMaybe != null) this.whiteToMove = whiteToMoveMaybe;
+        this.lastClockSyncAtMs = System.currentTimeMillis();
+    }
+
+    // local ticking between server updates
+    public synchronized void tickClocks() {
+        long now = System.currentTimeMillis();
+        long elapsed = now - lastClockSyncAtMs;
+        if (elapsed <= 0) return;
+
+        if (inGame) {
+            if (whiteToMove) whiteTimeMs = Math.max(0, whiteTimeMs - elapsed);
+            else blackTimeMs = Math.max(0, blackTimeMs - elapsed);
+        }
+        lastClockSyncAtMs = now;
+    }
+
+    public synchronized long getWhiteTimeMs() { return whiteTimeMs; }
+    public synchronized long getBlackTimeMs() { return blackTimeMs; }
+    public synchronized boolean isWhiteToMove() { return whiteToMove; }
 
     public void clearGame() {
         this.activeGameId = null;
@@ -77,20 +105,11 @@ public class SessionState {
         this.lastBoard = null;
         this.waitingForMatch = false;
         this.lastSentMove = null;
-        whiteTimeMs = 0;
-        blackTimeMs = 0;
-        whiteToMove = false;
-        lastClockSyncAtMs = 0;
-    }
 
-    public void postUi(Runnable r) {
-        if (r != null) uiActions.add(r);
-    }
-
-    public void drainUi() {
-        Runnable r;
-        while ((r = uiActions.poll()) != null) {
-            try { r.run(); } catch (Exception ignored) {}
-        }
+        // reset clocks to defaults
+        this.whiteTimeMs = timeControlMs;
+        this.blackTimeMs = timeControlMs;
+        this.whiteToMove = true;
+        this.lastClockSyncAtMs = System.currentTimeMillis();
     }
 }

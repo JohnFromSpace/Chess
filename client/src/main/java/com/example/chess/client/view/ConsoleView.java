@@ -76,4 +76,9 @@ public class ConsoleView {
         }
         return null; // timeout
     }
+
+    public void showClockLine(String line) {
+        if (line == null || line.isBlank()) return;
+        out.println(line);
+    }
 }

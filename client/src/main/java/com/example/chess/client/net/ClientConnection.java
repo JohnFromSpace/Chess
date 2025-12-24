@@ -134,4 +134,12 @@ public class ClientConnection {
         return sendAndWait(new RequestMessage("resign", UUID.randomUUID().toString(),
                 Map.of("gameId", gameId)));
     }
+
+    public CompletableFuture<StatusMessage> getStats() {
+        return sendAndWait(new RequestMessage(
+                "getStats",
+                UUID.randomUUID().toString(),
+                Map.of()
+        ));
+    }
 }

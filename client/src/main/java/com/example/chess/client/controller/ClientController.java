@@ -5,6 +5,7 @@ import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.ui.AuthScreen;
 import com.example.chess.client.ui.InGameScreen;
 import com.example.chess.client.ui.LobbyScreen;
+import com.example.chess.client.ui.ProfileScreenUserMapper;
 import com.example.chess.client.view.ConsoleView;
 import com.example.chess.common.proto.ResponseMessage;
 
@@ -41,6 +42,8 @@ public class ClientController {
                 // stop waiting immediately (Lobby will stop idling)
                 state.setWaitingForMatch(false);
 
+                applyClockFields(p);
+
                 String gameId = asString(p, "gameId");
                 String color = asString(p, "color");
                 String opponent = asString(p, "opponent");
@@ -64,12 +67,17 @@ public class ClientController {
                     String b = state.getLastBoard();
                     if (b != null && !b.isBlank()) view.showBoard(b);
 
+                    // show clocks immediately so you see them even if you were still in Lobby
+                    view.showMessage(renderClocksLine());
+
                     view.showMessage("Auto-board is " + (state.isAutoShowBoard() ? "ON" : "OFF") + ".");
                 });
             }
 
             case "move" -> {
-                // server should send board every move; we handle even if missing
+                // --- CLOCK SYNC (FIX) ---
+                applyClockFields(p);
+
                 String moveStr = asString(p, "move");
                 String by = asString(p, "by"); // may be null if server doesn't send it
 
@@ -81,7 +89,6 @@ public class ClientController {
                     state.setLastBoard(orientBoardForPlayer(boardRaw, state.isWhite()));
                 }
 
-                // Determine if it's our move (fallback to lastSentMove if "by" absent)
                 boolean isMine = false;
                 if (state.getUser() != null && by != null) {
                     isMine = by.equalsIgnoreCase(state.getUser().username);
@@ -97,7 +104,6 @@ public class ClientController {
                         view.showMove(moveStr, whiteInCheck, blackInCheck);
                     }
 
-                    // FIX #6: auto-board must show after EVERY move for BOTH players
                     if (state.isAutoShowBoard()) {
                         String b = state.getLastBoard();
                         if (b != null && !b.isBlank()) view.showBoard(b);
@@ -105,23 +111,18 @@ public class ClientController {
                     } else {
                         view.showMessage("(Board updated. Use 'Print board' to view.)");
                     }
+
+                    // show updated clocks after every move
+                    view.showMessage(renderClocksLine());
                 });
             }
 
-            case "drawOffered" -> state.postUi(() ->
-                    view.showMessage("Opponent offered a draw."));
-
-            case "drawDeclined" -> state.postUi(() ->
-                    view.showMessage("Opponent declined the draw."));
-
-            case "info" -> state.postUi(() ->
-                    view.showMessage(asString(p, "message")));
-
-            case "error" -> state.postUi(() ->
-                    view.showError(msg.message != null ? msg.message : asString(p, "message")));
+            case "drawOffered" -> state.postUi(() -> view.showMessage("Opponent offered a draw."));
+            case "drawDeclined" -> state.postUi(() -> view.showMessage("Opponent declined the draw."));
+            case "info" -> state.postUi(() -> view.showMessage(asString(p, "message")));
+            case "error" -> state.postUi(() -> view.showError(msg.message != null ? msg.message : asString(p, "message")));
 
             case "gameOver" -> {
-                // End the game immediately in state so InGame exits cleanly
                 state.setWaitingForMatch(false);
 
                 String result = asString(p, "result");
@@ -129,16 +130,56 @@ public class ClientController {
 
                 state.clearGame();
 
-                state.postUi(() -> {
-                    view.showMessage("Game over: " + result + " reason=" + reason);
-                    view.showMessage("Returning to lobby...");
-                });
+                // after state.clearGame();
+                conn.getStats().thenAccept(status -> {
+                    if (status == null || status.isError()) return;
+
+                    var updated = ProfileScreenUserMapper.userFromPayload(status.payload);
+                    if (updated != null) state.setUser(updated);
+
+                    state.postUi(() -> {
+                        var u = state.getUser();
+                        if (u != null && u.stats != null) {
+                            view.showMessage("[Profile updated] ELO " + u.stats.rating
+                                    + " | W/L/D " + u.stats.won + "/" + u.stats.lost + "/" + u.stats.drawn);
+                        }
+                    });
+                }).exceptionally(ex -> null);
             }
 
             default -> {
                 // ignore unknown push
             }
         }
+    }
+
+    private void applyClockFields(Map<String, Object> p) {
+        long tc = asLong(p, "timeControlMs", -1);
+        long inc = asLong(p, "incrementMs", -1);
+        if (tc > 0) state.setTimeControlMs(tc);
+        if (inc >= 0) state.setIncrementMs(inc);
+
+        long w = asLong(p, "whiteTimeMs", -1);
+        long b = asLong(p, "blackTimeMs", -1);
+        Boolean wtm = asBoolObj(p, "whiteToMove");
+
+        if (w >= 0 || b >= 0 || wtm != null) {
+            state.syncClocks(w, b, wtm);
+        }
+    }
+
+    private String renderClocksLine() {
+        String w = fmt(state.getWhiteTimeMs());
+        String b = fmt(state.getBlackTimeMs());
+        String turn = state.isWhiteToMove() ? "WHITE to move" : "BLACK to move";
+        return "[Clock] White: " + w + " | Black: " + b + " | " + turn;
+    }
+
+    private static String fmt(long ms) {
+        long s = Math.max(0, ms / 1000);
+        long m = s / 60;
+        long r = s % 60;
+        return String.format("%02d:%02d", m, r);
     }
 
     private static String asString(Map<String, Object> p, String k) {
@@ -153,6 +194,22 @@ public class ClientController {
         return Boolean.parseBoolean(String.valueOf(v));
     }
 
+    private static long asLong(Map<String, Object> p, String k, long def) {
+        Object v = p.get(k);
+        if (v == null) return def;
+        if (v instanceof Number n) return n.longValue();
+        try { return Long.parseLong(String.valueOf(v)); } catch (Exception e) { return def; }
+    }
+
+    private static Boolean asBoolObj(Map<String, Object> p, String k) {
+        Object v = p.get(k);
+        if (v == null) return null;
+        if (v instanceof Boolean b) return b;
+        String s = String.valueOf(v).trim();
+        if (s.isEmpty()) return null;
+        return Boolean.parseBoolean(s);
+    }
+
     // board flip: black sees reversed ranks/files
     private static String orientBoardForPlayer(String raw, boolean isWhitePlayer) {
         if (raw == null || raw.isBlank()) return raw;
@@ -164,27 +221,23 @@ public class ClientController {
 
             for (String line : lines) {
                 String t = line.trim();
-                if (t.isEmpty()) continue;
-
-                String[] tok = t.split("\\s+");
-                if (tok.length >= 10 && tok[0].matches("[1-8]") && tok[tok.length - 1].matches("[1-8]")) {
-                    int rank = Integer.parseInt(tok[0]);
-                    String[] pieces = new String[8];
-                    for (int i = 0; i < 8; i++) pieces[i] = tok[i + 1];
-                    rankMap.put(rank, pieces);
+                if (t.matches("^[1-8].* [1-8]$")) {
+                    String[] parts = t.split("\\s+");
+                    int rank = Integer.parseInt(parts[0]);
+                    String[] cells = new String[8];
+                    for (int i = 0; i < 8; i++) cells[i] = parts[i + 1];
+                    rankMap.put(rank, cells);
                 }
             }
-
-            if (rankMap.size() < 8) return raw;
 
             StringBuilder sb = new StringBuilder();
             sb.append("  h g f e d c b a\n");
             for (int rank = 1; rank <= 8; rank++) {
-                String[] pieces = rankMap.get(rank);
-                if (pieces == null) pieces = new String[]{".",".",".",".",".",".",".","."};
-
+                int origRank = 9 - rank;
+                String[] cells = rankMap.get(origRank);
+                if (cells == null) continue;
                 sb.append(rank).append(' ');
-                for (int f = 7; f >= 0; f--) sb.append(pieces[f]).append(' ');
+                for (int i = 7; i >= 0; i--) sb.append(cells[i]).append(' ');
                 sb.append(rank).append('\n');
             }
             sb.append("  h g f e d c b a\n");

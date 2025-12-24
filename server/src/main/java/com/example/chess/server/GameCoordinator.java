@@ -215,39 +215,87 @@ public class GameCoordinator {
 
     private boolean updateStatsAndRatings(Game game) {
         try {
-            return userRepository.updateUsersAtomically(game.whiteUser, game.blackUser, (white, black) -> {
-                Stats ws = white.stats;
-                Stats bs = black.stats;
+            Optional<User> white = userRepository.findByUsername(game.whiteUser);
+            Optional<User> black = userRepository.findByUsername(game.blackUser);
+            if (white.isEmpty() || black.isEmpty()) return false;
 
-                ws.played++;
-                bs.played++;
+            User wu = white.get();
+            User bu = black.get();
 
-                double sw, sb;
-                switch (game.result) {
-                    case WHITE_WIN -> { ws.won++; sw = 1.0; sb = 0.0; }
-                    case BLACK_WIN -> { bs.won++; sw = 0.0; sb = 1.0; }
-                    case DRAW      -> { ws.drawn++; bs.drawn++; sw = 0.5; sb = 0.5; }
-                    default        -> { sw = 0.0; sb = 0.0; }
+            Stats ws = wu.stats;
+            Stats bs = bu.stats;
+
+            // snapshot before changing (for K-factor and correctness)
+            int wGamesBefore = ws.played;
+            int bGamesBefore = bs.played;
+
+            int wRatingBefore = ws.rating;
+            int bRatingBefore = bs.rating;
+
+            // played always increments for finished games
+            ws.played++;
+            bs.played++;
+
+            // score S
+            double sw, sb;
+
+            switch (game.result) {
+                case WHITE_WIN -> {
+                    ws.won++;
+                    bs.lost++;
+                    sw = 1.0; sb = 0.0;
                 }
+                case BLACK_WIN -> {
+                    bs.won++;
+                    ws.lost++;
+                    sw = 0.0; sb = 1.0;
+                }
+                case DRAW -> {
+                    ws.drawn++;
+                    bs.drawn++;
+                    sw = 0.5; sb = 0.5;
+                }
+                default -> {
+                    return false;
+                }
+            }
 
-                double rw = ws.rating;
-                double rb = bs.rating;
+            // expected E
+            double rw = wRatingBefore;
+            double rb = bRatingBefore;
 
-                double expectedW = 1.0 / (1.0 + Math.pow(10.0, (rb - rw) / 400.0));
-                double expectedB = 1.0 - expectedW;
+            double expectedW = 1.0 / (1.0 + Math.pow(10.0, (rb - rw) / 400.0));
+            double expectedB = 1.0 - expectedW;
 
-                double K = 32.0;
-                rw = rw + K * (sw - expectedW);
-                rb = rb + K * (sb - expectedB);
+            double kW = kFactor(rw, wGamesBefore);
+            double kB = kFactor(rb, bGamesBefore);
 
-                ws.rating = (int) Math.round(rw);
-                bs.rating = (int) Math.round(rb);
-            });
+            double newRw = rw + kW * (sw - expectedW);
+            double newRb = rb + kB * (sb - expectedB);
+
+            ws.rating = clampRating((int) Math.round(newRw));
+            bs.rating = clampRating((int) Math.round(newRb));
+
+            userRepository.saveUser(wu);
+            userRepository.saveUser(bu);
+            return true;
+
         } catch (Exception e) {
             System.err.println("Failed to update stats/ratings: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
+    }
+
+    private static double kFactor(double rating, int gamesPlayedBefore) {
+        if (gamesPlayedBefore < 30) return 40.0;
+        if (rating >= 2400.0) return 10.0;
+        return 20.0;
+    }
+
+    private static int clampRating(int r) {
+        // avoid negative/absurd ratings
+        return Math.max(100, r);
     }
 
     void makeMove(String gameId, User user, String moveStr) throws IOException {

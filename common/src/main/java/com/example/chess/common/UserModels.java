@@ -7,11 +7,13 @@ public class UserModels {
         public int won;
         public int drawn;
         public int rating;
+        public int lost;
 
         public Stats() {
             this.played = 0;
             this.won = 0;
             this.drawn = 0;
+            this.lost = 0;
             this.rating = 1200;
         }
     }
