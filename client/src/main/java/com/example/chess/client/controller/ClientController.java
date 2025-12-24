@@ -75,7 +75,6 @@ public class ClientController {
             }
 
             case "move" -> {
-                // --- CLOCK SYNC (FIX) ---
                 applyClockFields(p);
 
                 String moveStr = asString(p, "move");
@@ -275,14 +274,12 @@ public class ClientController {
         // If raw orientation is opposite of what we need, rotate ranks (8<->1)
         boolean rotateRanks = isWhitePlayer ? !rawHasBlackOnTop : rawHasBlackOnTop;
 
-        // Output: white => a..h, black => h..a
         boolean reverseFilesOut = !isWhitePlayer;
         String header = reverseFilesOut ? "  h g f e d c b a" : "  a b c d e f g h";
 
         StringBuilder sb = new StringBuilder();
         sb.append(header).append("\n");
 
-        // Always print ranks top->bottom as 8..1 (normal chess diagram)
         for (int displayRank = 8; displayRank >= 1; displayRank--) {
             int sourceRank = rotateRanks ? (9 - displayRank) : displayRank;
             String[] row = rankMap.get(sourceRank);

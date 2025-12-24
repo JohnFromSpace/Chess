@@ -82,9 +82,9 @@ public class ClientHandler implements Runnable {
                 case "declineDraw" -> handleRespondDraw(msg, false);
                 case "resign"      -> handleResign(msg);
 
-                // NEW:
                 case "listGames"      -> handleListGames(msg);
                 case "getGameDetails" -> handleGetGameDetails(msg);
+                case "getStats"       -> handleGetStats(msg);
 
                 default -> send(ResponseMessage.error(corrId, "Unknown message type: " + type));
             }
@@ -240,6 +240,28 @@ public class ClientHandler implements Runnable {
         payload.put("game", gm);
 
         send(ResponseMessage.ok("getGameDetailsOk", inMsg.corrId, payload));
+    }
+
+    private void handleGetStats(RequestMessage msg) {
+        if (currentUser == null) throw new IllegalArgumentException("You must be logged in.");
+
+        User fresh = authService.getUser(currentUser.username);
+        currentUser = fresh;
+
+        Map<String, Object> payload = new HashMap<>();
+        if (fresh.stats == null) {
+            payload.put("played", 0);
+            payload.put("won", 0);
+            payload.put("drawn", 0);
+            payload.put("rating", 1000);
+        } else {
+            payload.put("played", fresh.stats.played);
+            payload.put("won", fresh.stats.won);
+            payload.put("drawn", fresh.stats.drawn);
+            payload.put("rating", fresh.stats.rating);
+        }
+
+        send(ResponseMessage.ok("getStatsOk", msg.corrId, payload));
     }
 
     void sendGameStarted(Game game, boolean isWhite, boolean isReconnect) {
