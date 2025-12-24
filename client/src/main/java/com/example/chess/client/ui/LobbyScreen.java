@@ -22,8 +22,8 @@ public class LobbyScreen implements Screen {
     public void show() {
         Menu menu = new Menu("Lobby");
         menu.add(new MenuItem("Request game", this::requestGame));
-        menu.add(new MenuItem("Logout", this::logout));
         menu.add(new MenuItem("Profile", this::openProfile));
+        menu.add(new MenuItem("Logout", this::logout));
         menu.add(new MenuItem("Exit", () -> System.exit(0)));
 
         while (state.getUser() != null && !state.isInGame()) {

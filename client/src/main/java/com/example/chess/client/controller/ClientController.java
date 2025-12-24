@@ -210,40 +210,94 @@ public class ClientController {
         return Boolean.parseBoolean(s);
     }
 
-    // board flip: black sees reversed ranks/files
     private static String orientBoardForPlayer(String raw, boolean isWhitePlayer) {
         if (raw == null || raw.isBlank()) return raw;
-        if (isWhitePlayer) return raw;
 
-        try {
-            String[] lines = raw.split("\\R");
-            java.util.Map<Integer, String[]> rankMap = new java.util.HashMap<>();
+        String[] lines = raw.split("\\R");
 
-            for (String line : lines) {
-                String t = line.trim();
-                if (t.matches("^[1-8].* [1-8]$")) {
-                    String[] parts = t.split("\\s+");
-                    int rank = Integer.parseInt(parts[0]);
-                    String[] cells = new String[8];
-                    for (int i = 0; i < 8; i++) cells[i] = parts[i + 1];
-                    rankMap.put(rank, cells);
+        Boolean rawFilesNormal = null; // null = unknown
+        for (String line : lines) {
+            String t = line.trim();
+            if (t.isEmpty()) continue;
+
+            if (t.startsWith("a b c d e f g h")) { rawFilesNormal = true; break; }
+            if (t.startsWith("h g f e d c b a")) { rawFilesNormal = false; break; }
+
+            // If we hit a rank line first, stop trying to detect header
+            if (t.matches("^[1-8]\\s+.*")) break;
+        }
+        if (rawFilesNormal == null) rawFilesNormal = true; // default
+
+        Map<Integer, String[]> rankMap = new HashMap<>();
+        for (String line : lines) {
+            String t = line.trim();
+            if (!t.matches("^[1-8]\\s+.*")) continue;
+
+            String[] tok = t.split("\\s+");
+            if (tok.length < 9) continue;
+
+            int rank;
+            try {
+                rank = Integer.parseInt(tok[0]);
+            } catch (NumberFormatException e) {
+                continue;
+            }
+
+            String[] row = new String[8];
+            for (int i = 0; i < 8; i++) row[i] = tok[i + 1];
+
+            if (!rawFilesNormal) {
+                for (int i = 0; i < 4; i++) {
+                    String tmp = row[i];
+                    row[i] = row[7 - i];
+                    row[7 - i] = tmp;
                 }
             }
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("  h g f e d c b a\n");
-            for (int rank = 1; rank <= 8; rank++) {
-                int origRank = 9 - rank;
-                String[] cells = rankMap.get(origRank);
-                if (cells == null) continue;
-                sb.append(rank).append(' ');
-                for (int i = 7; i >= 0; i--) sb.append(cells[i]).append(' ');
-                sb.append(rank).append('\n');
-            }
-            sb.append("  h g f e d c b a\n");
-            return sb.toString();
-        } catch (Exception e) {
-            return raw;
+            rankMap.put(rank, row);
         }
+
+        // Infer whether raw is "white-oriented" (rank 8 mostly lowercase = black pieces on top)
+        boolean rawHasBlackOnTop = true;
+        String[] r8 = rankMap.get(8);
+        if (r8 != null) {
+            int lower = 0, upper = 0;
+            for (String p : r8) {
+                if (p == null || p.length() != 1) continue;
+                char c = p.charAt(0);
+                if (!Character.isLetter(c)) continue;
+                if (Character.isLowerCase(c)) lower++;
+                else upper++;
+            }
+            if (lower + upper > 0) rawHasBlackOnTop = (lower >= upper);
+        }
+
+        // If raw orientation is opposite of what we need, rotate ranks (8<->1)
+        boolean rotateRanks = isWhitePlayer ? !rawHasBlackOnTop : rawHasBlackOnTop;
+
+        // Output: white => a..h, black => h..a
+        boolean reverseFilesOut = !isWhitePlayer;
+        String header = reverseFilesOut ? "  h g f e d c b a" : "  a b c d e f g h";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(header).append("\n");
+
+        // Always print ranks top->bottom as 8..1 (normal chess diagram)
+        for (int displayRank = 8; displayRank >= 1; displayRank--) {
+            int sourceRank = rotateRanks ? (9 - displayRank) : displayRank;
+            String[] row = rankMap.get(sourceRank);
+            if (row == null) row = new String[]{".",".",".",".",".",".",".","."};
+
+            sb.append(displayRank).append(' ');
+            if (reverseFilesOut) {
+                for (int f = 7; f >= 0; f--) sb.append(row[f]).append(' ');
+            } else {
+                for (int f = 0; f < 8; f++) sb.append(row[f]).append(' ');
+            }
+            sb.append(displayRank).append("\n");
+        }
+
+        sb.append(header);
+        return sb.toString();
     }
 }
