@@ -9,8 +9,7 @@ import com.example.chess.common.proto.ResponseMessage;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ClientHandler implements Runnable {
 
@@ -40,15 +39,15 @@ public class ClientHandler implements Runnable {
 
             String line;
             while ((line = in.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) continue;
                 handleLine(line);
             }
-        } catch (IOException e) {
-            System.err.println("Client disconnected: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse line: " + e.getMessage());
         } finally {
-            if (currentUser != null) {
+            try {
                 gameCoordinator.onUserOffline(this, currentUser);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Failed to exrtact" + e.getMessage());
             }
         }
     }
@@ -75,13 +74,18 @@ public class ClientHandler implements Runnable {
                 case "ping"        -> handlePing(msg);
                 case "register"    -> handleRegister(msg);
                 case "login"       -> handleLogin(msg);
+
                 case "requestGame" -> handleRequestGame(msg);
                 case "makeMove"    -> handleMakeMove(msg);
                 case "offerDraw"   -> handleOfferDraw(msg);
-                case "getStats"    -> handleGetStats(msg);
                 case "acceptDraw"  -> handleRespondDraw(msg, true);
                 case "declineDraw" -> handleRespondDraw(msg, false);
                 case "resign"      -> handleResign(msg);
+
+                // NEW:
+                case "listGames"      -> handleListGames(msg);
+                case "getGameDetails" -> handleGetGameDetails(msg);
+
                 default -> send(ResponseMessage.error(corrId, "Unknown message type: " + type));
             }
         } catch (IllegalArgumentException ex) {
@@ -138,7 +142,6 @@ public class ClientHandler implements Runnable {
         u.put("name", user.name);
         u.put("played", user.stats.played);
         u.put("won", user.stats.won);
-        u.put("lost", user.stats.lost);
         u.put("drawn", user.stats.drawn);
         u.put("rating", user.stats.rating);
 
@@ -148,50 +151,23 @@ public class ClientHandler implements Runnable {
         send(ResponseMessage.ok("loginOk", inMsg.corrId, payload));
     }
 
-    private void handleGetStats(RequestMessage inMsg) {
-        if (currentUser == null) {
-            send(ResponseMessage.error(inMsg.corrId, "Not logged in."));
-            return;
-        }
-
-        User user = authService.getByUsername(currentUser.username); // add this helper
-        Map<String, Object> u = new HashMap<>();
-        u.put("username", user.username);
-        u.put("name", user.name);
-        u.put("played", user.stats.played);
-        u.put("won", user.stats.won);
-        u.put("lost", user.stats.lost);
-        u.put("drawn", user.stats.drawn);
-        u.put("rating", user.stats.rating);
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("user", u);
-
-        send(ResponseMessage.ok("statsOk", inMsg.corrId, payload));
-    }
-
     private void handleRequestGame(RequestMessage inMsg) throws IOException {
-        if (currentUser == null) throw new IllegalArgumentException("You must be logged in to request a game.");
+        if (currentUser == null) throw new IllegalArgumentException("You must be logged in.");
         gameCoordinator.requestGame(this, currentUser);
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("status", "queueOrMatched");
-        send(ResponseMessage.ok("requestGameOk", inMsg.corrId, payload));
+        send(ResponseMessage.ok("requestGameOk", inMsg.corrId));
     }
 
     private void handleMakeMove(RequestMessage inMsg) throws IOException {
-        if (currentUser == null) throw new IllegalArgumentException("You must be logged in to make a move.");
+        if (currentUser == null) throw new IllegalArgumentException("You must be logged in.");
         String gameId = reqStr(inMsg, "gameId");
         String move   = reqStr(inMsg, "move");
-
         gameCoordinator.makeMove(gameId, currentUser, move);
         send(ResponseMessage.ok("makeMoveOk", inMsg.corrId));
     }
 
     private void handleOfferDraw(RequestMessage inMsg) throws IOException {
-        if (currentUser == null) throw new IllegalArgumentException("You must be logged in to offer a draw.");
+        if (currentUser == null) throw new IllegalArgumentException("You must be logged in.");
         String gameId = reqStr(inMsg, "gameId");
-
         gameCoordinator.offerDraw(gameId, currentUser);
         send(ResponseMessage.ok("offerDrawOk", inMsg.corrId));
     }
@@ -199,7 +175,6 @@ public class ClientHandler implements Runnable {
     private void handleRespondDraw(RequestMessage inMsg, boolean accept) throws IOException {
         if (currentUser == null) throw new IllegalArgumentException("You must be logged in.");
         String gameId = reqStr(inMsg, "gameId");
-
         gameCoordinator.respondDraw(gameId, currentUser, accept);
         send(ResponseMessage.ok(accept ? "acceptDrawOk" : "declineDrawOk", inMsg.corrId));
     }
@@ -207,57 +182,98 @@ public class ClientHandler implements Runnable {
     private void handleResign(RequestMessage inMsg) throws IOException {
         if (currentUser == null) throw new IllegalArgumentException("You must be logged in.");
         String gameId = reqStr(inMsg, "gameId");
-
         gameCoordinator.resign(gameId, currentUser);
         send(ResponseMessage.ok("resignOk", inMsg.corrId));
     }
 
-    void sendGameStarted(Game game, boolean isWhite, boolean resumed) {
+    private void handleListGames(RequestMessage inMsg) throws IOException {
+        if (currentUser == null) throw new IllegalArgumentException("You must be logged in.");
+
+        List<Game> games = gameCoordinator.listGamesForUser(currentUser.username);
+
+        List<Map<String, Object>> outGames = new ArrayList<>();
+        for (Game g : games) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", g.id);
+            m.put("whiteUser", g.whiteUser);
+            m.put("blackUser", g.blackUser);
+            m.put("result", String.valueOf(g.result));
+            m.put("reason", g.resultReason);
+            m.put("createdAt", g.createdAt);
+            m.put("lastUpdate", g.lastUpdate);
+
+            String me = currentUser.username;
+            String opponent = me.equals(g.whiteUser) ? g.blackUser : g.whiteUser;
+            String color = me.equals(g.whiteUser) ? "WHITE" : "BLACK";
+            m.put("opponent", opponent);
+            m.put("youAre", color);
+
+            outGames.add(m);
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("games", outGames);
+        send(ResponseMessage.ok("listGamesOk", inMsg.corrId, payload));
+    }
+
+    private void handleGetGameDetails(RequestMessage inMsg) throws IOException {
+        if (currentUser == null) throw new IllegalArgumentException("You must be logged in.");
+        String gameId = reqStr(inMsg, "gameId");
+
+        Game g = gameCoordinator.getGameForUser(gameId, currentUser.username);
+        if (g == null) {
+            throw new IllegalArgumentException("No such game (or you are not a participant).");
+        }
+
+        Map<String, Object> gm = new HashMap<>();
+        gm.put("id", g.id);
+        gm.put("whiteUser", g.whiteUser);
+        gm.put("blackUser", g.blackUser);
+        gm.put("result", String.valueOf(g.result));
+        gm.put("reason", g.resultReason);
+        gm.put("createdAt", g.createdAt);
+        gm.put("lastUpdate", g.lastUpdate);
+        gm.put("moves", g.moves == null ? List.of() : new ArrayList<>(g.moves));
+        gm.put("board", g.board == null ? null : g.board.toPrettyString());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("game", gm);
+
+        send(ResponseMessage.ok("getGameDetailsOk", inMsg.corrId, payload));
+    }
+
+    void sendGameStarted(Game game, boolean isWhite, boolean isReconnect) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("gameId", game.id);
-        payload.put("color", isWhite ? "white" : "black");
         payload.put("opponent", isWhite ? game.blackUser : game.whiteUser);
-
-        payload.put("timeControlMs", game.timeControlMs);
-        payload.put("incrementMs", game.incrementMs);
-
-        payload.put("resumed", resumed);
+        payload.put("youAre", isWhite ? "WHITE" : "BLACK");
+        payload.put("reconnect", isReconnect);
+        payload.put("board", game.board.toPrettyString());
         payload.put("whiteTimeMs", game.whiteTimeMs);
         payload.put("blackTimeMs", game.blackTimeMs);
-        payload.put("whiteToMove", game.whiteMove);
-
-        // board must be present at game start
-        payload.put("board", game.board.toPrettyString());
-
+        payload.put("whiteMove", game.whiteMove);
         send(ResponseMessage.push("gameStarted", payload));
     }
 
-    void sendMove(Game game, String moveStr, String byUser, boolean whiteInCheck, boolean blackInCheck) {
+    void sendMove(Game game, String byUser, String moveStr, boolean whiteInCheck, boolean blackInCheck) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("gameId", game.id);
-
         payload.put("by", byUser);
-
         payload.put("move", moveStr);
-        payload.put("whiteInCheck", whiteInCheck);
-        payload.put("blackInCheck", blackInCheck);
-
-        // always include board on every move
         payload.put("board", game.board.toPrettyString());
-
         payload.put("whiteTimeMs", game.whiteTimeMs);
         payload.put("blackTimeMs", game.blackTimeMs);
-        payload.put("whiteToMove", game.whiteMove);
-
-        send(ResponseMessage.push("move", payload));
+        payload.put("whiteMove", game.whiteMove);
+        send(ResponseMessage.push("movePlayed", payload));
     }
 
     void sendGameOver(Game game, boolean statsOk) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("gameId", game.id);
-        payload.put("result", game.result.name());
-        payload.put("reason", game.resultReason != null ? game.resultReason : "");
+        payload.put("result", String.valueOf(game.result));
+        payload.put("reason", game.resultReason);
         payload.put("statsOk", statsOk);
+        payload.put("board", game.board.toPrettyString());
         send(ResponseMessage.push("gameOver", payload));
     }
 

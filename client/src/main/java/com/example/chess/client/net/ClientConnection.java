@@ -142,4 +142,15 @@ public class ClientConnection {
                 Map.of()
         ));
     }
+
+    public CompletableFuture<StatusMessage> listGames() {
+        return sendAndWait(com.example.chess.common.proto.RequestMessage.of("listGames"));
+    }
+
+    public CompletableFuture<StatusMessage> getGameDetails(String gameId) {
+        return sendAndWait(
+                com.example.chess.common.proto.RequestMessage.of("getGameDetails")
+                        .with("gameId", gameId)
+        );
+    }
 }

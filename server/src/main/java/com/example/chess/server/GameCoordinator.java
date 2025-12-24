@@ -546,4 +546,39 @@ public class GameCoordinator {
             else finishGame(game, Result.DRAW, "stalemate");
         }
     }
+
+    public List<Game> listGamesForUser(String username) throws IOException {
+        Map<String, Game> found = gameRepository.findGamesForUser(username);
+
+        List<Game> games = new ArrayList<>(found.values());
+        games.removeIf(g -> g == null || (!username.equals(g.whiteUser) && !username.equals(g.blackUser)));
+
+        // most recent first
+        games.sort(Comparator
+                .comparingLong((Game g) -> g.lastUpdate)
+                .reversed()
+                .thenComparingLong(g -> g.createdAt)
+                .reversed());
+
+        return games;
+    }
+
+    public Game getGameForUser(String gameId, String username) throws IOException {
+        if (gameId == null || gameId.isBlank()) return null;
+
+        // If the game is currently active, use the in-memory one (most up-to-date)
+        Game active = activeGames.get(gameId);
+        if (active != null) {
+            if (username.equals(active.whiteUser) || username.equals(active.blackUser)) return active;
+            return null;
+        }
+
+        Optional<Game> g = gameRepository.findGameById(gameId);
+        if (g.isEmpty()) return null;
+
+        Game loaded = g.get();
+        if (!username.equals(loaded.whiteUser) && !username.equals(loaded.blackUser)) return null;
+
+        return loaded;
+    }
 }

@@ -23,7 +23,7 @@ public class LobbyScreen implements Screen {
         Menu menu = new Menu("Lobby");
         menu.add(new MenuItem("Request game", this::requestGame));
         menu.add(new MenuItem("Logout", this::logout));
-        menu.add(new MenuItem("Profile", this::profile));
+        menu.add(new MenuItem("Profile", this::openProfile));
         menu.add(new MenuItem("Exit", () -> System.exit(0)));
 
         while (state.getUser() != null && !state.isInGame()) {
@@ -64,7 +64,7 @@ public class LobbyScreen implements Screen {
         view.showMessage("Logged out.");
     }
 
-    private void profile() {
+    private void openProfile() {
         new ProfileScreen(conn, view, state).show();
     }
 }
