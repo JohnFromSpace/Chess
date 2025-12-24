@@ -145,10 +145,6 @@ public class ClientController {
                     });
                 }).exceptionally(ex -> null);
             }
-
-            default -> {
-                // ignore unknown push
-            }
         }
     }
 

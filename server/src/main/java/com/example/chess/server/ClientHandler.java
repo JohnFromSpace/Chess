@@ -266,27 +266,46 @@ public class ClientHandler implements Runnable {
 
     void sendGameStarted(Game game, boolean isWhite, boolean isReconnect) {
         Map<String, Object> payload = new HashMap<>();
+
         payload.put("gameId", game.id);
+
+        payload.put("color", isWhite ? "white" : "black");
         payload.put("opponent", isWhite ? game.blackUser : game.whiteUser);
-        payload.put("youAre", isWhite ? "WHITE" : "BLACK");
-        payload.put("reconnect", isReconnect);
-        payload.put("board", game.board.toPrettyString());
+
+        payload.put("timeControlMs", game.timeControlMs);
+        payload.put("incrementMs", game.incrementMs);
+
+        payload.put("resumed", isReconnect);
         payload.put("whiteTimeMs", game.whiteTimeMs);
         payload.put("blackTimeMs", game.blackTimeMs);
+        payload.put("whiteToMove", game.whiteMove);
+
+        payload.put("board", game.board.toPrettyString());
+
+        payload.put("youAre", isWhite ? "WHITE" : "BLACK");
+        payload.put("reconnect", isReconnect);
         payload.put("whiteMove", game.whiteMove);
+
         send(ResponseMessage.push("gameStarted", payload));
     }
 
     void sendMove(Game game, String byUser, String moveStr, boolean whiteInCheck, boolean blackInCheck) {
         Map<String, Object> payload = new HashMap<>();
+
         payload.put("gameId", game.id);
         payload.put("by", byUser);
         payload.put("move", moveStr);
-        payload.put("board", game.board.toPrettyString());
+
+        payload.put("whiteInCheck", whiteInCheck);
+        payload.put("blackInCheck", blackInCheck);
+
         payload.put("whiteTimeMs", game.whiteTimeMs);
         payload.put("blackTimeMs", game.blackTimeMs);
-        payload.put("whiteMove", game.whiteMove);
-        send(ResponseMessage.push("movePlayed", payload));
+        payload.put("whiteToMove", game.whiteMove);
+
+        payload.put("board", game.board.toPrettyString());
+
+        send(ResponseMessage.push("move", payload));
     }
 
     void sendGameOver(Game game, boolean statsOk) {
