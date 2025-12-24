@@ -57,14 +57,16 @@ public class LobbyScreen implements Screen {
         view.showMessage("Queued / matched. Waiting for server...");
     }
 
+    private void openProfile() {
+        new ProfileScreen(conn, view, state).show();
+    }
+
     private void logout() {
+        try { conn.logout().join(); } catch (Exception ignored) {}
+
         state.setUser(null);
         state.clearGame();
         state.setWaitingForMatch(false);
         view.showMessage("Logged out.");
-    }
-
-    private void openProfile() {
-        new ProfileScreen(conn, view, state).show();
     }
 }

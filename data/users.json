@@ -4,11 +4,11 @@
     "name": "boril ignatov",
     "passHash": "pbkdf2$65536$Pei08168dMLwCGqGF+O4/g\u003d\u003d$bOOto/8kspBKWL+kykDVLHC20sFPYJkQZoixYbhdZgI\u003d",
     "stats": {
-      "played": 6,
+      "played": 7,
       "won": 4,
       "drawn": 0,
-      "rating": 1230,
-      "lost": 0
+      "rating": 1211,
+      "lost": 1
     }
   },
   "admin": {
@@ -16,10 +16,10 @@
     "name": "0000",
     "passHash": "pbkdf2$65536$VUCS6+V37KRwnI0ok6XiiQ\u003d\u003d$tJDL7eThkshdWly9Rm2LhtfSHrCh0g0XoU9qy9I1Jyg\u003d",
     "stats": {
-      "played": 6,
-      "won": 2,
+      "played": 7,
+      "won": 3,
       "drawn": 0,
-      "rating": 1170,
+      "rating": 1189,
       "lost": 1
     }
   }

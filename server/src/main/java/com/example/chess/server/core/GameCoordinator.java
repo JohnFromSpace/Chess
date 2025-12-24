@@ -1,0 +1,47 @@
+package com.example.chess.server.core;
+
+import com.example.chess.common.UserModels.User;
+import com.example.chess.common.model.Game;
+import com.example.chess.server.client.ClientHandler;
+
+import java.io.IOException;
+import java.util.List;
+
+public class GameCoordinator {
+    private final MatchmakingService matchmaking;
+    private final MoveService moves;
+    private final StatsService stats;
+    private final OnlineUserRegistry online;
+
+    public GameCoordinator(MatchmakingService matchmaking, MoveService moves, StatsService stats, OnlineUserRegistry online) {
+        this.matchmaking = matchmaking;
+        this.moves = moves;
+        this.stats = stats;
+        this.online = online;
+    }
+
+    public void onUserOnline(ClientHandler h, User u) {
+        online.markOnline(u.username, h);
+    }
+
+    public void onUserOffline(ClientHandler h, User u) {
+        if (u != null) online.markOffline(u.username, h);
+        matchmaking.onDisconnect(h, u);
+        moves.onDisconnect(h, u);
+    }
+
+    public void onUserLogout(ClientHandler h, User u) {
+        if (u != null) online.markOffline(u.username, h);
+        matchmaking.onDisconnect(h, u);
+    }
+
+    public void requestGame(ClientHandler h, User u) throws IOException { matchmaking.enqueue(h, u); }
+    public void makeMove(String gameId, User u, String move) throws IOException { moves.makeMove(gameId, u, move); }
+    public void offerDraw(String id, User u) throws IOException { moves.offerDraw(id, u); }
+    public void respondDraw(String id, User u, boolean accept) throws IOException { moves.respondDraw(id, u, accept); }
+    public void resign(String id, User u) throws IOException { moves.resign(id, u); }
+
+    public List<Game> listGamesForUser(String username) throws IOException { return stats.listGames(username); }
+    public Game getGameForUser(String gameId, String username) throws IOException { return stats.getGame(gameId, username); }
+    public StatsService stats() { return stats; }
+}

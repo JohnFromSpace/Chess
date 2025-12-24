@@ -429,7 +429,6 @@ public class RulesEngine {
             }
         }
 
-        // castling “pseudo” (validated by isLegalMove(game,...))
         if (game != null && fc == 4) {
             if (mover == Color.WHITE && fr == 7) {
                 if (game.wK) out.add(new Move(7, 4, 7, 6, null));

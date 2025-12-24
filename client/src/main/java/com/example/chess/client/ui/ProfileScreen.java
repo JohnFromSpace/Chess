@@ -7,6 +7,9 @@ import com.example.chess.client.ui.menu.MenuItem;
 import com.example.chess.client.view.ConsoleView;
 import com.example.chess.common.UserModels;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 public class ProfileScreen implements Screen {
@@ -25,9 +28,9 @@ public class ProfileScreen implements Screen {
     public void show() {
         Menu menu = new Menu("Profile");
         menu.add(new MenuItem("Refresh", this::refresh));
-        menu.add(new MenuItem("Back", () -> { /* just return */ }));
+        menu.add(new MenuItem("View game by id", this::viewGameById));
+        menu.add(new MenuItem("Back", () -> {}));
 
-        // one-shot “panel”: show -> one menu choice -> return
         renderProfile();
         menu.render(view);
         menu.readAndExecute(view);
@@ -35,10 +38,7 @@ public class ProfileScreen implements Screen {
 
     private void renderProfile() {
         UserModels.User u = state.getUser();
-        if (u == null) {
-            view.showError("Not logged in.");
-            return;
-        }
+        if (u == null) { view.showError("Not logged in."); return; }
 
         int played = (u.stats != null) ? u.stats.played : 0;
         int won    = (u.stats != null) ? u.stats.won : 0;
@@ -54,48 +54,70 @@ public class ProfileScreen implements Screen {
 
     private void refresh() {
         var status = conn.getStats().join();
-        if (status.isError()) {
-            view.showError(status.getMessage());
-            return;
-        }
+        if (status.isError()) { view.showError(status.getMessage()); return; }
 
-        UserModels.User updated = userFromPayload(status.payload);
+        UserModels.User updated = ProfileScreenUserMapper.userFromPayload(status.payload);
         if (updated != null) state.setUser(updated);
 
         renderProfile();
     }
 
-    @SuppressWarnings("unchecked")
-    private static UserModels.User userFromPayload(Map<String, Object> payload) {
-        if (payload == null) return null;
-        Object userObj = payload.get("user");
-        if (!(userObj instanceof Map<?, ?> um)) return null;
+    private void viewGameById() {
+        String id = view.askLine("Game id: ").trim();
+        if (id.isBlank()) { view.showError("Empty id."); return; }
 
-        UserModels.User u = new UserModels.User();
-        u.username = str(um.get("username"));
-        u.name     = str(um.get("name"));
+        var status = conn.getGameDetails(id).join();
+        if (status.isError()) { view.showError(status.getMessage()); return; }
 
-        if (u.stats == null) u.stats = new UserModels.Stats();
-        u.stats.played = intVal(um.get("played"));
-        u.stats.won    = intVal(um.get("won"));
-        u.stats.lost   = intVal(um.get("lost"));
-        u.stats.drawn  = intVal(um.get("drawn"));
-        u.stats.rating = intValOr(um.get("rating"), 1200);
+        Map<String, Object> payload = status.payload;
+        if (payload == null) { view.showError("Missing payload."); return; }
 
-        return u;
+        Object gameObj = payload.get("game");
+        if (!(gameObj instanceof Map<?, ?> gm)) { view.showError("Missing game."); return; }
+
+        view.showMessage("\n=== Game " + gm.get("id") + " ===");
+        view.showMessage("White: " + gm.get("whiteUser") + " | Black: " + gm.get("blackUser"));
+        view.showMessage("Result: " + gm.get("result") + " (" + gm.get("reason") + ")");
+
+        Object tlObj = gm.get("timeline");
+        if (!(tlObj instanceof List<?> tl)) {
+            view.showError("No timeline available.");
+            return;
+        }
+
+        for (Object rowObj : tl) {
+            if (!(rowObj instanceof Map<?, ?> row)) continue;
+
+            int ply = intVal(row.get("ply"));
+            long at = longVal(row.get("atMs"));
+            String by = str(row.get("by"));
+            String mv = str(row.get("move"));
+            String board = str(row.get("board"));
+
+            boolean wChk = boolVal(row.get("whiteInCheck"));
+            boolean bChk = boolVal(row.get("blackInCheck"));
+
+            view.showMessage("\n--- Ply " + ply + " @ " + fmtTime(at) + " ---");
+            if (ply == 0) view.showMessage("(initial position)");
+            else view.showMessage("By: " + by + " | Move: " + mv);
+
+            if (wChk) view.showMessage("CHECK: White is in check.");
+            if (bChk) view.showMessage("CHECK: Black is in check.");
+
+            view.showBoard(board);
+
+            String cmd = view.askLine("Enter=next, q=quit: ").trim();
+            if (cmd.equalsIgnoreCase("q")) break;
+        }
     }
 
-    private static String str(Object o) { return o == null ? null : String.valueOf(o); }
-
-    private static int intVal(Object o) {
-        if (o == null) return 0;
-        if (o instanceof Number n) return n.intValue();
-        try { return Integer.parseInt(String.valueOf(o)); }
-        catch (Exception e) { return 0; }
+    private static String fmtTime(long ms) {
+        try { return new SimpleDateFormat("HH:mm:ss").format(new Date(ms)); }
+        catch (Exception e) { return String.valueOf(ms); }
     }
 
-    private static int intValOr(Object o, int def) {
-        int v = intVal(o);
-        return v == 0 ? def : v;
-    }
+    private static String str(Object o) { return o == null ? "" : String.valueOf(o); }
+    private static int intVal(Object o) { return (o instanceof Number n) ? n.intValue() : Integer.parseInt(String.valueOf(o)); }
+    private static long longVal(Object o) { return (o instanceof Number n) ? n.longValue() : Long.parseLong(String.valueOf(o)); }
+    private static boolean boolVal(Object o) { return (o instanceof Boolean b) ? b : Boolean.parseBoolean(String.valueOf(o)); }
 }

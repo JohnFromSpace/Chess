@@ -153,4 +153,8 @@ public class ClientConnection {
                         .with("gameId", gameId)
         );
     }
+
+    public CompletableFuture<StatusMessage> logout() {
+        return sendAndWait(com.example.chess.common.proto.RequestMessage.of("logout"));
+    }
 }
