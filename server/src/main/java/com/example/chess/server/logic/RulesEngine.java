@@ -3,6 +3,7 @@ package com.example.chess.server.logic;
 import com.example.chess.common.board.Board;
 import com.example.chess.common.board.Move;
 import com.example.chess.common.model.Game;
+import com.example.chess.server.logic.movegenerator.PseudoMoveGenerator;
 
 public class RulesEngine {
 

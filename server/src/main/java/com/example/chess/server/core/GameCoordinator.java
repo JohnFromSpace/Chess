@@ -41,7 +41,7 @@ public class GameCoordinator {
     public void respondDraw(String id, User u, boolean accept) throws IOException { moves.respondDraw(id, u, accept); }
     public void resign(String id, User u) throws IOException { moves.resign(id, u); }
 
-    public List<Game> listGamesForUser(String username) throws IOException { return stats.listGames(username); }
-    public Game getGameForUser(String gameId, String username) throws IOException { return stats.getGame(gameId, username); }
+    public List<Game> listGamesForUser(String username) throws IOException { return stats.listGamesForUser(username); }
+    public Game getGameForUser(String gameId, String username) throws IOException { return stats.getGameForUser(gameId, username); }
     public StatsService stats() { return stats; }
 }
