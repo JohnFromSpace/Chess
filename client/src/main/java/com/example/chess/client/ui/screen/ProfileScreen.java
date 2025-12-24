@@ -1,7 +1,8 @@
-package com.example.chess.client.ui;
+package com.example.chess.client.ui.screen;
 
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;
+import com.example.chess.client.ui.GameCatalog;
 import com.example.chess.client.ui.menu.Menu;
 import com.example.chess.client.ui.menu.MenuItem;
 import com.example.chess.client.view.ConsoleView;
@@ -52,50 +53,13 @@ public class ProfileScreen implements Screen {
     public void show() {
         Menu menu = new Menu("Profile");
         menu.add(new MenuItem("Refresh", this::refresh));
-        menu.add(new MenuItem("My games (list)", this::listMyGames));
-        menu.add(new MenuItem("View game (#N or id)", this::viewGame));
+        menu.add(new MenuItem("My games (list)", () -> new GameHistoryScreen(conn, view).show()));
+        menu.add(new MenuItem("View game + moves", () -> new GameReplayScreen(conn, view).show()));
         menu.add(new MenuItem("Back", () -> { }));
 
         renderProfile();
         menu.render(view);
         menu.readAndExecute(view);
-    }
-
-    private void listMyGames() {
-        var status = conn.listGames().join();
-        if (status.isError()) {
-            view.showError(status.getMessage());
-            return;
-        }
-        lastCatalog = GameCatalog.fromListGamesPayload(status.payload);
-        lastCatalog.print(view);
-    }
-
-    private void viewGame() {
-        // ensure we have a catalog
-        if (lastCatalog == null || lastCatalog.isEmpty()) listMyGames();
-        if (lastCatalog == null || lastCatalog.isEmpty()) return;
-
-        String token = view.askLine("Enter game #N or gameId/prefix: ").trim();
-        String gameId;
-        try {
-            gameId = lastCatalog.resolveToGameId(token);
-        } catch (IllegalArgumentException e) {
-            view.showError(e.getMessage());
-            return;
-        }
-
-        var status = conn.getGameDetails(gameId).join();
-        if (status.isError()) {
-            view.showError(status.getMessage());
-            return;
-        }
-
-        // show raw details (you can plug in your replay viewer here)
-        Object gameObj = status.payload == null ? null : status.payload.get("game");
-        view.showMessage("\n=== Game Details ===");
-        view.showMessage("Requested: " + token + " -> id=" + gameId);
-        view.showMessage(String.valueOf(gameObj));
     }
 
 }

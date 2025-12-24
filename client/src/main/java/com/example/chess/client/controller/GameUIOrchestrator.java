@@ -2,7 +2,7 @@ package com.example.chess.client.controller;
 
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;
-import com.example.chess.client.ui.InGameScreen;
+import com.example.chess.client.ui.screen.InGameScreen;
 import com.example.chess.client.view.ConsoleView;
 
 import java.util.Map;

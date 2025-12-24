@@ -1,4 +1,4 @@
-package com.example.chess.client.ui;
+package com.example.chess.client.ui.screen;
 
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;

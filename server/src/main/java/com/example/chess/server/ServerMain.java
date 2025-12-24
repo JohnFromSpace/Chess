@@ -22,9 +22,9 @@ public class ServerMain {
         UserRepository userRepo = new UserRepository(stores);
         GameRepository gameRepo = stores;
 
-        StatsService stats = new StatsService(userRepo, gameRepo);
+        StatsService stats = new StatsService(gameRepo);
         ClockService clocks = new ClockService();
-        MoveService moves = new MoveService(stats, clocks);
+        MoveService moves = new MoveService(gameRepo, clocks);
         MatchmakingService matchmaking = new MatchmakingService(moves, clocks);
         OnlineUserRegistry online = new OnlineUserRegistry();
 
@@ -36,7 +36,7 @@ public class ServerMain {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             while (true) {
                 Socket client = serverSocket.accept();
-                ClientHandler handler = new ClientHandler(client, auth, coordinator);
+                ClientHandler handler = new ClientHandler(client, auth, coordinator, moves);
                 Thread t = new Thread(handler, "Client-" + client.getPort());
                 t.start();
             }

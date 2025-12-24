@@ -19,9 +19,7 @@ public class ClientConnection {
     private final String host;
     private final int port;
 
-    // new push handler (ResponseMessage-based)
-    private volatile Consumer<ResponseMessage> pushHandler = m -> {
-    };
+    private volatile Consumer<ResponseMessage> pushHandler = m -> {};
 
     private Socket socket;
     private BufferedReader in;
@@ -45,9 +43,12 @@ public class ClientConnection {
         readerThread.start();
     }
 
+    public void close() {
+        try { if (socket != null) socket.close(); } catch (Exception ignored) {}
+    }
+
     public void setPushHandler(Consumer<ResponseMessage> h) {
-        this.pushHandler = (h == null) ? (m -> {
-        }) : h;
+        this.pushHandler = (h == null) ? (m -> {}) : h;
     }
 
     private void readLoop() {
@@ -69,14 +70,12 @@ public class ClientConnection {
                         }
                     }
 
-                    // async push -> deliver to pushHandler
+                    // async push
                     Consumer<ResponseMessage> ph = pushHandler;
                     if (ph != null) ph.accept(resp);
                 }
             }
         } catch (IOException e) {
-            System.err.println("ClientConnection readLoop error: " + e.getMessage());
-            e.printStackTrace();
             pending.values().forEach(f -> f.completeExceptionally(e));
             pending.clear();
         }
@@ -93,7 +92,7 @@ public class ClientConnection {
         pending.put(corrId, fut);
 
         try {
-            String json = MessageCodec.toJson(msg); // includes trailing newline
+            String json = MessageCodec.toJson(msg);
             synchronized (out) {
                 out.write(json);
                 out.flush();
@@ -136,25 +135,18 @@ public class ClientConnection {
     }
 
     public CompletableFuture<StatusMessage> getStats() {
-        return sendAndWait(new RequestMessage(
-                "getStats",
-                UUID.randomUUID().toString(),
-                Map.of()
-        ));
+        return sendAndWait(RequestMessage.of("getStats"));
     }
 
     public CompletableFuture<StatusMessage> listGames() {
-        return sendAndWait(com.example.chess.common.proto.RequestMessage.of("listGames"));
+        return sendAndWait(RequestMessage.of("listGames"));
     }
 
     public CompletableFuture<StatusMessage> getGameDetails(String gameId) {
-        return sendAndWait(
-                com.example.chess.common.proto.RequestMessage.of("getGameDetails")
-                        .with("gameId", gameId)
-        );
+        return sendAndWait(RequestMessage.of("getGameDetails").with("gameId", gameId));
     }
 
     public CompletableFuture<StatusMessage> logout() {
-        return sendAndWait(com.example.chess.common.proto.RequestMessage.of("logout"));
+        return sendAndWait(RequestMessage.of("logout"));
     }
 }

@@ -6,6 +6,7 @@ import com.example.chess.common.proto.RequestMessage;
 import com.example.chess.common.proto.ResponseMessage;
 import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
+import com.example.chess.server.core.MoveService;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -16,10 +17,12 @@ final class ClientRequestRouter {
 
     private final AuthService auth;
     private final GameCoordinator coordinator;
+    private final MoveService moves;
 
-    ClientRequestRouter(AuthService auth, GameCoordinator coordinator) {
+    ClientRequestRouter(AuthService auth, GameCoordinator coordinator, MoveService moves) {
         this.auth = auth;
         this.coordinator = coordinator;
+        this.moves = moves;
     }
 
     void handle(RequestMessage req, ClientHandler h) throws IOException {
@@ -83,16 +86,17 @@ final class ClientRequestRouter {
 
         UserModels.User user = auth.login(username, password);
 
-        // enforce single session
+        // enforce single session (throws if already online)
         coordinator.onUserOnline(h, user);
 
         h.setCurrentUser(user);
 
-        Map<String, Object> um = userMap(user);
         Map<String, Object> payload = new HashMap<>();
-        payload.put("user", um);
+        payload.put("user", userMap(user));
 
         h.send(ResponseMessage.ok("loginOk", req.corrId, payload));
+
+        moves.tryReconnect(user, h);
     }
 
     private void logout(RequestMessage req, ClientHandler h) {
@@ -173,21 +177,7 @@ final class ClientRequestRouter {
         Game g = coordinator.getGameForUser(gameId, u.username);
         if (g == null) throw new IllegalArgumentException("No such game (or you are not a participant).");
 
-        Map<String, Object> gm = new HashMap<>();
-        gm.put("id", g.id);
-        gm.put("whiteUser", g.whiteUser);
-        gm.put("blackUser", g.blackUser);
-        gm.put("result", String.valueOf(g.result));
-        gm.put("reason", g.resultReason);
-        gm.put("createdAt", g.createdAt);
-        gm.put("lastUpdate", g.lastUpdate);
-
-        // full replay
-        gm.put("timeline", coordinator.stats().buildTimeline(g));
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("game", gm);
-
+        Map<String, Object> payload = coordinator.stats().toGameDetailsPayload(g);
         h.send(ResponseMessage.ok("getGameDetailsOk", req.corrId, payload));
     }
 

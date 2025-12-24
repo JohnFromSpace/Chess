@@ -2,7 +2,8 @@ package com.example.chess.client.controller;
 
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;
-import com.example.chess.client.ui.*;
+import com.example.chess.client.ui.screen.AuthScreen;
+import com.example.chess.client.ui.screen.LobbyScreen;
 import com.example.chess.client.view.ConsoleView;
 
 public class ClientController {
