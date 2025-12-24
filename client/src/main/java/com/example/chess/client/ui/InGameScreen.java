@@ -31,6 +31,7 @@ public class InGameScreen implements Screen {
         while (state.getUser() != null && state.isInGame()) {
             state.drainUi();
             menu.render(view);
+            view.showMessage(renderClocksLine());
             view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
             menu.readAndExecute(view);
             state.drainUi();
@@ -106,5 +107,19 @@ public class InGameScreen implements Screen {
         String b = state.getLastBoard();
         if (b == null || b.isBlank()) view.showMessage("No board received yet.");
         else view.showBoard(b);
+    }
+
+    private String renderClocksLine() {
+        String w = fmt(state.getWhiteTimeMs());
+        String b = fmt(state.getBlackTimeMs());
+        String turn = state.isWhiteToMove() ? "WHITE to move" : "BLACK to move";
+        return "[Clock] White: " + w + " | Black: " + b + " | " + turn;
+    }
+
+    private static String fmt(long ms) {
+        long s = Math.max(0, ms / 1000);
+        long m = s / 60;
+        long r = s % 60;
+        return String.format("%02d:%02d", m, r);
     }
 }
