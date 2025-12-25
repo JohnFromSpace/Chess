@@ -47,10 +47,6 @@ public class MoveService {
         registration.registerGame(g, whiteUser, blackUser, h1, h2, h1IsWhite);
     }
 
-    public void registerGame(Game g, ClientHandler whiteH, ClientHandler blackH) throws IOException {
-        registration.registerGame(g, whiteH, blackH);
-    }
-
     public void makeMove(String gameId, User u, String uci) throws IOException {
         if (u == null || u.username == null) throw new IllegalArgumentException("Not logged in.");
         GameContext ctx = games.mustCtx(gameId);

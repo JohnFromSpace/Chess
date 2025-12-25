@@ -43,10 +43,6 @@ public class ClientConnection {
         readerThread.start();
     }
 
-    public void close() {
-        try { if (socket != null) socket.close(); } catch (Exception ignored) {}
-    }
-
     public void setPushHandler(Consumer<ResponseMessage> h) {
         this.pushHandler = (h == null) ? (m -> {}) : h;
     }

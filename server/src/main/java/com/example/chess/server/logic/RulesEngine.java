@@ -23,10 +23,6 @@ public class RulesEngine {
         this.generator = PseudoMoveGenerator.defaultGenerator();
     }
 
-    public boolean isLegalMove(Board board, Move move) {
-        return legality.isLegalMove(board, move);
-    }
-
     public boolean isLegalMove(Game game, Board board, Move move) {
         return legality.isLegalMove(game, board, move);
     }
