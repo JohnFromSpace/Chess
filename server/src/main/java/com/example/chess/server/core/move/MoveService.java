@@ -1,4 +1,3 @@
-// MoveService.java
 package com.example.chess.server.core.move;
 
 import com.example.chess.common.UserModels.User;
