@@ -2,6 +2,7 @@ package com.example.chess.server;
 
 import com.example.chess.server.client.ClientHandler;
 import com.example.chess.server.core.*;
+import com.example.chess.server.core.move.MoveService;
 import com.example.chess.server.fs.FileStores;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;

@@ -1,7 +1,7 @@
 package com.example.chess.server.client;
 
 import com.example.chess.common.model.Game;
-import com.example.chess.common.proto.ResponseMessage;
+import com.example.chess.common.message.ResponseMessage;
 
 import java.util.HashMap;
 import java.util.Map;

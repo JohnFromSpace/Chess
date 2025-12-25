@@ -14,10 +14,7 @@ public class Move {
         this.toCol = tc;
         this.promotion = promotion;
     }
-
-    public Square fromSquare() { return Square.of(fromRow, fromCol); }
-    public Square toSquare()   { return Square.of(toRow, toCol); }
-
+    
     public static Move parse(String uci) {
         if (uci == null) throw new IllegalArgumentException("Move is null");
         String s = uci.trim().toLowerCase();

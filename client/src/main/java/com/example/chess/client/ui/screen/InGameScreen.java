@@ -59,7 +59,7 @@ public class InGameScreen implements Screen {
         var status = conn.makeMove(gameId, move).join();
         if (status.isError()) view.showError(status.getMessage());
         else {
-            state.setLastSentMove(move);
+            state.setLastBoard(move);
             view.showMessage("Move sent.");
         }
     }

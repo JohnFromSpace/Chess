@@ -26,12 +26,6 @@ public class ConsoleView {
         out.println("[ERROR] " + msg);
     }
 
-    public void showMove(String move, boolean whiteInCheck, boolean blackInCheck) {
-        out.printf("Move played: %s%n", move);
-        if (whiteInCheck) out.println("White is in check.");
-        if (blackInCheck) out.println("Black is in check.");
-    }
-
     public void showGameOver(String result, String reason) {
         out.printf("Game over: %s (%s)%n", result, reason);
     }
@@ -54,31 +48,5 @@ public class ConsoleView {
             return;
         }
         out.println(boardText);
-    }
-
-    public Integer askIntWithTimeout(long timeoutMs) {
-        long end = System.currentTimeMillis() + timeoutMs;
-
-        while (System.currentTimeMillis() < end) {
-            try {
-                if (System.in.available() > 0) {
-                    String line = in.nextLine().trim();
-                    try {
-                        return Integer.parseInt(line);
-                    } catch (NumberFormatException e) {
-                        out.println("Please enter a number.");
-                        return -1; // signal "bad input"
-                    }
-                }
-                Thread.sleep(50);
-            } catch (Exception ignored) {
-            }
-        }
-        return null; // timeout
-    }
-
-    public void showClockLine(String line) {
-        if (line == null || line.isBlank()) return;
-        out.println(line);
     }
 }

@@ -32,21 +32,4 @@ public class Menu {
         }
         items.get(choice - 1).getCommand().execute();
     }
-
-    public void readAndExecuteNonBlocking(ConsoleView view, java.util.function.BooleanSupplier shouldExit) {
-        // print prompt once per call-site render
-        Integer choice = view.askIntWithTimeout(300);
-
-        if (shouldExit.getAsBoolean()) return;
-        if (choice == null) return;         // timeout -> caller loop continues
-        if (choice == -1) {                 // bad input already warned
-            return;
-        }
-
-        if (choice < 1 || choice > items.size()) {
-            view.showError("Invalid choice.");
-            return;
-        }
-        items.get(choice - 1).getCommand().execute();
-    }
 }

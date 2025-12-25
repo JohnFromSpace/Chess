@@ -3,6 +3,7 @@ package com.example.chess.server.core;
 import com.example.chess.common.UserModels.User;
 import com.example.chess.common.model.Game;
 import com.example.chess.server.client.ClientHandler;
+import com.example.chess.server.core.move.MoveService;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -69,7 +70,7 @@ public class MatchmakingService {
         clocks.register(g);
     }
 
-    public synchronized void onDisconnect(ClientHandler h, User u) {
+    public synchronized void onDisconnect(User u) {
         if (u == null || u.username == null) return;
         queue.remove(u.username);
     }

@@ -148,24 +148,4 @@ public class FileStores implements GameRepository {
             throw e;
         }
     }
-
-    public Map<String, Game> loadAllGames() throws IOException {
-        Map<String, Game> result = new HashMap<>();
-
-        try (DirectoryStream<Path> ds = Files.newDirectoryStream(gamesDir, "*.json")) {
-            for (Path p : ds) {
-                String json = Files.readString(p, StandardCharsets.UTF_8);
-                Game g = GSON.fromJson(json, Game.class);
-                if (g != null && g.id != null) {
-                    result.put(g.id, g);
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error loading all games: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-
-        return result;
-    }
 }

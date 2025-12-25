@@ -3,6 +3,7 @@ package com.example.chess.server.core;
 import com.example.chess.common.UserModels.User;
 import com.example.chess.common.model.Game;
 import com.example.chess.server.client.ClientHandler;
+import com.example.chess.server.core.move.MoveService;
 
 import java.io.IOException;
 import java.util.List;
@@ -26,13 +27,13 @@ public class GameCoordinator {
 
     public void onUserOffline(ClientHandler h, User u) {
         if (u != null) online.markOffline(u.username, h);
-        matchmaking.onDisconnect(h, u);
-        moves.onDisconnect(h, u);
+        matchmaking.onDisconnect(u);
+        moves.onDisconnect(u);
     }
 
     public void onUserLogout(ClientHandler h, User u) {
         if (u != null) online.markOffline(u.username, h);
-        matchmaking.onDisconnect(h, u);
+        matchmaking.onDisconnect(u);
     }
 
     public void requestGame(ClientHandler h, User u) throws IOException { matchmaking.enqueue(h, u); }

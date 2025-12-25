@@ -8,7 +8,6 @@ import java.util.Optional;
 
 public interface GameRepository {
     void saveGame(Game game) throws IOException;
-    Map<String, Game> loadAllGames() throws IOException;
     Optional<Game> findGameById(String id);
     Map<String, Game> findGamesForUser(String username);
 }

@@ -1,14 +1,14 @@
 package com.example.chess.server.client;
 
-import com.example.chess.common.MessageCodec;
+import com.example.chess.common.message.MessageCodec;
 import com.example.chess.common.UserModels;
 import com.example.chess.common.model.Game;
-import com.example.chess.common.proto.Message;
-import com.example.chess.common.proto.RequestMessage;
-import com.example.chess.common.proto.ResponseMessage;
+import com.example.chess.common.message.Message;
+import com.example.chess.common.message.RequestMessage;
+import com.example.chess.common.message.ResponseMessage;
 import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
-import com.example.chess.server.core.MoveService;
+import com.example.chess.server.core.move.MoveService;
 
 import java.io.*;
 import java.net.Socket;

@@ -1,10 +1,10 @@
 package com.example.chess.client.net;
 
-import com.example.chess.common.MessageCodec;
-import com.example.chess.common.proto.Message;
-import com.example.chess.common.proto.RequestMessage;
-import com.example.chess.common.proto.ResponseMessage;
-import com.example.chess.common.proto.StatusMessage;
+import com.example.chess.common.message.MessageCodec;
+import com.example.chess.common.message.Message;
+import com.example.chess.common.message.RequestMessage;
+import com.example.chess.common.message.ResponseMessage;
+import com.example.chess.common.message.StatusMessage;
 
 import java.io.*;
 import java.net.Socket;

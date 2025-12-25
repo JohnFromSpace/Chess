@@ -3,7 +3,7 @@ package com.example.chess.client.controller;
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.view.ConsoleView;
-import com.example.chess.common.proto.ResponseMessage;
+import com.example.chess.common.message.ResponseMessage;
 import java.util.Map;
 
 public class ClientPushRouter {

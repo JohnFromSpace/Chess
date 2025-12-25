@@ -2,20 +2,16 @@ package com.example.chess.client.ui.screen;
 
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;
-import com.example.chess.client.ui.GameCatalog;
 import com.example.chess.client.ui.menu.Menu;
 import com.example.chess.client.ui.menu.MenuItem;
 import com.example.chess.client.view.ConsoleView;
 import com.example.chess.common.UserModels;
-
-import java.util.List;
 
 public class ProfileScreen implements Screen {
 
     private final ClientConnection conn;
     private final ConsoleView view;
     private final SessionState state;
-    private GameCatalog lastCatalog = new GameCatalog(List.of());
 
     public ProfileScreen(ClientConnection conn, ConsoleView view, SessionState state) {
         this.conn = conn;

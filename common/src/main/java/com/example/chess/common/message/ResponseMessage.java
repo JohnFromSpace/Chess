@@ -1,4 +1,4 @@
-package com.example.chess.common.proto;
+package com.example.chess.common.message;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,9 +31,5 @@ public class ResponseMessage extends Message {
 
     public static ResponseMessage error(String corrId, String message) {
         return new ResponseMessage("error", corrId, true, message, new HashMap<>());
-    }
-
-    public boolean isError() {
-        return error;
     }
 }

@@ -1,4 +1,4 @@
-package com.example.chess.common.proto;
+package com.example.chess.common.message;
 
 import java.util.HashMap;
 import java.util.Map;

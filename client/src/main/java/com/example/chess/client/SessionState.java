@@ -19,17 +19,12 @@ public class SessionState {
     private String lastSentMove;
 
     private long timeControlMs = 5 * 60_000L; // default 05:00
-    private long incrementMs = 3_000L;        // default +3s
     private long whiteTimeMs = timeControlMs;
     private long blackTimeMs = timeControlMs;
     private boolean whiteToMove = true;
     private long lastClockSyncAtMs = System.currentTimeMillis();
 
     private final Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
-
-    public void postUi(Runnable r) {
-        if (r != null) uiQueue.add(r);
-    }
 
     public void drainUi() {
         Runnable r;
@@ -61,17 +56,6 @@ public class SessionState {
 
     public boolean isAutoShowBoard() { return autoShowBoard; }
     public void setAutoShowBoard(boolean autoShowBoard) { this.autoShowBoard = autoShowBoard; }
-
-    public String getLastSentMove() { return lastSentMove; }
-    public void setLastSentMove(String lastSentMove) { this.lastSentMove = lastSentMove; }
-
-    public void setTimeControlMs(long ms) {
-        if (ms > 0) this.timeControlMs = ms;
-    }
-
-    public void setIncrementMs(long ms) {
-        if (ms >= 0) this.incrementMs = ms;
-    }
 
     // server-sync (authoritative)
     public synchronized void syncClocks(long whiteMs, long blackMs, Boolean whiteToMoveMaybe) {

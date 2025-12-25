@@ -42,16 +42,10 @@ public class Board {
         set(row, col, piece == null ? '.' : piece.toChar());
     }
 
-    public void setPieceAt(Square sq, Piece piece) {
-        setPieceAt(sq.row, sq.col, piece);
-    }
-
     public boolean isEmptyAt(int row, int col) {
         char c = inside(row, col) ? get(row, col) : 0;
         return c == '.' || c == 0;
     }
-
-    public boolean isEmptyAt(Square sq) { return isEmptyAt(sq.row, sq.col); }
 
     public Board copy() {
         Board b = new Board();

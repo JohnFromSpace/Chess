@@ -10,11 +10,7 @@ public final class Square {
         this.row = row;
         this.col = col;
     }
-
-    public static Square of(int row, int col) {
-        return new Square(row, col);
-    }
-
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

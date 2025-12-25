@@ -49,21 +49,11 @@ public class Game {
         public String move;   // UCI
         public long atMs;     // epoch millis
 
-        public MoveEntry() {}
         public MoveEntry(String by, String move, long atMs) {
             this.by = by;
             this.move = move;
             this.atMs = atMs;
         }
-    }
-
-    public boolean isWhite(String username) { return username != null && username.equals(whiteUser); }
-
-    public String opponentOf(String username) {
-        if (username == null) return null;
-        if (username.equals(whiteUser)) return blackUser;
-        if (username.equals(blackUser)) return whiteUser;
-        return null;
     }
 
     public void recordMove(String by, String moveUci) {

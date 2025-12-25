@@ -20,10 +20,6 @@ public abstract class Piece {
 
     public abstract boolean canMove(Board board, Move move);
 
-    protected final boolean sameColor(Piece other) {
-        return other != null && other.color == this.color;
-    }
-
     protected final boolean isEnemy(Piece other) {
         return other != null && other.color != this.color;
     }

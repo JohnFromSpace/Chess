@@ -2,11 +2,11 @@ package com.example.chess.server.client;
 
 import com.example.chess.common.UserModels;
 import com.example.chess.common.model.Game;
-import com.example.chess.common.proto.RequestMessage;
-import com.example.chess.common.proto.ResponseMessage;
+import com.example.chess.common.message.RequestMessage;
+import com.example.chess.common.message.ResponseMessage;
 import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
-import com.example.chess.server.core.MoveService;
+import com.example.chess.server.core.move.MoveService;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -25,7 +25,7 @@ final class ClientRequestRouter {
         this.moves = moves;
     }
 
-    void handle(RequestMessage req, ClientHandler h) throws IOException {
+    void handle(RequestMessage req, ClientHandler h) {
         String t = req.type;
         String corrId = req.corrId;
 

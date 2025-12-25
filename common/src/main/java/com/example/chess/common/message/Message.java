@@ -1,4 +1,4 @@
-package com.example.chess.common.proto;
+package com.example.chess.common.message;
 
 public abstract class Message {
     public final String type;

@@ -1,8 +1,4 @@
-package com.example.chess.common;
-
-import com.example.chess.common.proto.Message;
-import com.example.chess.common.proto.RequestMessage;
-import com.example.chess.common.proto.ResponseMessage;
+package com.example.chess.common.message;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
