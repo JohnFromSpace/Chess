@@ -25,7 +25,13 @@ public class ServerMain {
 
         StatsService stats = new StatsService(gameRepo);
         ClockService clocks = new ClockService();
-        MoveService moves = new MoveService(gameRepo, clocks);
+
+        // NEW: stats+ELO updater hook
+        StatsAndRatingService statsAndElo = new StatsAndRatingService(userRepo);
+
+        // CHANGED: pass endHook into MoveService
+        MoveService moves = new MoveService(gameRepo, clocks, statsAndElo);
+
         MatchmakingService matchmaking = new MatchmakingService(moves, clocks);
         OnlineUserRegistry online = new OnlineUserRegistry();
 

@@ -4,26 +4,26 @@ import com.example.chess.common.UserModels.User;
 import com.example.chess.common.model.Result;
 import com.example.chess.server.client.ClientHandler;
 import com.example.chess.server.core.ReconnectService;
+import com.example.chess.server.util.Log;
 
 final class ReconnectFlow {
 
-    private final com.example.chess.server.core.move.ActiveGames games;
+    private final ActiveGames games;
     private final ReconnectService reconnects;
-    private final com.example.chess.server.core.move.GameFinisher finisher;
-    private final com.example.chess.server.core.move.GameStore store;
+    private final GameFinisher finisher;
+    private final GameStore store;
 
-    ReconnectFlow(com.example.chess.server.core.move.ActiveGames games, ReconnectService reconnects, com.example.chess.server.core.move.GameFinisher finisher, com.example.chess.server.core.move.GameStore store) {
+    ReconnectFlow(ActiveGames games, ReconnectService reconnects, GameFinisher finisher, GameStore store) {
         this.games = games;
         this.reconnects = reconnects;
         this.finisher = finisher;
         this.store = store;
     }
 
-    // called by coordinator on disconnect
     void onDisconnect(User u) {
         if (u == null || u.username == null) return;
 
-        com.example.chess.server.core.move.GameContext ctx = games.findCtxByUser(u.username);
+        GameContext ctx = games.findCtxByUser(u.username);
         if (ctx == null) return;
 
         synchronized (ctx) {
@@ -56,16 +56,17 @@ final class ReconnectFlow {
                                 leaverWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
                                 "Disconnected for more than 60 seconds.");
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    Log.warn("Reconnect drop task failed for game " + ctx.game.id, e);
+                }
             });
         }
     }
 
-    // called on login (router calls it AFTER loginOk response)
     void tryReconnect(User u, ClientHandler newHandler) {
         if (u == null || u.username == null || newHandler == null) return;
 
-        com.example.chess.server.core.move.GameContext ctx = games.findCtxByUser(u.username);
+        GameContext ctx = games.findCtxByUser(u.username);
         if (ctx == null) return;
 
         synchronized (ctx) {
@@ -73,7 +74,6 @@ final class ReconnectFlow {
 
             boolean isWhite = ctx.isWhiteUser(u.username);
 
-            // cancel grace timer + clear offline markers
             reconnects.cancel(ctx.game.id + ":" + u.username);
 
             if (isWhite) {

@@ -43,27 +43,6 @@ public class InGameScreen implements Screen {
         }
     }
 
-    private void move() {
-        String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) {
-            view.showError("No active game.");
-            return;
-        }
-
-        String move = view.askLine("Enter move (e2e4 / e7e8q): ").trim();
-        if (move.isBlank()) {
-            view.showError("Empty move.");
-            return;
-        }
-
-        var status = conn.makeMove(gameId, move).join();
-        if (status.isError()) view.showError(status.getMessage());
-        else {
-            state.setLastBoard(move);
-            view.showMessage("Move sent.");
-        }
-    }
-
     private void offerDraw() {
         String gameId = state.getActiveGameId();
         if (gameId == null || gameId.isBlank()) {
@@ -124,5 +103,27 @@ public class InGameScreen implements Screen {
         long m = s / 60;
         long r = s % 60;
         return String.format("%02d:%02d", m, r);
+    }
+
+    private void move() {
+        String gameId = state.getActiveGameId();
+        if (gameId == null || gameId.isBlank()) {
+            view.showError("No active game.");
+            return;
+        }
+
+        String move = view.askLine("Enter move (e2e4 / e7e8q): ").trim();
+        if (move.isBlank()) {
+            view.showError("Empty move.");
+            return;
+        }
+
+        var status = conn.makeMove(gameId, move).join();
+        if (status.isError()) view.showError(status.getMessage());
+        else {
+            // DO NOT overwrite lastBoard with the move string.
+            // lastBoard is updated by server push (onMove).
+            view.showMessage("Move sent.");
+        }
     }
 }

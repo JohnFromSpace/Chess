@@ -9,6 +9,7 @@ import com.example.chess.common.message.ResponseMessage;
 import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
 import com.example.chess.server.core.move.MoveService;
+import com.example.chess.server.util.Log;
 
 import java.io.*;
 import java.net.Socket;
@@ -47,10 +48,11 @@ public class ClientHandler implements Runnable {
             while ((line = in.readLine()) != null) {
                 handleLine(line);
             }
-        } catch (Exception ignored) {
-            // client disconnected / network error
+        } catch (Exception e) {
+            Log.warn("Client disconnected / handler error", e);
         } finally {
-            try { router.onDisconnect(this); } catch (Exception ignored) {}
+            try { router.onDisconnect(this); }
+            catch (Exception e) { Log.warn("onDisconnect failed", e); }
         }
     }
 
@@ -82,7 +84,9 @@ public class ClientHandler implements Runnable {
                 out.write(line);
                 out.flush();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Log.warn("Failed to send response to client", e);
+        }
     }
 
     public void sendInfo(String message) {

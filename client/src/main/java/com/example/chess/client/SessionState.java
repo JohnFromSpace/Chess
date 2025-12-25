@@ -26,13 +26,6 @@ public class SessionState {
 
     private final Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 
-    public void drainUi() {
-        Runnable r;
-        while ((r = uiQueue.poll()) != null) {
-            try { r.run(); } catch (Exception ignored) {}
-        }
-    }
-
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 
@@ -95,5 +88,17 @@ public class SessionState {
         this.blackTimeMs = timeControlMs;
         this.whiteToMove = true;
         this.lastClockSyncAtMs = System.currentTimeMillis();
+    }
+
+    public void drainUi() {
+        Runnable r;
+        while ((r = uiQueue.poll()) != null) {
+            try {
+                r.run();
+            } catch (Exception e) {
+                System.err.println("[UI] Task failed: " + e.getMessage());
+                e.printStackTrace(System.err);
+            }
+        }
     }
 }

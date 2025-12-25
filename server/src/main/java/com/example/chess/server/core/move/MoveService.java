@@ -26,10 +26,10 @@ public class MoveService {
     private final DrawFlow draws;
     private final ReconnectFlow reconnectFlow;
 
-    public MoveService(GameRepository gameRepo, ClockService clocks) {
+    public MoveService(GameRepository gameRepo, ClockService clocks, GameEndHook endHook) {
         this.clocks = clocks;
         this.store = new RepositoryGameStore(gameRepo);
-        this.finisher = new GameFinisher(store, clocks, games);
+        this.finisher = new GameFinisher(store, clocks, games, endHook);
 
         this.registration = new GameRegistrationService(games, clocks, store);
         this.moves = new MoveFlow(rules, clocks, store, finisher);
@@ -94,12 +94,10 @@ public class MoveService {
         }
     }
 
-    // called by coordinator on disconnect
     public void onDisconnect(User u) {
         reconnectFlow.onDisconnect(u);
     }
 
-    // called on login (router calls it AFTER loginOk response)
     public void tryReconnect(User u, ClientHandler newHandler) {
         reconnectFlow.tryReconnect(u, newHandler);
     }

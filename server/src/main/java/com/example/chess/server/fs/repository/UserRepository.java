@@ -6,6 +6,7 @@ import com.example.chess.server.fs.FileStores;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class UserRepository {
     private final FileStores fileStores;
@@ -26,6 +27,14 @@ public class UserRepository {
         synchronized (userLock) {
             Map<String, User> all = fileStores.loadAllUsers();
             all.put(user.username, user);
+            fileStores.writeAllUsers(all);
+        }
+    }
+
+    public void updateUsers(Consumer<Map<String, User>> mutator) throws IOException {
+        synchronized (userLock) {
+            Map<String, User> all = fileStores.loadAllUsers();
+            mutator.accept(all);
             fileStores.writeAllUsers(all);
         }
     }
