@@ -8,8 +8,6 @@ import com.example.chess.server.util.Log;
 
 final class ReconnectFlow {
 
-    private static final long GRACE_MS = 60_000L;
-
     private final ActiveGames games;
     private final ReconnectService reconnects;
     private final GameFinisher finisher;
@@ -42,69 +40,40 @@ final class ReconnectFlow {
                 ctx.game.setBlackOfflineSince(now);
             }
 
-            ctx.game.setLastUpdate(now);
-
-            // IMPORTANT: persist offlineSince so crashes/restarts can recover correctly
-            try { store.save(ctx.game); }
-            catch (Exception e) { Log.warn("Failed to persist offlineSince for game " + ctx.game.getId(), e); }
-
             ClientHandler opp = ctx.opponentHandlerOf(u.username);
             if (opp != null) opp.sendInfo(u.username + " disconnected. Waiting 60s for reconnect...");
 
-            scheduleDropLocked(ctx, u.username, isWhite);
-        }
-    }
+            String key = ctx.game.getId() + ":" + u.username;
+            reconnects.scheduleDrop(key, () -> {
+                try {
+                    synchronized (ctx) {
+                        long off = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
+                        if (off == 0L) return;
+                        if (ctx.game.getResult() != Result.ONGOING) return;
 
-    void recoverAfterRestart(GameContext ctx) {
-        if (ctx == null || ctx.game == null) return;
+                        // ✅ If no moves happened, treat as ABORTED / unrated (covers Stop/kill-9 tests).
+                        boolean noMoves = !ctx.game.hasAnyMoves();
 
-        synchronized (ctx) {
-            if (ctx.game.getResult() != Result.ONGOING) return;
+                        // Optional: if BOTH are offline when grace expires -> also abort.
+                        boolean bothOffline = (ctx.whiteOfflineAtMs != 0L) && (ctx.blackOfflineAtMs != 0L);
 
-            // schedule based on persisted offlineSince (remaining grace)
-            if (ctx.whiteOfflineAtMs > 0 && ctx.game.getWhiteUser() != null) {
-                scheduleDropLocked(ctx, ctx.game.getWhiteUser(), true);
-            }
-            if (ctx.blackOfflineAtMs > 0 && ctx.game.getBlackUser() != null) {
-                scheduleDropLocked(ctx, ctx.game.getBlackUser(), false);
-            }
-        }
-    }
+                        if (noMoves || bothOffline) {
+                            finisher.finishLocked(ctx, Result.ABORTED,
+                                    bothOffline ? "Aborted (both disconnected)." : "Aborted (no moves).",
+                                    false);
+                            return;
+                        }
 
-    private void scheduleDropLocked(GameContext ctx, String username, boolean isWhite) {
-        String key = ctx.game.getId() + ":" + username;
-
-        long offAt = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
-        if (offAt <= 0) return;
-
-        long now = System.currentTimeMillis();
-        long elapsed = Math.max(0L, now - offAt);
-        long remaining = GRACE_MS - elapsed;
-
-        reconnects.scheduleDrop(key, remaining, () -> {
-            try {
-                synchronized (ctx) {
-                    long off = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
-                    if (off == 0L) return;
-                    if (ctx.game.getResult() != Result.ONGOING) return;
-
-                    boolean whiteOff = ctx.whiteOfflineAtMs != 0L;
-                    boolean blackOff = ctx.blackOfflineAtMs != 0L;
-
-                    // FAIRNESS FIX: if BOTH are offline beyond grace -> draw (not random win)
-                    if (whiteOff && blackOff) {
-                        finisher.finishLocked(ctx, Result.DRAW, "Both players disconnected for more than 60 seconds.");
-                        return;
+                        // Otherwise it's a real forfeit
+                        finisher.finishLocked(ctx,
+                                isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
+                                "Disconnected for more than 60 seconds.");
                     }
-
-                    finisher.finishLocked(ctx,
-                            isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
-                            "Disconnected for more than 60 seconds.");
+                } catch (Exception e) {
+                    Log.warn("Reconnect drop task failed for game " + ctx.game.getId(), e);
                 }
-            } catch (Exception e) {
-                Log.warn("Reconnect drop task failed for game " + ctx.game.getId(), e);
-            }
-        });
+            });
+        }
     }
 
     void tryReconnect(User u, ClientHandler newHandler) {
@@ -130,10 +99,6 @@ final class ReconnectFlow {
                 ctx.game.setBlackOfflineSince(0L);
             }
 
-            ctx.game.setLastUpdate(System.currentTimeMillis());
-            try { store.save(ctx.game); } catch (Exception ignored) {}
-
-            // show current state
             newHandler.pushGameStarted(ctx.game, isWhite);
 
             ClientHandler opp = ctx.opponentHandlerOf(u.username);
