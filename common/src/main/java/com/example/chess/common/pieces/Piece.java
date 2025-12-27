@@ -23,21 +23,4 @@ public abstract class Piece {
     protected final boolean isEnemy(Piece other) {
         return other != null && other.color != this.color;
     }
-
-    protected static boolean isEmpty(Piece p) { return p == null; }
-
-    protected static boolean isPathClear(Board board, int fromRow, int fromCol, int toRow, int toCol) {
-        int dRow = Integer.signum(toRow - fromRow);
-        int dCol = Integer.signum(toCol - fromCol);
-
-        int r = fromRow + dRow;
-        int c = fromCol + dCol;
-
-        while (r != toRow || c != toCol) {
-            if (!isEmpty(board.getPieceAt(r, c))) return false;
-            r += dRow;
-            c += dCol;
-        }
-        return true;
-    }
 }

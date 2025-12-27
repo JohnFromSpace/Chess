@@ -21,9 +21,9 @@ final class GameFinisher {
     }
 
     void finishLocked(GameContext ctx, Result result, String reason) throws IOException {
-        ctx.game.result = result;
-        ctx.game.resultReason = reason == null ? "" : reason;
-        ctx.game.lastUpdate = System.currentTimeMillis();
+        ctx.game.setResult(result);
+        ctx.game.setResultReason(reason == null ? "" : reason);
+        ctx.game.setLastUpdate(System.currentTimeMillis());
 
         store.save(ctx.game);
 
@@ -32,30 +32,29 @@ final class GameFinisher {
             if (endHook != null) endHook.onGameFinished(ctx.game);
         } catch (Exception e) {
             statsOk = false;
-            Log.warn("Stats/ELO update failed for game " + ctx.game.id, e);
+            Log.warn("Stats/ELO update failed for game " + ctx.game.getId(), e);
         }
 
-        // notify connected handlers
         try {
             if (ctx.white != null) ctx.white.pushGameOver(ctx.game, statsOk);
         } catch (Exception e) {
-            Log.warn("Failed to push gameOver to WHITE handler for game " + ctx.game.id, e);
+            Log.warn("Failed to push gameOver to WHITE handler for game " + ctx.game.getId(), e);
         }
 
         try {
             if (ctx.black != null) ctx.black.pushGameOver(ctx.game, statsOk);
         } catch (Exception e) {
-            Log.warn("Failed to push gameOver to BLACK handler for game " + ctx.game.id, e);
+            Log.warn("Failed to push gameOver to BLACK handler for game " + ctx.game.getId(), e);
         }
 
         cleanup(ctx);
     }
 
     private void cleanup(GameContext ctx) {
-        try { clocks.stop(ctx.game.id); }
-        catch (Exception e) { Log.warn("Failed to stop clocks for game " + ctx.game.id, e); }
+        try { clocks.stop(ctx.game.getId()); }
+        catch (Exception e) { Log.warn("Failed to stop clocks for game " + ctx.game.getId(), e); }
 
         try { games.remove(ctx); }
-        catch (Exception e) { Log.warn("Failed to remove game from active list " + ctx.game.id, e); }
+        catch (Exception e) { Log.warn("Failed to remove game from active list " + ctx.game.getId(), e); }
     }
 }

@@ -18,14 +18,16 @@ public class ClockService {
     private final ConcurrentMap<String, State> clocks = new ConcurrentHashMap<>();
 
     public void register(Game g) {
-        if (g == null || g.id == null) return;
+        if (g == null || g.getId() == null) return;
+
         State s = new State();
-        s.whiteMs = g.whiteTimeMs;
-        s.blackMs = g.blackTimeMs;
-        s.whiteToMove = g.whiteMove;
-        s.incrementMs = g.incrementMs;
+        s.whiteMs = g.getWhiteTimeMs();
+        s.blackMs = g.getBlackTimeMs();
+        s.whiteToMove = g.isWhiteMove();
+        s.incrementMs = g.getIncrementMs();
         s.lastTickMs = System.currentTimeMillis();
-        clocks.put(g.id, s);
+
+        clocks.put(g.getId(), s);
     }
 
     public void stop(String gameId) {
@@ -33,8 +35,8 @@ public class ClockService {
     }
 
     public void onMoveApplied(Game g) {
-        if (g == null || g.id == null) return;
-        State s = clocks.get(g.id);
+        if (g == null || g.getId() == null) return;
+        State s = clocks.get(g.getId());
         if (s == null) return;
 
         long now = System.currentTimeMillis();
@@ -52,9 +54,32 @@ public class ClockService {
         s.whiteToMove = !s.whiteToMove;
         s.lastTickMs = now;
 
-        g.whiteTimeMs = s.whiteMs;
-        g.blackTimeMs = s.blackMs;
-        g.whiteMove = s.whiteToMove;
-        g.lastUpdate = now;
+        g.setWhiteTimeMs(s.whiteMs);
+        g.setBlackTimeMs(s.blackMs);
+        g.setWhiteMove(s.whiteToMove);
+        g.setLastUpdate(now);
+    }
+
+    /** Tick without a move (for timeouts). Returns true if someone reached 0. */
+    public boolean tick(Game g) {
+        if (g == null || g.getId() == null) return false;
+        State s = clocks.get(g.getId());
+        if (s == null) return false;
+
+        long now = System.currentTimeMillis();
+        long elapsed = Math.max(0, now - s.lastTickMs);
+        if (elapsed == 0) return false;
+
+        if (s.whiteToMove) s.whiteMs = Math.max(0, s.whiteMs - elapsed);
+        else s.blackMs = Math.max(0, s.blackMs - elapsed);
+
+        s.lastTickMs = now;
+
+        g.setWhiteTimeMs(s.whiteMs);
+        g.setBlackTimeMs(s.blackMs);
+        g.setWhiteMove(s.whiteToMove);
+        g.setLastUpdate(now);
+
+        return (s.whiteMs <= 0) || (s.blackMs <= 0);
     }
 }

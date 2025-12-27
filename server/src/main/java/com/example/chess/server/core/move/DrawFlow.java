@@ -18,34 +18,33 @@ final class DrawFlow {
 
     void offerDrawLocked(GameContext ctx, User u) throws IOException {
         if (!ctx.isParticipant(u.username)) throw new IllegalArgumentException("You are not a participant in this game.");
-        if (ctx.game.result != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
+        if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
-        ctx.game.drawOfferedBy = u.username;
-        ctx.game.lastUpdate = System.currentTimeMillis();
+        ctx.game.setDrawOfferedBy(u.username);
+        ctx.game.setLastUpdate(System.currentTimeMillis());
         store.save(ctx.game);
 
         ClientHandler opp = ctx.opponentHandlerOf(u.username);
-        if (opp != null) opp.pushDrawOffered(ctx.game.id, u.username);
+        if (opp != null) opp.pushDrawOffered(ctx.game.getId(), u.username);
     }
 
     void respondDrawLocked(GameContext ctx, User u, boolean accept) throws IOException {
         if (!ctx.isParticipant(u.username)) throw new IllegalArgumentException("You are not a participant in this game.");
-        if (ctx.game.result != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
+        if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
-        String by = ctx.game.drawOfferedBy;
+        String by = ctx.game.getDrawOfferedBy();
         if (by == null || by.isBlank()) throw new IllegalArgumentException("No draw offer to respond to.");
         if (by.equals(u.username)) throw new IllegalArgumentException("You cannot respond to your own draw offer.");
 
         if (accept) {
             finisher.finishLocked(ctx, Result.DRAW, "Draw agreed.");
         } else {
-            ctx.game.drawOfferedBy = null;
-            ctx.game.lastUpdate = System.currentTimeMillis();
+            ctx.game.setDrawOfferedBy(null);
+            ctx.game.setLastUpdate(System.currentTimeMillis());
             store.save(ctx.game);
 
-            // notify offerer
             ClientHandler offerer = ctx.handlerOf(by);
-            if (offerer != null) offerer.pushDrawDeclined(ctx.game.id, u.username);
+            if (offerer != null) offerer.pushDrawDeclined(ctx.game.getId(), u.username);
         }
     }
 }

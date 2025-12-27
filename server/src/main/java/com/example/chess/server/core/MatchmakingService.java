@@ -35,7 +35,6 @@ public class MatchmakingService {
             return;
         }
 
-        // match immediately with first waiting player
         var it = queue.entrySet().iterator();
         var entry = it.next();
         it.remove();
@@ -53,18 +52,19 @@ public class MatchmakingService {
         String blackUser = h1IsWhite ? u2.username : u1;
 
         Game g = new Game();
-        g.id = UUID.randomUUID().toString();
-        g.whiteUser = whiteUser;
-        g.blackUser = blackUser;
-        g.createdAt = System.currentTimeMillis();
-        g.lastUpdate = g.createdAt;
+        g.setId(UUID.randomUUID().toString());
+        g.setWhiteUser(whiteUser);
+        g.setBlackUser(blackUser);
 
-        // defaults (match client defaults)
-        g.timeControlMs = 5 * 60_000L;
-        g.incrementMs = 3_000L;
-        g.whiteTimeMs = g.timeControlMs;
-        g.blackTimeMs = g.timeControlMs;
-        g.whiteMove = true;
+        long now = System.currentTimeMillis();
+        g.setCreatedAt(now);
+        g.setLastUpdate(now);
+
+        g.setTimeControlMs(5 * 60_000L);
+        g.setIncrementMs(3_000L);
+        g.setWhiteTimeMs(g.getTimeControlMs());
+        g.setBlackTimeMs(g.getTimeControlMs());
+        g.setWhiteMove(true);
 
         moves.registerGame(g, whiteUser, blackUser, h1, h2, h1IsWhite);
         clocks.register(g);

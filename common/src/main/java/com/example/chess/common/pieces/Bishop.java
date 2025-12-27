@@ -15,6 +15,6 @@ public final class Bishop extends Piece {
         int dx = Math.abs(m.toCol - m.fromCol);
         int dy = Math.abs(m.toRow - m.fromRow);
         if (dx == 0 || dx != dy) return false;
-        return isPathClear(board, m.fromRow, m.fromCol, m.toRow, m.toCol);
+        return board.isPathClear(m.fromRow, m.fromCol, m.toRow, m.toCol);
     }
 }

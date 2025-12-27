@@ -11,13 +11,13 @@ public class EnPassantRule {
 
     public void clearEp(Game game) {
         if (game == null) return;
-        game.enPassantRow = -1;
-        game.enPassantCol = -1;
+        game.setEnPassantRow(-1);
+        game.setEnPassantCol(-1);
     }
 
     public boolean isEnPassantCapture(Game game, Board board, Move m, Color mover) {
         if (game == null) return false;
-        if (game.enPassantRow != m.toRow || game.enPassantCol != m.toCol) return false;
+        if (game.getEnPassantRow() != m.toRow || game.getEnPassantCol() != m.toCol) return false;
 
         Piece piece = board.getPieceAt(m.fromRow, m.fromCol);
         if (!(piece instanceof Pawn) || piece.getColor() != mover) return false;
@@ -50,8 +50,8 @@ public class EnPassantRule {
         if (move.fromRow == startRow &&
                 move.toRow == startRow + 2 * dir &&
                 move.fromCol == move.toCol) {
-            game.enPassantRow = move.fromRow + dir;
-            game.enPassantCol = move.fromCol;
+            game.setEnPassantRow(move.fromRow + dir);
+            game.setEnPassantCol(move.fromCol);
         }
     }
 }

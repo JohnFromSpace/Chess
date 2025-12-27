@@ -107,9 +107,9 @@ public class FileStores implements GameRepository {
                     Game game = GSON.fromJson(json, Game.class);
 
                     if (game != null &&
-                            (username.equals(game.whiteUser) || username.equals(game.blackUser)) &&
-                            game.id != null) {
-                        result.put(game.id, game);
+                            (username.equals(game.getWhiteUser()) || username.equals(game.getBlackUser())) &&
+                            game.getId() != null) {
+                        result.put(game.getId(), game);
                     }
                 } catch (IOException e) {
                     System.err.println("Failed to read game file: " + file + " -> " + e.getMessage());
@@ -124,11 +124,11 @@ public class FileStores implements GameRepository {
 
     @Override
     public void saveGame(Game game) throws IOException {
-        if (game == null || game.id == null || game.id.isBlank()) {
+        if (game == null || game.getId() == null || game.getId().isBlank()) {
             throw new IllegalArgumentException("Game or game.id is null/blank");
         }
 
-        Path file = gameFile(game.id);
+        Path file = gameFile(game.getId());
 
         try {
             Files.createDirectories(gamesDir);
@@ -143,7 +143,7 @@ public class FileStores implements GameRepository {
                     StandardOpenOption.WRITE
             );
         } catch (IOException e) {
-            System.err.println("Error writing game " + game.id + ": " + e.getMessage());
+            System.err.println("Error writing game " + game.getId() + ": " + e.getMessage());
             e.printStackTrace();
             throw e;
         }

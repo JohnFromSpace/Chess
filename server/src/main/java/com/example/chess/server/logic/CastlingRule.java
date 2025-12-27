@@ -27,13 +27,12 @@ public class CastlingRule {
         boolean white = mover == Color.WHITE;
         int row = white ? 7 : 0;
 
-        // rights
         if (kingSide) {
-            if (white && !game.wK) return false;
-            if (!white && !game.bK) return false;
+            if (white && !game.isWK()) return false;
+            if (!white && !game.isBK()) return false;
         } else {
-            if (white && !game.wQ) return false;
-            if (!white && !game.bQ) return false;
+            if (white && !game.isWQ()) return false;
+            if (!white && !game.isBQ()) return false;
         }
 
         Piece king = board.getPieceAt(row, 4);
@@ -42,14 +41,12 @@ public class CastlingRule {
         Piece rook = board.getPieceAt(row, kingSide ? 7 : 0);
         if (!(rook instanceof Rook) || rook.getColor() != mover) return false;
 
-        // empty between
         if (kingSide) {
             if (!board.isEmptyAt(row, 5) || !board.isEmptyAt(row, 6)) return false;
         } else {
             if (!board.isEmptyAt(row, 1) || !board.isEmptyAt(row, 2) || !board.isEmptyAt(row, 3)) return false;
         }
 
-        // cannot be in check, cannot pass through attacked squares
         if (attacks.isKingInCheck(board, white)) return false;
 
         if (kingSide) {
@@ -80,33 +77,33 @@ public class CastlingRule {
         }
 
         if (updateState && game != null) {
-            if (mover == Color.WHITE) { game.wK = false; game.wQ = false; }
-            else { game.bK = false; game.bQ = false; }
+            if (mover == Color.WHITE) { game.setWK(false); game.setWQ(false); }
+            else { game.setBK(false); game.setBQ(false); }
         }
     }
 
     public void onRookCaptured(Game game, Move move) {
         if (game == null) return;
-        if (move.toRow == 7 && move.toCol == 0) game.wQ = false;
-        if (move.toRow == 7 && move.toCol == 7) game.wK = false;
-        if (move.toRow == 0 && move.toCol == 0) game.bQ = false;
-        if (move.toRow == 0 && move.toCol == 7) game.bK = false;
+        if (move.toRow == 7 && move.toCol == 0) game.setWQ(false);
+        if (move.toRow == 7 && move.toCol == 7) game.setWK(false);
+        if (move.toRow == 0 && move.toCol == 0) game.setBQ(false);
+        if (move.toRow == 0 && move.toCol == 7) game.setBK(false);
     }
 
     public void onKingOrRookMoved(Game game, Piece piece, Move move, Color mover) {
         if (game == null || piece == null) return;
 
         if (piece instanceof King) {
-            if (mover == Color.WHITE) { game.wK = false; game.wQ = false; }
-            else { game.bK = false; game.bQ = false; }
+            if (mover == Color.WHITE) { game.setWK(false); game.setWQ(false); }
+            else { game.setBK(false); game.setBQ(false); }
             return;
         }
 
         if (piece instanceof Rook) {
-            if (mover == Color.WHITE && move.fromRow == 7 && move.fromCol == 0) game.wQ = false;
-            if (mover == Color.WHITE && move.fromRow == 7 && move.fromCol == 7) game.wK = false;
-            if (mover == Color.BLACK && move.fromRow == 0 && move.fromCol == 0) game.bQ = false;
-            if (mover == Color.BLACK && move.fromRow == 0 && move.fromCol == 7) game.bK = false;
+            if (mover == Color.WHITE && move.fromRow == 7 && move.fromCol == 0) game.setWQ(false);
+            if (mover == Color.WHITE && move.fromRow == 7 && move.fromCol == 7) game.setWK(false);
+            if (mover == Color.BLACK && move.fromRow == 0 && move.fromCol == 0) game.setBQ(false);
+            if (mover == Color.BLACK && move.fromRow == 0 && move.fromCol == 7) game.setBK(false);
         }
     }
 }

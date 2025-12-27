@@ -43,8 +43,23 @@ public class Board {
     }
 
     public boolean isEmptyAt(int row, int col) {
-        char c = inside(row, col) ? get(row, col) : 0;
-        return c == '.' || c == 0;
+        if (!inside(row, col)) return true;
+        return get(row, col) == '.';
+    }
+
+    public boolean isPathClear(int fromRow, int fromCol, int toRow, int toCol) {
+        int dRow = Integer.signum(toRow - fromRow);
+        int dCol = Integer.signum(toCol - fromCol);
+
+        int r = fromRow + dRow;
+        int c = fromCol + dCol;
+
+        while (r != toRow || c != toCol) {
+            if (!isEmptyAt(r, c)) return false;
+            r += dRow;
+            c += dCol;
+        }
+        return true;
     }
 
     public Board copy() {

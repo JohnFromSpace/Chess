@@ -20,18 +20,16 @@ public final class Pawn extends Piece {
 
         Piece dest = board.getPieceAt(m.toRow, m.toCol);
 
-        // forward
         if (dx == 0) {
-            if (dy == dir && isEmpty(dest)) return true;
+            if (dy == dir && dest == null) return true;
 
             if (m.fromRow == startRow && dy == 2 * dir) {
                 int midRow = m.fromRow + dir;
-                return isEmpty(board.getPieceAt(midRow, m.fromCol)) && isEmpty(dest);
+                return board.getPieceAt(midRow, m.fromCol) == null && dest == null;
             }
             return false;
         }
 
-        // capture
         if (Math.abs(dx) == 1 && dy == dir) {
             return dest != null && isEnemy(dest);
         }

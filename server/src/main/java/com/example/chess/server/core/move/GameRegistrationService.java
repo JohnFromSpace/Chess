@@ -26,10 +26,10 @@ final class GameRegistrationService {
                       ClientHandler h2,
                       boolean h1IsWhite) throws IOException {
 
-        if (g == null || g.id == null || g.id.isBlank()) return;
+        if (g == null || g.getId() == null || g.getId().isBlank()) return;
 
-        if (g.whiteUser == null || g.whiteUser.isBlank()) g.whiteUser = whiteUser;
-        if (g.blackUser == null || g.blackUser.isBlank()) g.blackUser = blackUser;
+        if (g.getWhiteUser() == null || g.getWhiteUser().isBlank()) g.setWhiteUser(whiteUser);
+        if (g.getBlackUser() == null || g.getBlackUser().isBlank()) g.setBlackUser(blackUser);
 
         ClientHandler whiteH = h1IsWhite ? h1 : h2;
         ClientHandler blackH = h1IsWhite ? h2 : h1;
@@ -38,20 +38,19 @@ final class GameRegistrationService {
     }
 
     void registerGame(Game g, ClientHandler whiteH, ClientHandler blackH) throws IOException {
-        if (g == null || g.id == null || g.id.isBlank()) return;
+        if (g == null || g.getId() == null || g.getId().isBlank()) return;
 
         long now = System.currentTimeMillis();
-        if (g.createdAt == 0L) g.createdAt = now;
-        g.lastUpdate = now;
-        g.result = Result.ONGOING;
-        if (g.board == null) g.board = com.example.chess.common.board.Board.initial();
+        if (g.getCreatedAt() == 0L) g.setCreatedAt(now);
+        g.setLastUpdate(now);
+        g.setResult(Result.ONGOING);
+
+        if (g.getBoard() == null) g.setBoard(com.example.chess.common.board.Board.initial());
 
         GameContext ctx = new GameContext(g, whiteH, blackH);
         games.put(ctx);
 
-        // make sure clocks exist even if matchmaking forgot
         clocks.register(g);
-
         store.save(g);
 
         if (whiteH != null) whiteH.pushGameStarted(g, true);

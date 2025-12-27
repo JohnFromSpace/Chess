@@ -1,9 +1,9 @@
 package com.example.chess.server.client;
 
 import com.example.chess.common.UserModels;
-import com.example.chess.common.model.Game;
 import com.example.chess.common.message.RequestMessage;
 import com.example.chess.common.message.ResponseMessage;
+import com.example.chess.common.model.Game;
 import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
 import com.example.chess.server.core.move.MoveService;
@@ -86,9 +86,7 @@ final class ClientRequestRouter {
 
         UserModels.User user = auth.login(username, password);
 
-        // enforce single session (throws if already online)
         coordinator.onUserOnline(h, user);
-
         h.setCurrentUser(user);
 
         Map<String, Object> payload = new HashMap<>();
@@ -148,17 +146,17 @@ final class ClientRequestRouter {
 
         List<Map<String, Object>> out = games.stream().map(g -> {
             Map<String, Object> m = new HashMap<>();
-            m.put("id", g.id);
-            m.put("whiteUser", g.whiteUser);
-            m.put("blackUser", g.blackUser);
-            m.put("result", String.valueOf(g.result));
-            m.put("reason", g.resultReason);
-            m.put("createdAt", g.createdAt);
-            m.put("lastUpdate", g.lastUpdate);
+            m.put("id", g.getId());
+            m.put("whiteUser", g.getWhiteUser());
+            m.put("blackUser", g.getBlackUser());
+            m.put("result", String.valueOf(g.getResult()));
+            m.put("reason", g.getResultReason());
+            m.put("createdAt", g.getCreatedAt());
+            m.put("lastUpdate", g.getLastUpdate());
 
             String me = u.username;
-            String opponent = me.equals(g.whiteUser) ? g.blackUser : g.whiteUser;
-            String color = me.equals(g.whiteUser) ? "WHITE" : "BLACK";
+            String opponent = me.equals(g.getWhiteUser()) ? g.getBlackUser() : g.getWhiteUser();
+            String color = me.equals(g.getWhiteUser()) ? "WHITE" : "BLACK";
             m.put("opponent", opponent);
             m.put("youAre", color);
             return m;
@@ -177,7 +175,7 @@ final class ClientRequestRouter {
         Game g = coordinator.getGameForUser(gameId, u.username);
         if (g == null) throw new IllegalArgumentException("No such game (or you are not a participant).");
 
-        Map<String, Object> payload = coordinator.stats().toGameDetailsPayload(g);
+        Map<String, Object> payload = coordinator.toGameDetailsPayload(g);
         h.send(ResponseMessage.ok("getGameDetailsOk", req.corrId, payload));
     }
 

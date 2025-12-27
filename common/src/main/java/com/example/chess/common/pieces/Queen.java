@@ -14,8 +14,10 @@ public final class Queen extends Piece {
     public boolean canMove(Board board, Move m) {
         int dx = Math.abs(m.toCol - m.fromCol);
         int dy = Math.abs(m.toRow - m.fromRow);
+
         boolean ok = (dx == 0 || dy == 0 || dx == dy);
         if (!ok || (dx == 0 && dy == 0)) return false;
-        return isPathClear(board, m.fromRow, m.fromCol, m.toRow, m.toCol);
+
+        return board.isPathClear(m.fromRow, m.fromCol, m.toRow, m.toCol);
     }
 }

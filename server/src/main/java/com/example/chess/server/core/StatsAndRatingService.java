@@ -23,40 +23,36 @@ public final class StatsAndRatingService implements GameEndHook {
     @Override
     public void onGameFinished(Game g) throws Exception {
         if (g == null) return;
-        if (g.id == null || g.id.isBlank()) return;
-        if (g.whiteUser == null || g.blackUser == null) return;
+        if (g.getId() == null || g.getId().isBlank()) return;
+        if (g.getWhiteUser() == null || g.getBlackUser() == null) return;
 
-        // Only update for finished games
-        if (g.result == null || g.result == Result.ONGOING) return;
+        if (g.getResult() == null || g.getResult() == Result.ONGOING) return;
 
-        // Atomic update of BOTH users in one locked write
         users.updateUsers(all -> {
-            UserModels.User w = mustUser(all, g.whiteUser);
-            UserModels.User b = mustUser(all, g.blackUser);
+            UserModels.User w = mustUser(all, g.getWhiteUser());
+            UserModels.User b = mustUser(all, g.getBlackUser());
 
             ensureStats(w);
             ensureStats(b);
 
-            // Played/W/L/D
             w.stats.played++;
             b.stats.played++;
 
-            double sw; // score for white
-            if (g.result == Result.WHITE_WIN) {
+            double sw;
+            if (g.getResult() == Result.WHITE_WIN) {
                 w.stats.won++;
                 b.stats.lost++;
                 sw = 1.0;
-            } else if (g.result == Result.BLACK_WIN) {
+            } else if (g.getResult() == Result.BLACK_WIN) {
                 b.stats.won++;
                 w.stats.lost++;
                 sw = 0.0;
-            } else { // DRAW
+            } else {
                 w.stats.drawn++;
                 b.stats.drawn++;
                 sw = 0.5;
             }
 
-            // ELO
             int rw = ratingOf(w);
             int rb = ratingOf(b);
 

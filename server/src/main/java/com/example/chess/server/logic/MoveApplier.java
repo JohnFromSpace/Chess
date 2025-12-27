@@ -30,38 +30,31 @@ public class MoveApplier {
             enPassant.clearEp(game);
         }
 
-        // castling
         if (game != null && castling.isCastleAttempt(piece, move)) {
             boolean kingSide = (move.toCol == 6);
             castling.applyCastle(board, game, mover, kingSide, piece, updateState);
             return;
         }
 
-        // en passant
         if (game != null && piece instanceof Pawn && enPassant.isEnPassantCapture(game, board, move, mover)) {
             enPassant.applyEnPassant(board, move, mover, piece);
             return;
         }
 
-        // rook captured on start square => update castling rights
         if (updateState && game != null && dst instanceof Rook) {
             castling.onRookCaptured(game, move);
         }
 
-        // remove from source
         board.setPieceAt(move.fromRow, move.fromCol, null);
 
-        // pawn double-step => set EP target
         if (updateState && game != null && piece instanceof Pawn) {
             enPassant.onPawnMoveMaybeSetTarget(game, move, mover);
         }
 
-        // king/rook move => update castling rights
         if (updateState && game != null) {
             castling.onKingOrRookMoved(game, piece, move, mover);
         }
 
-        // promotion
         if (piece instanceof Pawn && ((mover == Color.WHITE && move.toRow == 0) || (mover == Color.BLACK && move.toRow == 7))) {
             Piece promoted = PieceFactory.promotionPiece(mover, move.promotion);
             board.setPieceAt(move.toRow, move.toCol, promoted);

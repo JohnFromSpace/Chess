@@ -23,7 +23,6 @@ public class KingMoveGenerator implements PieceMoveGenerator {
 
         Color mover = piece.getColor();
 
-        // king steps
         for (int dr = -1; dr <= 1; dr++) {
             for (int dc = -1; dc <= 1; dc++) {
                 if (dr == 0 && dc == 0) continue;
@@ -35,14 +34,13 @@ public class KingMoveGenerator implements PieceMoveGenerator {
             }
         }
 
-        // castling pseudo-moves (legality checker will validate properly)
         if (game != null && fc == 4) {
             if (mover == Color.WHITE && fr == 7) {
-                if (game.wK) out.add(new Move(7, 4, 7, 6, null));
-                if (game.wQ) out.add(new Move(7, 4, 7, 2, null));
+                if (game.isWK()) out.add(new Move(7, 4, 7, 6, null));
+                if (game.isWQ()) out.add(new Move(7, 4, 7, 2, null));
             } else if (mover == Color.BLACK && fr == 0) {
-                if (game.bK) out.add(new Move(0, 4, 0, 6, null));
-                if (game.bQ) out.add(new Move(0, 4, 0, 2, null));
+                if (game.isBK()) out.add(new Move(0, 4, 0, 6, null));
+                if (game.isBQ()) out.add(new Move(0, 4, 0, 2, null));
             }
         }
     }

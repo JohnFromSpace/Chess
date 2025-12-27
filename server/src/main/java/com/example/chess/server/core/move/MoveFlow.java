@@ -25,49 +25,49 @@ final class MoveFlow {
 
     void makeMoveLocked(GameContext ctx, User u, String uci) throws IOException {
         if (!ctx.isParticipant(u.username)) throw new IllegalArgumentException("You are not a participant in this game.");
-        if (ctx.game.result != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
+        if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
         boolean moverIsWhite = ctx.isWhiteUser(u.username);
-        if (ctx.game.whiteMove != moverIsWhite) throw new IllegalArgumentException("Not your turn.");
+        if (ctx.game.isWhiteMove() != moverIsWhite) throw new IllegalArgumentException("Not your turn.");
 
         Move move = Move.parse(uci);
 
-        if (!rules.isLegalMove(ctx.game, ctx.game.board, move))
+        Board board = ctx.game.getBoard();
+        if (!rules.isLegalMove(ctx.game, board, move))
             throw new IllegalArgumentException("Illegal move.");
 
         // king-safety check (no self-check)
-        Board test = ctx.game.board.copy();
+        Board test = board.copy();
         rules.applyMove(test, ctx.game, move, false);
         if (rules.isKingInCheck(test, moverIsWhite))
             throw new IllegalArgumentException("Illegal move: your king would be in check.");
 
         // apply for real (+ update castling/ep state)
-        rules.applyMove(ctx.game.board, ctx.game, move, true);
+        rules.applyMove(board, ctx.game, move, true);
 
-        // record move with timestamp
         ctx.game.recordMove(u.username, move.toString());
 
         // update clock + flip side-to-move
         clocks.onMoveApplied(ctx.game);
 
         // check flags (after move)
-        boolean wChk = rules.isKingInCheck(ctx.game.board, true);
-        boolean bChk = rules.isKingInCheck(ctx.game.board, false);
+        boolean wChk = rules.isKingInCheck(board, true);
+        boolean bChk = rules.isKingInCheck(board, false);
 
         // timeout check
-        if (ctx.game.whiteTimeMs <= 0) {
+        if (ctx.game.getWhiteTimeMs() <= 0) {
             finisher.finishLocked(ctx, Result.BLACK_WIN, "Time.");
             return;
         }
-        if (ctx.game.blackTimeMs <= 0) {
+        if (ctx.game.getBlackTimeMs() <= 0) {
             finisher.finishLocked(ctx, Result.WHITE_WIN, "Time.");
             return;
         }
 
         // mate/stalemate check for side-to-move after flip
-        boolean whiteToMove = ctx.game.whiteMove;
-        boolean inCheck = rules.isKingInCheck(ctx.game.board, whiteToMove);
-        boolean anyLegal = rules.hasAnyLegalMove(ctx.game, ctx.game.board, whiteToMove);
+        boolean whiteToMove = ctx.game.isWhiteMove();
+        boolean inCheck = rules.isKingInCheck(board, whiteToMove);
+        boolean anyLegal = rules.hasAnyLegalMove(ctx.game, board, whiteToMove);
 
         if (!anyLegal) {
             if (inCheck) {
@@ -78,10 +78,8 @@ final class MoveFlow {
             return;
         }
 
-        // persist snapshot after each move (good for history/replay even if server dies)
         store.save(ctx.game);
 
-        // push move to both (if connected)
         if (ctx.white != null) ctx.white.pushMove(ctx.game, u.username, move.toString(), wChk, bChk);
         if (ctx.black != null) ctx.black.pushMove(ctx.game, u.username, move.toString(), wChk, bChk);
     }

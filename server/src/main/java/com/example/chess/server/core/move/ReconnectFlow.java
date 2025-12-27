@@ -27,37 +27,36 @@ final class ReconnectFlow {
         if (ctx == null) return;
 
         synchronized (ctx) {
-            if (ctx.game.result != Result.ONGOING) return;
+            if (ctx.game.getResult() != Result.ONGOING) return;
 
             boolean isWhite = ctx.isWhiteUser(u.username);
             long now = System.currentTimeMillis();
 
             if (isWhite) {
                 ctx.whiteOfflineAtMs = now;
-                ctx.game.whiteOfflineSince = now;
+                ctx.game.setWhiteOfflineSince(now);
             } else {
                 ctx.blackOfflineAtMs = now;
-                ctx.game.blackOfflineSince = now;
+                ctx.game.setBlackOfflineSince(now);
             }
 
             ClientHandler opp = ctx.opponentHandlerOf(u.username);
             if (opp != null) opp.sendInfo(u.username + " disconnected. Waiting 60s for reconnect...");
 
-            String key = ctx.game.id + ":" + u.username;
+            String key = ctx.game.getId() + ":" + u.username;
             reconnects.scheduleDrop(key, () -> {
                 try {
                     synchronized (ctx) {
                         long off = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
-                        if (off == 0L) return; // reconnected
-                        if (ctx.game.result != Result.ONGOING) return;
+                        if (off == 0L) return;
+                        if (ctx.game.getResult() != Result.ONGOING) return;
 
-                        boolean leaverWhite = isWhite;
                         finisher.finishLocked(ctx,
-                                leaverWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
+                                isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
                                 "Disconnected for more than 60 seconds.");
                     }
                 } catch (Exception e) {
-                    Log.warn("Reconnect drop task failed for game " + ctx.game.id, e);
+                    Log.warn("Reconnect drop task failed for game " + ctx.game.getId(), e);
                 }
             });
         }
@@ -70,20 +69,20 @@ final class ReconnectFlow {
         if (ctx == null) return;
 
         synchronized (ctx) {
-            if (ctx.game.result != Result.ONGOING) return;
+            if (ctx.game.getResult() != Result.ONGOING) return;
 
             boolean isWhite = ctx.isWhiteUser(u.username);
 
-            reconnects.cancel(ctx.game.id + ":" + u.username);
+            reconnects.cancel(ctx.game.getId() + ":" + u.username);
 
             if (isWhite) {
                 ctx.white = newHandler;
                 ctx.whiteOfflineAtMs = 0L;
-                ctx.game.whiteOfflineSince = 0L;
+                ctx.game.setWhiteOfflineSince(0L);
             } else {
                 ctx.black = newHandler;
                 ctx.blackOfflineAtMs = 0L;
-                ctx.game.blackOfflineSince = 0L;
+                ctx.game.setBlackOfflineSince(0L);
             }
 
             newHandler.pushGameStarted(ctx.game, isWhite);

@@ -7,6 +7,7 @@ import com.example.chess.server.core.move.MoveService;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class GameCoordinator {
     private final MatchmakingService matchmaking;
@@ -44,4 +45,8 @@ public class GameCoordinator {
 
     public List<Game> listGamesForUser(String username) { return stats.listGamesForUser(username); }
     public Game getGameForUser(String gameId, String username) { return stats.getGameForUser(gameId, username); }
+
+    public Map<String, Object> toGameDetailsPayload(Game g) {
+        return stats.toGameDetailsPayload(g);
+    }
 }

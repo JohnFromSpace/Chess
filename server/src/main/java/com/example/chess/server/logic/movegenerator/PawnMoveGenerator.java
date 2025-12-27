@@ -28,19 +28,16 @@ public class PawnMoveGenerator implements PieceMoveGenerator {
 
         int r1 = fr + dir;
 
-        // forward 1
         if (board.inside(r1, fc) && board.isEmptyAt(r1, fc)) {
             if (r1 == lastRow) addPromotionSet(out, fr, fc, r1, fc);
             else out.add(new Move(fr, fc, r1, fc, null));
         }
 
-        // forward 2
         int r2 = fr + 2 * dir;
         if (fr == startRow && board.inside(r2, fc) && board.isEmptyAt(r1, fc) && board.isEmptyAt(r2, fc)) {
             out.add(new Move(fr, fc, r2, fc, null));
         }
 
-        // captures + EP target
         for (int dc : new int[]{-1, 1}) {
             int tc = fc + dc;
             int tr = fr + dir;
@@ -52,7 +49,10 @@ public class PawnMoveGenerator implements PieceMoveGenerator {
                 else out.add(new Move(fr, fc, tr, tc, null));
             }
 
-            if (game != null && game.enPassantRow == tr && game.enPassantCol == tc && board.isEmptyAt(tr, tc)) {
+            if (game != null &&
+                    game.getEnPassantRow() == tr &&
+                    game.getEnPassantCol() == tc &&
+                    board.isEmptyAt(tr, tc)) {
                 out.add(new Move(fr, fc, tr, tc, null));
             }
         }
@@ -63,6 +63,6 @@ public class PawnMoveGenerator implements PieceMoveGenerator {
         out.add(new Move(fr, fc, tr, tc, 'r'));
         out.add(new Move(fr, fc, tr, tc, 'b'));
         out.add(new Move(fr, fc, tr, tc, 'n'));
-        out.add(new Move(fr, fc, tr, tc, null)); // allow “no suffix”
+        out.add(new Move(fr, fc, tr, tc, null));
     }
 }

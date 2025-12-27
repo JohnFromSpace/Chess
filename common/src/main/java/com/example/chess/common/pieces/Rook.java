@@ -14,7 +14,7 @@ public final class Rook extends Piece {
     public boolean canMove(Board board, Move m) {
         int dr = m.toRow - m.fromRow;
         int dc = m.toCol - m.fromCol;
-        if ((dr == 0) == (dc == 0)) return false;
-        return isPathClear(board, m.fromRow, m.fromCol, m.toRow, m.toCol);
+        if ((dr == 0) == (dc == 0)) return false; // must be straight and non-zero
+        return board.isPathClear(m.fromRow, m.fromCol, m.toRow, m.toCol);
     }
 }

@@ -18,7 +18,7 @@ public class SessionState {
     private boolean autoShowBoard = true;
     private String lastSentMove;
 
-    private long timeControlMs = 5 * 60_000L; // default 05:00
+    private long timeControlMs = 5 * 60_000L;
     private long whiteTimeMs = timeControlMs;
     private long blackTimeMs = timeControlMs;
     private boolean whiteToMove = true;
@@ -50,7 +50,6 @@ public class SessionState {
     public boolean isAutoShowBoard() { return autoShowBoard; }
     public void setAutoShowBoard(boolean autoShowBoard) { this.autoShowBoard = autoShowBoard; }
 
-    // server-sync (authoritative)
     public synchronized void syncClocks(long whiteMs, long blackMs, Boolean whiteToMoveMaybe) {
         if (whiteMs >= 0) this.whiteTimeMs = whiteMs;
         if (blackMs >= 0) this.blackTimeMs = blackMs;
@@ -58,7 +57,6 @@ public class SessionState {
         this.lastClockSyncAtMs = System.currentTimeMillis();
     }
 
-    // local ticking between server updates
     public synchronized void tickClocks() {
         long now = System.currentTimeMillis();
         long elapsed = now - lastClockSyncAtMs;
@@ -83,11 +81,14 @@ public class SessionState {
         this.waitingForMatch = false;
         this.lastSentMove = null;
 
-        // reset clocks to defaults
         this.whiteTimeMs = timeControlMs;
         this.blackTimeMs = timeControlMs;
         this.whiteToMove = true;
         this.lastClockSyncAtMs = System.currentTimeMillis();
+    }
+
+    public void postUi(Runnable r) {
+        if (r != null) uiQueue.add(r);
     }
 
     public void drainUi() {

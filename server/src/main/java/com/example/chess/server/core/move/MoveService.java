@@ -9,6 +9,7 @@ import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.logic.RulesEngine;
 
 import java.io.IOException;
+import java.util.concurrent.*;
 
 public class MoveService {
 
@@ -26,6 +27,13 @@ public class MoveService {
     private final DrawFlow draws;
     private final ReconnectFlow reconnectFlow;
 
+    private final ScheduledExecutorService tickExec =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "clock-ticker");
+                t.setDaemon(true);
+                return t;
+            });
+
     public MoveService(GameRepository gameRepo, ClockService clocks, GameEndHook endHook) {
         this.clocks = clocks;
         this.store = new RepositoryGameStore(gameRepo);
@@ -35,6 +43,27 @@ public class MoveService {
         this.moves = new MoveFlow(rules, clocks, store, finisher);
         this.draws = new DrawFlow(store, finisher);
         this.reconnectFlow = new ReconnectFlow(games, reconnects, finisher, store);
+
+        tickExec.scheduleAtFixedRate(this::tickAllGames, 200, 200, TimeUnit.MILLISECONDS);
+    }
+
+    private void tickAllGames() {
+        for (GameContext ctx : games.snapshot()) {
+            try {
+                synchronized (ctx) {
+                    if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING) continue;
+
+                    boolean timeout = clocks.tick(ctx.game);
+                    if (!timeout) continue;
+
+                    if (ctx.game.getWhiteTimeMs() <= 0) {
+                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.BLACK_WIN, "Time.");
+                    } else if (ctx.game.getBlackTimeMs() <= 0) {
+                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "Time.");
+                    }
+                }
+            } catch (Exception ignored) { }
+        }
     }
 
     public void registerGame(Game g,
@@ -80,7 +109,7 @@ public class MoveService {
 
         synchronized (ctx) {
             if (!ctx.isParticipant(u.username)) throw new IllegalArgumentException("You are not a participant in this game.");
-            if (ctx.game.result != com.example.chess.common.model.Result.ONGOING)
+            if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING)
                 throw new IllegalArgumentException("Game is already finished.");
 
             boolean leaverWhite = ctx.isWhiteUser(u.username);
