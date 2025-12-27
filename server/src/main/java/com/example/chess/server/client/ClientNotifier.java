@@ -19,6 +19,8 @@ public final class ClientNotifier {
         p.put("blackTimeMs", g.getBlackTimeMs());
         p.put("whiteToMove", g.isWhiteMove());
         p.put("board", g.getBoard().toPrettyString());
+        p.put("capturedByWhite", g.getCapturedByWhite());
+        p.put("capturedByBlack", g.getCapturedByBlack());
         h.send(ResponseMessage.push("gameStarted", p));
     }
 
@@ -33,6 +35,8 @@ public final class ClientNotifier {
         p.put("blackTimeMs", g.getBlackTimeMs());
         p.put("whiteToMove", g.isWhiteMove());
         p.put("board", g.getBoard().toPrettyString());
+        p.put("capturedByWhite", g.getCapturedByWhite());
+        p.put("capturedByBlack", g.getCapturedByBlack());
         h.send(ResponseMessage.push("move", p));
     }
 
@@ -43,6 +47,8 @@ public final class ClientNotifier {
         p.put("reason", g.getResultReason() == null ? "" : g.getResultReason());
         p.put("statsOk", statsOk);
         p.put("board", g.getBoard().toPrettyString());
+        p.put("capturedByWhite", g.getCapturedByWhite());
+        p.put("capturedByBlack", g.getCapturedByBlack());
         h.send(ResponseMessage.push("gameOver", p));
     }
 

@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Game {
-
     private String id;
     private String whiteUser;
     private String blackUser;
@@ -43,6 +42,9 @@ public class Game {
     private int enPassantRow = -1;
     private int enPassantCol = -1;
 
+    private List<String> capturedByWhite = new ArrayList<>();
+    private List<String> capturedByBlack = new ArrayList<>();
+
     public static class MoveEntry {
         private String by;
         private String move;
@@ -76,7 +78,6 @@ public class Game {
         for (String m : moves) moveHistory.add(new MoveEntry(null, m, 0L));
     }
 
-    // ---- getters/setters ----
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -148,4 +149,24 @@ public class Game {
 
     public int getEnPassantCol() { return enPassantCol; }
     public void setEnPassantCol(int enPassantCol) { this.enPassantCol = enPassantCol; }
+
+    public List<String> getCapturedByWhite() { return capturedByWhite; }
+    public void setCapturedByWhite(List<String> capturedByWhite) {
+        this.capturedByWhite = (capturedByWhite == null) ? new ArrayList<>() : capturedByWhite;
+    }
+
+    public List<String> getCapturedByBlack() { return capturedByBlack; }
+    public void setCapturedByBlack(List<String> capturedByBlack) {
+        this.capturedByBlack = (capturedByBlack == null) ? new ArrayList<>() : capturedByBlack;
+    }
+
+    public void addCapturedByWhite(char piece) {
+        if (capturedByWhite == null) capturedByWhite = new ArrayList<>();
+        capturedByWhite.add(String.valueOf(piece));
+    }
+
+    public void addCapturedByBlack(char piece) {
+        if (capturedByBlack == null) capturedByBlack = new ArrayList<>();
+        capturedByBlack.add(String.valueOf(piece));
+    }
 }

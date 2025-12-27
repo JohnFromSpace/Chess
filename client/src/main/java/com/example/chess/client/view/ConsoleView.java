@@ -49,4 +49,60 @@ public class ConsoleView {
         }
         out.println(boardText);
     }
+
+    public void clearScreen() {
+        out.print("\u001B[2J\u001B[H");
+        out.flush();
+    }
+
+    public void showBoardWithCaptured(String boardText,
+                                      java.util.List<String> capturedByYou,
+                                      java.util.List<String> capturedByOpp) {
+        if (boardText == null) boardText = "(no board)";
+
+        String[] b = boardText.split("\n", -1);
+        int width = 0;
+        for (String line : b) width = Math.max(width, line.length());
+
+        java.util.List<String> side = new java.util.ArrayList<>();
+        side.add("Captured by YOU: " + renderPieces(capturedByYou));
+        side.add("Captured by OPP: " + renderPieces(capturedByOpp));
+        side.add("Promotion: q/r/b/n (not limited by captured pieces)");
+
+        int rows = Math.max(b.length, side.size());
+        for (int i = 0; i < rows; i++) {
+            String left = (i < b.length) ? b[i] : "";
+            String right = (i < side.size()) ? side.get(i) : "";
+            out.printf("%-" + width + "s   %s%n", left, right);
+        }
+    }
+
+    private static String renderPieces(java.util.List<String> pcs) {
+        if (pcs == null || pcs.isEmpty()) return "-";
+        StringBuilder sb = new StringBuilder();
+        for (String s : pcs) {
+            if (s == null || s.isBlank()) continue;
+            char c = s.charAt(0);
+            sb.append(toUnicode(c)).append(' ');
+        }
+        return sb.toString().trim();
+    }
+
+    private static String toUnicode(char c) {
+        return switch (c) {
+            case 'P' -> "♙";
+            case 'N' -> "♘";
+            case 'B' -> "♗";
+            case 'R' -> "♖";
+            case 'Q' -> "♕";
+            case 'K' -> "♔";
+            case 'p' -> "♟";
+            case 'n' -> "♞";
+            case 'b' -> "♝";
+            case 'r' -> "♜";
+            case 'q' -> "♛";
+            case 'k' -> "♚";
+            default  -> String.valueOf(c);
+        };
+    }
 }

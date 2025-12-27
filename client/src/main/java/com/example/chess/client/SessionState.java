@@ -26,11 +26,21 @@ public class SessionState {
 
     private final Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 
+
+    private java.util.List<String> capturedByWhite = java.util.List.of();
+    private java.util.List<String> capturedByBlack = java.util.List.of();
+
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 
     public String getActiveGameId() { return activeGameId; }
     public void setActiveGameId(String activeGameId) { this.activeGameId = activeGameId; }
+
+    public java.util.List<String> getCapturedByWhite() { return capturedByWhite; }
+    public void setCapturedByWhite(java.util.List<String> l) { capturedByWhite = (l == null) ? java.util.List.of() : l; }
+
+    public java.util.List<String> getCapturedByBlack() { return capturedByBlack; }
+    public void setCapturedByBlack(java.util.List<String> l) { capturedByBlack = (l == null) ? java.util.List.of() : l; }
 
     public boolean isInGame() { return inGame; }
     public void setInGame(boolean inGame) {
@@ -102,4 +112,5 @@ public class SessionState {
             }
         }
     }
+
 }

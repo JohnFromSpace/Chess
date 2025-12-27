@@ -5,6 +5,7 @@ import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.ui.screen.InGameScreen;
 import com.example.chess.client.view.ConsoleView;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,6 +34,8 @@ public class GameUIOrchestrator {
         state.setWhite("white".equalsIgnoreCase(color));
         state.setWaitingForMatch(false);
         state.setInGame(true);
+        state.setCapturedByWhite(listStr(p.get("capturedByWhite")));
+        state.setCapturedByBlack(listStr(p.get("capturedByBlack")));
 
         long w = longv(p.get("whiteTimeMs"));
         long b = longv(p.get("blackTimeMs"));
@@ -41,15 +44,15 @@ public class GameUIOrchestrator {
         state.syncClocks(w, b, wtm);
 
         String board = str(p.get("board"));
-        state.setLastBoard(board);
+        view.clearScreen();
 
-        view.showMessage("=== Game started === You are " + (state.isWhite() ? "WHITE" : "BLACK"));
+        String oriented = orient(board, state.isWhite());
 
-        if (state.isAutoShowBoard()) {
-            view.showBoard(orient(board, state.isWhite()));
-        } else {
-            view.showMessage("(Auto-board: OFF) Use 'Print board' to view.");
-        }
+        var youCap = state.isWhite() ? state.getCapturedByWhite() : state.getCapturedByBlack();
+        var oppCap = state.isWhite() ? state.getCapturedByBlack() : state.getCapturedByWhite();
+
+        view.showMessage("=== Game === You are " + (state.isWhite() ? "WHITE" : "BLACK"));
+        view.showBoardWithCaptured(oriented, youCap, oppCap);
 
         renderCheckLine(p);
         renderClock(p);
@@ -67,16 +70,30 @@ public class GameUIOrchestrator {
         boolean wtm = bool(p.get("whiteToMove"));
         state.syncClocks(w, b, wtm);
 
+        state.setCapturedByWhite(listStr(p.get("capturedByWhite")));
+        state.setCapturedByBlack(listStr(p.get("capturedByBlack")));
+
         view.showMessage("Move: " + by + " " + mv);
 
         if (state.isAutoShowBoard()) {
-            view.showBoard(orient(board, state.isWhite()));
+            view.clearScreen();
+
+            String oriented = orient(board, state.isWhite());
+
+            var youCap = state.isWhite() ? state.getCapturedByWhite() : state.getCapturedByBlack();
+            var oppCap = state.isWhite() ? state.getCapturedByBlack() : state.getCapturedByWhite();
+
+            view.showMessage("=== Game === You are " + (state.isWhite() ? "WHITE" : "BLACK"));
+            view.showBoardWithCaptured(oriented, youCap, oppCap);
+
             renderCheckLine(p);
             renderClock(p);
         } else {
             renderClock(p);
             view.showMessage("(Auto-board: OFF) Press 'Print board' if needed.");
         }
+
+
     }
 
     public void onGameOver(Map<String, Object> p) {
@@ -118,4 +135,10 @@ public class GameUIOrchestrator {
     private static String str(Object o) { return o == null ? "" : String.valueOf(o); }
     private static boolean bool(Object o) { return (o instanceof Boolean b) ? b : Boolean.parseBoolean(String.valueOf(o)); }
     private static long longv(Object o) { return (o instanceof Number n) ? n.longValue() : Long.parseLong(String.valueOf(o)); }
+
+    private static List<String> listStr(Object o) {
+        if (o instanceof List<?> l) return l.stream().map(String::valueOf).toList();
+        if (o == null) return java.util.List.of();
+        return List.of(String.valueOf(o));
+    }
 }
