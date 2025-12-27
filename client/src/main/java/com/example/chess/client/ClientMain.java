@@ -19,6 +19,9 @@ public class ClientMain {
             connection.start();
 
             ClientController controller = new ClientController(connection, view);
+
+            Runtime.getRuntime().addShutdownHook(new Thread(controller::shutdownGracefully, "client-shutdown"));
+
             controller.run();
 
         } catch (IOException e) {
