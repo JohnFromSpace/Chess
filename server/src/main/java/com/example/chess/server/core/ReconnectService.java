@@ -4,31 +4,42 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 public final class ReconnectService {
-    private final long graceMs;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "reconnect-grace");
-        t.setDaemon(true);
-        return t;
-    });
 
-    private final Map<String, ScheduledFuture<?>> tasks = new ConcurrentHashMap<>();
+    private final long graceMs;
+
+    private final ScheduledExecutorService exec =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "reconnect-grace");
+                t.setDaemon(true);
+                return t;
+            });
+
+    private final Map<String, ScheduledFuture<?>> pending = new ConcurrentHashMap<>();
 
     public ReconnectService(long graceMs) {
         this.graceMs = graceMs;
     }
 
-    public void scheduleDrop(String key, Runnable action) {
-        scheduleDrop(key, graceMs, action);
+    public long getGraceMs() {
+        return graceMs;
     }
 
-    public void scheduleDrop(String key, long delayMs, Runnable action) {
+    public void scheduleDrop(String key, Runnable task) {
+        scheduleDrop(key, task, graceMs);
+    }
+
+    public void scheduleDrop(String key, Runnable task, long delayMs) {
         cancel(key);
         long d = Math.max(0L, delayMs);
-        tasks.put(key, scheduler.schedule(action, d, TimeUnit.MILLISECONDS));
+        ScheduledFuture<?> f = exec.schedule(() -> {
+            try { task.run(); }
+            finally { pending.remove(key); }
+        }, d, TimeUnit.MILLISECONDS);
+        pending.put(key, f);
     }
 
     public void cancel(String key) {
-        ScheduledFuture<?> f = tasks.remove(key);
+        ScheduledFuture<?> f = pending.remove(key);
         if (f != null) f.cancel(false);
     }
 }
