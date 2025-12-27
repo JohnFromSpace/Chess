@@ -60,6 +60,7 @@ public class AuthScreen implements Screen {
         st.played = intVal(um.get("played"));
         st.won = intVal(um.get("won"));
         st.drawn = intVal(um.get("drawn"));
+        st.lost = intVal(um.get("lost"));
         st.rating = intVal(um.get("rating"));
         user.stats = st;
 
