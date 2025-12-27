@@ -1,0 +1,129 @@
+{
+  "id": "4b3ebfc6-2419-4e63-aa24-8263a2977f0d",
+  "whiteUser": "admin",
+  "blackUser": "borko",
+  "whiteMove": false,
+  "createdAt": 1766862027727,
+  "lastUpdate": 1766862108188,
+  "timeControlMs": 300000,
+  "incrementMs": 3000,
+  "whiteTimeMs": 249311,
+  "blackTimeMs": 279229,
+  "whiteOfflineSince": 0,
+  "blackOfflineSince": 0,
+  "result": "ONGOING",
+  "board": {
+    "squares": [
+      [
+        "r",
+        "n",
+        "b",
+        "q",
+        "k",
+        "b",
+        "n",
+        "r"
+      ],
+      [
+        "p",
+        "p",
+        "p",
+        "p",
+        ".",
+        "p",
+        "p",
+        "p"
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        "p",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        "P",
+        "P",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        "P",
+        "P",
+        "P",
+        "P",
+        ".",
+        ".",
+        "P",
+        "P"
+      ],
+      [
+        "R",
+        "N",
+        "B",
+        "Q",
+        "K",
+        "B",
+        "N",
+        "R"
+      ]
+    ]
+  },
+  "moves": [
+    "e2e4",
+    "e7e5",
+    "f2f4"
+  ],
+  "moveHistory": [
+    {
+      "by": "admin",
+      "move": "e2e4",
+      "atMs": 1766862037914
+    },
+    {
+      "by": "borko",
+      "move": "e7e5",
+      "atMs": 1766862061685
+    },
+    {
+      "by": "admin",
+      "move": "f2f4",
+      "atMs": 1766862108188
+    }
+  ],
+  "wK": true,
+  "wQ": true,
+  "bK": true,
+  "bQ": true,
+  "enPassantRow": 5,
+  "enPassantCol": 5,
+  "capturedByWhite": [],
+  "capturedByBlack": []
+}
