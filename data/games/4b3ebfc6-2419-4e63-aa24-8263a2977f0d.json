@@ -4,14 +4,16 @@
   "blackUser": "borko",
   "whiteMove": false,
   "createdAt": 1766862027727,
-  "lastUpdate": 1766862108188,
+  "lastUpdate": 1766876600211,
   "timeControlMs": 300000,
   "incrementMs": 3000,
   "whiteTimeMs": 249311,
-  "blackTimeMs": 279229,
-  "whiteOfflineSince": 0,
-  "blackOfflineSince": 0,
-  "result": "ONGOING",
+  "blackTimeMs": 219568,
+  "whiteOfflineSince": 1766876540204,
+  "blackOfflineSince": 1766876540204,
+  "result": "ABORTED",
+  "resultReason": "Aborted (both disconnected).",
+  "rated": false,
   "board": {
     "squares": [
       [

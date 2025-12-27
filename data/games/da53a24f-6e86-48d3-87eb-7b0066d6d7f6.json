@@ -4,14 +4,16 @@
   "blackUser": "borko",
   "whiteMove": true,
   "createdAt": 1766533409348,
-  "lastUpdate": 1766533650988,
+  "lastUpdate": 1766876600216,
   "timeControlMs": 300000,
   "incrementMs": 0,
-  "whiteTimeMs": 205014,
+  "whiteTimeMs": 145363,
   "blackTimeMs": 153346,
-  "whiteOfflineSince": 0,
-  "blackOfflineSince": 0,
-  "result": "ONGOING",
+  "whiteOfflineSince": 1766876540204,
+  "blackOfflineSince": 1766876540204,
+  "result": "ABORTED",
+  "resultReason": "Aborted (both disconnected).",
+  "rated": false,
   "board": {
     "squares": [
       [
@@ -102,10 +104,13 @@
     "e1e2",
     "d5e4"
   ],
-  "enPassantRow": -1,
-  "enPassantCol": -1,
+  "moveHistory": [],
   "wK": false,
   "wQ": false,
   "bK": true,
-  "bQ": true
+  "bQ": true,
+  "enPassantRow": -1,
+  "enPassantCol": -1,
+  "capturedByWhite": [],
+  "capturedByBlack": []
 }

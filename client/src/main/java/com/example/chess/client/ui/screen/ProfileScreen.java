@@ -57,5 +57,4 @@ public class ProfileScreen implements Screen {
         menu.render(view);
         menu.readAndExecute(view);
     }
-
 }

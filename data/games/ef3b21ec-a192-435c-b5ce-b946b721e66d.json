@@ -4,14 +4,16 @@
   "blackUser": "admin",
   "whiteMove": true,
   "createdAt": 1766597491730,
-  "lastUpdate": 1766597491730,
+  "lastUpdate": 1766876576970,
   "timeControlMs": 300000,
   "incrementMs": 3000,
-  "whiteTimeMs": 300000,
+  "whiteTimeMs": 263547,
   "blackTimeMs": 300000,
-  "whiteOfflineSince": 0,
+  "whiteOfflineSince": 1766876540204,
   "blackOfflineSince": 0,
-  "result": "ONGOING",
+  "result": "WHITE_WIN",
+  "resultReason": "Resignation.",
+  "rated": true,
   "board": {
     "squares": [
       [
@@ -97,10 +99,13 @@
     ]
   },
   "moves": [],
-  "enPassantRow": -1,
-  "enPassantCol": -1,
+  "moveHistory": [],
   "wK": true,
   "wQ": true,
   "bK": true,
-  "bQ": true
+  "bQ": true,
+  "enPassantRow": -1,
+  "enPassantCol": -1,
+  "capturedByWhite": [],
+  "capturedByBlack": []
 }

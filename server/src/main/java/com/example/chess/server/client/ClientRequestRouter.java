@@ -94,7 +94,12 @@ final class ClientRequestRouter {
 
         h.send(ResponseMessage.ok("loginOk", req.corrId, payload));
 
-        moves.tryReconnect(user, h);
+        try {
+            moves.tryReconnect(user, h);
+        } catch (Exception e) {
+            // don't fail login because of reconnect problems
+            h.sendInfo("Logged in, but reconnect failed: " + e.getMessage());
+        }
     }
 
     private void logout(RequestMessage req, ClientHandler h) {

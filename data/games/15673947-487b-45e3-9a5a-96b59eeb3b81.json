@@ -4,14 +4,16 @@
   "blackUser": "admin",
   "whiteMove": false,
   "createdAt": 1766523444942,
-  "lastUpdate": 1766523459441,
+  "lastUpdate": 1766876600210,
   "timeControlMs": 300000,
   "incrementMs": 0,
   "whiteTimeMs": 285501,
-  "blackTimeMs": 300000,
-  "whiteOfflineSince": 0,
-  "blackOfflineSince": 0,
-  "result": "ONGOING",
+  "blackTimeMs": 240331,
+  "whiteOfflineSince": 1766876540204,
+  "blackOfflineSince": 1766876540204,
+  "result": "ABORTED",
+  "resultReason": "Aborted (both disconnected).",
+  "rated": false,
   "board": {
     "squares": [
       [
@@ -99,10 +101,13 @@
   "moves": [
     "e2e4"
   ],
-  "enPassantRow": 5,
-  "enPassantCol": 4,
+  "moveHistory": [],
   "wK": true,
   "wQ": true,
   "bK": true,
-  "bQ": true
+  "bQ": true,
+  "enPassantRow": 5,
+  "enPassantCol": 4,
+  "capturedByWhite": [],
+  "capturedByBlack": []
 }
