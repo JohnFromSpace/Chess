@@ -27,6 +27,8 @@ public class Game {
     private Result result = Result.ONGOING;
     private String resultReason;
 
+    private boolean rated = true;
+
     private String drawOfferedBy;
 
     private Board board = Board.initial();
@@ -78,6 +80,10 @@ public class Game {
         for (String m : moves) moveHistory.add(new MoveEntry(null, m, 0L));
     }
 
+    public boolean hasAnyMoves() {
+        return (moves != null && !moves.isEmpty()) || (moveHistory != null && !moveHistory.isEmpty());
+    }
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -119,6 +125,9 @@ public class Game {
 
     public String getResultReason() { return resultReason; }
     public void setResultReason(String resultReason) { this.resultReason = resultReason; }
+
+    public boolean isRated() { return rated; }
+    public void setRated(boolean rated) { this.rated = rated; }
 
     public String getDrawOfferedBy() { return drawOfferedBy; }
     public void setDrawOfferedBy(String drawOfferedBy) { this.drawOfferedBy = drawOfferedBy; }
