@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class ClientConnection {
+public class ClientConnection implements AutoCloseable {
 
     private final String host;
     private final int port;
@@ -43,6 +43,10 @@ public class ClientConnection {
         readerThread.start();
     }
 
+    public boolean isOpen() {
+        return socket != null && socket.isConnected() && !socket.isClosed();
+    }
+
     public void setPushHandler(Consumer<ResponseMessage> h) {
         this.pushHandler = (h == null) ? (m -> {}) : h;
     }
@@ -57,7 +61,6 @@ public class ClientConnection {
                 Message msg = MessageCodec.fromJson(line);
 
                 if (msg instanceof ResponseMessage resp) {
-                    // correlated response -> complete the waiting future
                     if (resp.corrId != null) {
                         CompletableFuture<StatusMessage> fut = pending.remove(resp.corrId);
                         if (fut != null) {
@@ -66,7 +69,6 @@ public class ClientConnection {
                         }
                     }
 
-                    // async push
                     Consumer<ResponseMessage> ph = pushHandler;
                     if (ph != null) ph.accept(resp);
                 }
@@ -74,6 +76,9 @@ public class ClientConnection {
         } catch (IOException e) {
             pending.values().forEach(f -> f.completeExceptionally(e));
             pending.clear();
+        } finally {
+            // ensure resources are gone
+            try { close(); } catch (Exception ignored) {}
         }
     }
 
@@ -88,6 +93,7 @@ public class ClientConnection {
         pending.put(corrId, fut);
 
         try {
+            if (!isOpen()) throw new IOException("Connection closed.");
             String json = MessageCodec.toJson(msg);
             synchronized (out) {
                 out.write(json);
@@ -99,6 +105,21 @@ public class ClientConnection {
         }
 
         return fut;
+    }
+
+    @Override
+    public void close() {
+        // complete any waiters
+        pending.values().forEach(f -> f.completeExceptionally(new IOException("Connection closed.")));
+        pending.clear();
+
+        // close streams/socket
+        try { if (in != null) in.close(); } catch (Exception ignored) {}
+        try { if (out != null) out.close(); } catch (Exception ignored) {}
+        try { if (socket != null) socket.close(); } catch (Exception ignored) {}
+
+        // stop reader thread if needed
+        try { if (readerThread != null) readerThread.interrupt(); } catch (Exception ignored) {}
     }
 
     public CompletableFuture<StatusMessage> login(String username, String password) {
