@@ -51,7 +51,6 @@ final class ReconnectFlow {
                         if (off == 0L) return;
                         if (ctx.game.getResult() != Result.ONGOING) return;
 
-                        // ✅ If no moves happened, treat as ABORTED / unrated (covers Stop/kill-9 tests).
                         boolean noMoves = !ctx.game.hasAnyMoves();
 
                         // Optional: if BOTH are offline when grace expires -> also abort.
