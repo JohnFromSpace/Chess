@@ -90,18 +90,18 @@ public class ConsoleView {
 
     private static String toUnicode(char c) {
         return switch (c) {
-            case 'P' -> "♙";
-            case 'N' -> "♘";
-            case 'B' -> "♗";
-            case 'R' -> "♖";
-            case 'Q' -> "♕";
-            case 'K' -> "♔";
-            case 'p' -> "♟";
-            case 'n' -> "♞";
-            case 'b' -> "♝";
-            case 'r' -> "♜";
-            case 'q' -> "♛";
-            case 'k' -> "♚";
+            case 'P' -> "\u2659";
+            case 'N' -> "\u2658";
+            case 'B' -> "\u2657";
+            case 'R' -> "\u2656";
+            case 'Q' -> "\u2655";
+            case 'K' -> "\u2654";
+            case 'p' -> "\u265F";
+            case 'n' -> "\u265E";
+            case 'b' -> "\u265D";
+            case 'r' -> "\u265C";
+            case 'q' -> "\u265B";
+            case 'k' -> "\u265A";
             default  -> String.valueOf(c);
         };
     }

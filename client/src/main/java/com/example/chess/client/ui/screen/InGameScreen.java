@@ -24,6 +24,8 @@ public class InGameScreen implements Screen {
         Menu menu = new Menu("Game");
         menu.add(new MenuItem("Move", this::move));
         menu.add(new MenuItem("Offer draw", this::offerDraw));
+        menu.add(new MenuItem("Accept draw", this::acceptDraw));
+        menu.add(new MenuItem("Decline draw", this::declineDraw));
         menu.add(new MenuItem("Resign", this::resign));
         menu.add(new MenuItem("Print board", this::printBoard));
         menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
@@ -166,5 +168,21 @@ public class InGameScreen implements Screen {
             }
         }
         return s;
+    }
+
+    private void acceptDraw() {
+        String gameId = state.getActiveGameId();
+        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); return; }
+        var status = conn.acceptDraw(gameId).join();
+        if (status.isError()) view.showError(status.getMessage());
+        else view.showMessage("Draw accepted.");
+    }
+
+    private void declineDraw() {
+        String gameId = state.getActiveGameId();
+        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); return; }
+        var status = conn.declineDraw(gameId).join();
+        if (status.isError()) view.showError(status.getMessage());
+        else view.showMessage("Draw declined.");
     }
 }

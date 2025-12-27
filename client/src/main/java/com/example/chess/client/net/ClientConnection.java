@@ -166,4 +166,12 @@ public class ClientConnection implements AutoCloseable {
     public CompletableFuture<StatusMessage> logout() {
         return sendAndWait(RequestMessage.of("logout"));
     }
+
+    public CompletableFuture<StatusMessage> acceptDraw(String gameId) {
+        return sendAndWait(RequestMessage.of("acceptDraw").with("gameId", gameId));
+    }
+
+    public CompletableFuture<StatusMessage> declineDraw(String gameId) {
+        return sendAndWait(RequestMessage.of("declineDraw").with("gameId", gameId));
+    }
 }
