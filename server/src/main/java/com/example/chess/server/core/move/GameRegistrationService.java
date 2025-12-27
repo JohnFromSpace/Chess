@@ -56,4 +56,22 @@ final class GameRegistrationService {
         if (whiteH != null) whiteH.pushGameStarted(g, true);
         if (blackH != null) blackH.pushGameStarted(g, false);
     }
+
+    GameContext rehydrateGame(Game g) throws IOException {
+        if (g == null || g.getId() == null || g.getId().isBlank()) return null;
+
+        if (g.getBoard() == null) g.setBoard(com.example.chess.common.board.Board.initial());
+
+        // No pushing, no resetting timestamps/result: disk state is source-of-truth.
+        GameContext ctx = new GameContext(g, null, null);
+
+        // Rehydrate offline markers from persisted fields
+        ctx.whiteOfflineAtMs = g.getWhiteOfflineSince();
+        ctx.blackOfflineAtMs = g.getBlackOfflineSince();
+
+        games.put(ctx);
+        clocks.register(g);
+
+        return ctx;
+    }
 }

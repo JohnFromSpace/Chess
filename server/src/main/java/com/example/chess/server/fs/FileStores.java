@@ -148,4 +148,28 @@ public class FileStores implements GameRepository {
             throw e;
         }
     }
+
+    public List<Game> loadAllGames() {
+        List<Game> out = new java.util.ArrayList<>();
+        if (!java.nio.file.Files.exists(gamesDir)) return out;
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
+            for (Path file : stream) {
+                try {
+                    String json = Files.readString(file, StandardCharsets.UTF_8);
+                    Game g = GSON.fromJson(json, Game.class);
+                    if (g != null && g.getId() != null && !g.getId().isBlank()) out.add(g);
+                } catch (Exception exception) {
+                    System.err.println("Failed to read file!");
+                    exception.printStackTrace();
+                    throw new RuntimeException(exception);
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("Failed to load all games!");
+            ex.printStackTrace();
+            throw new RuntimeException(ex);
+        }
+        return out;
+    }
 }

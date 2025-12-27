@@ -18,8 +18,13 @@ public final class ReconnectService {
     }
 
     public void scheduleDrop(String key, Runnable action) {
+        scheduleDrop(key, graceMs, action);
+    }
+
+    public void scheduleDrop(String key, long delayMs, Runnable action) {
         cancel(key);
-        tasks.put(key, scheduler.schedule(action, graceMs, TimeUnit.MILLISECONDS));
+        long d = Math.max(0L, delayMs);
+        tasks.put(key, scheduler.schedule(action, d, TimeUnit.MILLISECONDS));
     }
 
     public void cancel(String key) {

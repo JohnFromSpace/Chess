@@ -10,6 +10,7 @@ import com.example.chess.server.logic.RulesEngine;
 
 import java.io.IOException;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MoveService {
 
@@ -26,6 +27,8 @@ public class MoveService {
     private final MoveFlow moves;
     private final DrawFlow draws;
     private final ReconnectFlow reconnectFlow;
+
+    private final AtomicBoolean ready = new AtomicBoolean(false);
 
     private final ScheduledExecutorService tickExec =
             Executors.newSingleThreadScheduledExecutor(r -> {
@@ -48,6 +51,8 @@ public class MoveService {
     }
 
     private void tickAllGames() {
+        if (!ready.get()) return;
+
         for (GameContext ctx : games.snapshot()) {
             try {
                 synchronized (ctx) {
@@ -127,5 +132,34 @@ public class MoveService {
 
     public void tryReconnect(User u, ClientHandler newHandler) {
         reconnectFlow.tryReconnect(u, newHandler);
+    }
+
+    public void recoverOngoingGames(java.util.List<Game> allGamesFromDisk, long serverDownAtMs) {
+        try {
+            if (allGamesFromDisk == null) allGamesFromDisk = java.util.List.of();
+
+            for (Game g : allGamesFromDisk) {
+                if (g == null || g.getId() == null || g.getId().isBlank()) continue;
+                if (g.getResult() != com.example.chess.common.model.Result.ONGOING) continue;
+
+                // If offlineSince wasn't persisted earlier, assume BOTH became offline at serverDownAtMs
+                if (g.getWhiteOfflineSince() <= 0L) g.setWhiteOfflineSince(serverDownAtMs);
+                if (g.getBlackOfflineSince() <= 0L) g.setBlackOfflineSince(serverDownAtMs);
+
+                g.setLastUpdate(Math.max(g.getLastUpdate(), serverDownAtMs));
+
+                // persist these recovery markers so next restart is consistent
+                try { store.save(g); } catch (Exception ignored) {}
+
+                GameContext ctx = registration.rehydrateGame(g);
+                if (ctx != null) {
+                    reconnectFlow.recoverAfterRestart(ctx);
+                }
+            }
+        } catch (Exception e) {
+            com.example.chess.server.util.Log.warn("recoverOngoingGames failed", e);
+        } finally {
+            ready.set(true);
+        }
     }
 }
