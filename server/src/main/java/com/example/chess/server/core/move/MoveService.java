@@ -62,7 +62,9 @@ public class MoveService {
                         finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "Time.");
                     }
                 }
-            } catch (Exception ignored) { }
+            } catch (Exception e) {
+                com.example.chess.server.util.Log.warn("tickAllGames failed ", e);
+            }
         }
     }
 

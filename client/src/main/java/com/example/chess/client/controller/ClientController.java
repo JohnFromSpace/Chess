@@ -17,6 +17,19 @@ public class ClientController {
         this.view = view;
         this.gameUI = new GameUIOrchestrator(conn, view, state);
         this.conn.setPushHandler(new ClientPushRouter(conn, view, state, gameUI)::handle);
+
+        Thread uiPump = new Thread(() -> {
+            while(true) {
+                state.drainUi();
+                try {
+                    Thread.sleep(25);
+                } catch (InterruptedException exception) {
+                    throw new RuntimeException("Failed: " + exception);
+                }
+            }
+        }, "ui-pump");
+        uiPump.setDaemon(true);
+        uiPump.start();
     }
 
     public void run() {

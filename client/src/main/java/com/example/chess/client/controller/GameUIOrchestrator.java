@@ -44,12 +44,21 @@ public class GameUIOrchestrator {
         state.setLastBoard(board);
 
         view.showMessage("=== Game started === You are " + (state.isWhite() ? "WHITE" : "BLACK"));
-        view.showBoard(orient(board, state.isWhite()));
+
+        if (state.isAutoShowBoard()) {
+            view.showBoard(orient(board, state.isWhite()));
+        } else {
+            view.showMessage("(Auto-board: OFF) Use 'Print board' to view.");
+        }
+
         renderCheckLine(p);
         renderClock(p);
     }
 
     public void onMove(Map<String, Object> p) {
+        String by = str(p.get("by"));
+        String mv = str(p.get("move"));
+
         String board = str(p.get("board"));
         state.setLastBoard(board);
 
@@ -58,9 +67,16 @@ public class GameUIOrchestrator {
         boolean wtm = bool(p.get("whiteToMove"));
         state.syncClocks(w, b, wtm);
 
-        view.showBoard(orient(board, state.isWhite()));
-        renderCheckLine(p);
-        renderClock(p);
+        view.showMessage("Move: " + by + " " + mv);
+
+        if (state.isAutoShowBoard()) {
+            view.showBoard(orient(board, state.isWhite()));
+            renderCheckLine(p);
+            renderClock(p);
+        } else {
+            renderClock(p);
+            view.showMessage("(Auto-board: OFF) Press 'Print board' if needed.");
+        }
     }
 
     public void onGameOver(Map<String, Object> p) {
@@ -91,7 +107,7 @@ public class GameUIOrchestrator {
         if (!state.isWhite() && wChk) view.showMessage("You put WHITE in check.");
     }
 
-    private static String orient(String b, boolean isWhite) {
+    public static String orient(String b, boolean isWhite) {
         if (isWhite || b == null) return b;
         String[] lines = b.split("\n");
         StringBuilder sb = new StringBuilder();

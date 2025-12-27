@@ -67,7 +67,6 @@ public class MatchmakingService {
         g.setWhiteMove(true);
 
         moves.registerGame(g, whiteUser, blackUser, h1, h2, h1IsWhite);
-        clocks.register(g);
     }
 
     public synchronized void onDisconnect(User u) {

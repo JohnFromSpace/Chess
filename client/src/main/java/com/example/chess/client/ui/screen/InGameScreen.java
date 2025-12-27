@@ -1,6 +1,7 @@
 package com.example.chess.client.ui.screen;
 
 import com.example.chess.client.SessionState;
+import com.example.chess.client.controller.GameUIOrchestrator;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.ui.menu.Menu;
 import com.example.chess.client.ui.menu.MenuItem;
@@ -88,7 +89,7 @@ public class InGameScreen implements Screen {
     private void printBoard() {
         String b = state.getLastBoard();
         if (b == null || b.isBlank()) view.showMessage("No board received yet.");
-        else view.showBoard(b);
+        else view.showBoard(GameUIOrchestrator.orient(b, state.isWhite()));
     }
 
     private String renderClocksLine() {

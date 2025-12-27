@@ -38,6 +38,24 @@ public class LobbyScreen implements Screen {
             menu.readAndExecute(view);
 
             state.drainUi();
+
+            while (state.getUser() != null && !state.isInGame()) {
+                state.drainUi();
+                if (state.isInGame()) return;
+
+                if (state.isWaitingForMatch()) {
+                    try { Thread.sleep(150); } catch (InterruptedException ex) {
+                        throw new RuntimeException("Failed: " + ex.getMessage());
+                    }
+                    continue;
+                }
+
+                menu.render(view);
+                menu.readAndExecute(view);
+
+                state.drainUi();
+                if (state.isInGame()) return;
+            }
         }
     }
 
