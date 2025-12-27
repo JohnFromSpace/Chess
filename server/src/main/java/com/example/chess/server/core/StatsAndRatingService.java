@@ -28,6 +28,9 @@ public final class StatsAndRatingService implements GameEndHook {
 
         if (g.getResult() == null || g.getResult() == Result.ONGOING) return;
 
+        // ✅ ABORTED or rated=false => do NOT touch stats/ELO
+        if (!g.isRated() || g.getResult() == Result.ABORTED) return;
+
         users.updateUsers(all -> {
             UserModels.User w = mustUser(all, g.getWhiteUser());
             UserModels.User b = mustUser(all, g.getBlackUser());
