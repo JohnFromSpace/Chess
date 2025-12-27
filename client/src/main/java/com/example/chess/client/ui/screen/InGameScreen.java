@@ -28,6 +28,7 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Print board", this::printBoard));
         menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
         menu.add(new MenuItem("Back to lobby", this::backToLobby));
+        menu.add(new MenuItem("Exit program", () -> System.exit(0)));
 
         while (state.getUser() != null && state.isInGame()) {
             state.drainUi();
