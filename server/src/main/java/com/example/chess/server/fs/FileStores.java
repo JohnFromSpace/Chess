@@ -75,6 +75,16 @@ public class FileStores implements GameRepository {
         return gamesDir.resolve(id + ".json");
     }
 
+    private static void sanitizeReason(Game g) {
+        if (g == null) return;
+        String r = g.getResultReason();
+        if (r == null) return;
+        String t = r.trim();
+        if (t.equalsIgnoreCase("Time.") || t.equalsIgnoreCase("Time")) {
+            g.setResultReason("timeout");
+        }
+    }
+
     @Override
     public Optional<Game> findGameById(String id) {
         Path file = gameFile(id);
@@ -84,6 +94,7 @@ public class FileStores implements GameRepository {
         try {
             String json = Files.readString(file, StandardCharsets.UTF_8);
             Game game = GSON.fromJson(json, Game.class);
+            sanitizeReason(game);
             return Optional.ofNullable(game);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read game file: " + file, e);
@@ -97,15 +108,25 @@ public class FileStores implements GameRepository {
             return result;
         }
 
+        Set<String> validUsers = new HashSet<>(loadAllUsers().keySet());
+
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
             for (Path file : stream) {
                 try {
                     String json = Files.readString(file, StandardCharsets.UTF_8);
                     Game game = GSON.fromJson(json, Game.class);
 
-                    if (game != null &&
-                            (username.equals(game.getWhiteUser()) || username.equals(game.getBlackUser())) &&
-                            game.getId() != null) {
+                    if (game == null || game.getId() == null || game.getId().isBlank()) continue;
+
+                    String w = game.getWhiteUser();
+                    String b = game.getBlackUser();
+
+                    if (w == null || b == null || w.isBlank() || b.isBlank()) continue;
+                    if (w.equals(b)) continue;
+                    if (!validUsers.isEmpty() && (!validUsers.contains(w) || !validUsers.contains(b))) continue;
+
+                    if (username.equals(w) || username.equals(b)) {
+                        sanitizeReason(game);
                         result.put(game.getId(), game);
                     }
                 } catch (IOException e) {
@@ -155,7 +176,10 @@ public class FileStores implements GameRepository {
                 try {
                     String json = Files.readString(file, StandardCharsets.UTF_8);
                     Game g = GSON.fromJson(json, Game.class);
-                    if (g != null && g.getId() != null && !g.getId().isBlank()) out.add(g);
+                    if (g != null && g.getId() != null && !g.getId().isBlank()) {
+                        sanitizeReason(g);
+                        out.add(g);
+                    }
                 } catch (Exception exception) {
                     System.err.println("Failed to read file!");
                     exception.printStackTrace();

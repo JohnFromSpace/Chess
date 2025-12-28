@@ -20,14 +20,11 @@ public class ConsoleView {
     }
 
     public void showError(String msg) {
-        out.println("ERROR: " + msg);
+        out.println("[ERROR] " + msg);
     }
 
     public void showGameOver(String result, String reason) {
-        String r = (reason == null || reason.isBlank()) ? "" : (" (" + reason + ")");
-        showMessage("\n=== Game Over ===");
-        showMessage("Result: " + result + r);
-        showMessage("");
+        out.printf("Game over: %s (%s)%n", result, reason);
     }
 
     public String askLine(String prompt) {
@@ -47,30 +44,25 @@ public class ConsoleView {
         }
     }
 
+    public void showBoard(String boardText) {
+        if (boardText == null || boardText.isBlank()) {
+            out.println("(no board)");
+            return;
+        }
+        out.println(toUnicodePrettyBoard(boardText));
+    }
+
     public void clearScreen() {
         out.print("\u001B[2J\u001B[H");
         out.flush();
     }
 
-    public void showBoard(String boardText) {
-        showBoard(boardText, true);
-    }
-
-    public void showBoard(String boardText, boolean isWhitePerspective) {
-        if (boardText == null || boardText.isBlank()) {
-            out.println("(no board)");
-            return;
-        }
-        out.println(renderBoard(boardText, isWhitePerspective));
-    }
-
     public void showBoardWithCaptured(String boardText,
                                       List<String> capturedByYou,
-                                      List<String> capturedByOpp,
-                                      boolean isWhitePerspective) {
+                                      List<String> capturedByOpp) {
 
-        String renderedBoard = renderBoard(boardText, isWhitePerspective).stripTrailing();
-        String[] b = renderedBoard.split("\n", -1);
+        String pretty = (boardText == null) ? "" : toUnicodePrettyBoard(boardText);
+        String[] b = pretty.split("\n", -1);
 
         int width = 0;
         for (String line : b) width = Math.max(width, line.length());
@@ -88,109 +80,99 @@ public class ConsoleView {
         }
     }
 
-    public void showBoardWithCaptured(String boardText,
-                                      List<String> capturedByYou,
-                                      List<String> capturedByOpp) {
-        showBoardWithCaptured(boardText, capturedByYou, capturedByOpp, true);
-    }
-
-    private static String renderPieces(List<String> pieces) {
-        if (pieces == null || pieces.isEmpty()) return "-";
+    private static String renderPieces(List<String> pcs) {
+        if (pcs == null || pcs.isEmpty()) return "-";
         StringBuilder sb = new StringBuilder();
-        for (String s : pieces) {
+        for (String s : pcs) {
             if (s == null || s.isBlank()) continue;
-            char c = s.trim().charAt(0);
-            sb.append(pieceToUnicode(c)).append(' ');
+            sb.append(toUnicode(s.charAt(0))).append(' ');
         }
-        return sb.length() == 0 ? "-" : sb.toString().trim();
+        String out = sb.toString().trim();
+        return out.isEmpty() ? "-" : out;
     }
 
-    private static String pieceToUnicode(char c) {
+    private static String toUnicode(char c) {
         return switch (c) {
-            case 'K' -> "\u2654"; case 'Q' -> "\u2655"; case 'R' -> "\u2656";
-            case 'B' -> "\u2657"; case 'N' -> "\u2658"; case 'P' -> "\u2659";
-            case 'k' -> "\u265A"; case 'q' -> "\u265B"; case 'r' -> "\u265C";
-            case 'b' -> "\u265D"; case 'n' -> "\u265E"; case 'p' -> "\u265F";
+            case 'P' -> "\u2659";
+            case 'N' -> "\u2658";
+            case 'B' -> "\u2657";
+            case 'R' -> "\u2656";
+            case 'Q' -> "\u2655";
+            case 'K' -> "\u2654";
+            case 'p' -> "\u265F";
+            case 'n' -> "\u265E";
+            case 'b' -> "\u265D";
+            case 'r' -> "\u265C";
+            case 'q' -> "\u265B";
+            case 'k' -> "\u265A";
             default -> String.valueOf(c);
         };
     }
 
-    private static String emptySquareSymbol(int rank, int fileIndex) {
-        boolean dark = ((rank + fileIndex) % 2 == 1);
-        return dark ? "\u2B1B" : "\u2B1C";
+    private static String squareFor(int rank, int fileIdx) {
+        boolean light = ((rank + fileIdx) % 2 == 0);
+        return light ? "\u25A1" : "\u25A0"; // □ / ■
     }
 
-    private static char[][] tryParseAsciiBoard(String boardText) {
-        if (boardText == null) return null;
-
-        char[][] grid = new char[8][8];
-        int found = 0;
-
-        for (String raw : boardText.split("\\R")) {
-            String line = raw.trim();
-            if (line.isEmpty()) continue;
-            if (!Character.isDigit(line.charAt(0))) continue;
-
-            String[] t = line.split("\\s+");
-            if (t.length < 10) continue;
-
-            int rank;
-            try { rank = Integer.parseInt(t[0]); } catch (Exception e) { continue; }
-            if (rank < 1 || rank > 8) continue;
-
-            for (int f = 0; f < 8; f++) {
-                grid[8 - rank][f] = t[f + 1].charAt(0);
-            }
-            found++;
-        }
-
-        return found == 8 ? grid : null;
+    private static boolean isRankLine(String s) {
+        if (s == null) return false;
+        String t = s.stripLeading();
+        if (t.isEmpty()) return false;
+        char ch = t.charAt(0);
+        if (ch < '1' || ch > '8') return false;
+        String[] parts = t.split("\\s+");
+        return parts.length >= 10 && parts[0].matches("[1-8]") && parts[parts.length - 1].matches("[1-8]");
     }
 
-    private static String renderBoard(String boardText, boolean isWhitePerspective) {
-        char[][] grid = tryParseAsciiBoard(boardText);
-        if (grid == null) return boardText;
+    private static String toUnicodePrettyBoard(String ascii) {
+        if (ascii == null || ascii.isBlank()) return "";
 
-        int[] files = isWhitePerspective
-                ? new int[]{0,1,2,3,4,5,6,7}
-                : new int[]{7,6,5,4,3,2,1,0};
+        StringBuilder out = new StringBuilder(ascii.length() + 64);
+        String[] lines = ascii.split("\n", -1);
 
-        StringBuilder sb = new StringBuilder();
+        for (String line : lines) {
+            String trimmed = line.trim();
 
-        sb.append("   ");
-        for (int i = 0; i < 8; i++) {
-            sb.append((char)('a' + files[i]));
-            if (i < 7) sb.append("  ");
-        }
-        sb.append('\n');
-
-        int startRank = isWhitePerspective ? 8 : 1;
-        int endRank = isWhitePerspective ? 1 : 8;
-        int step = isWhitePerspective ? -1 : 1;
-
-        for (int rank = startRank; ; rank += step) {
-            int row = 8 - rank;
-
-            sb.append(rank).append("  ");
-            for (int i = 0; i < 8; i++) {
-                int file = files[i];
-                char p = grid[row][file];
-
-                sb.append(p == '.' ? emptySquareSymbol(rank, file) : pieceToUnicode(p));
-                if (i < 7) sb.append(' ');
+            if (trimmed.equals("a b c d e f g h") || trimmed.startsWith("a b c")) {
+                out.append("   a b c d e f g h\n");
+                continue;
             }
-            sb.append("  ").append(rank).append('\n');
 
-            if (rank == endRank) break;
+            if (isRankLine(line)) {
+                String t = line.stripLeading();
+                String[] parts = t.split("\\s+");
+
+                int rank = Integer.parseInt(parts[0]);
+
+                out.append(rank).append("  ");
+                for (int file = 0; file < 8; file++) {
+                    String cell = parts[file + 1];
+
+                    String rendered;
+                    if (cell == null || cell.isBlank() || ".".equals(cell) ||
+                            "⬜".equals(cell) || "⬛".equals(cell) ||
+                            "□".equals(cell) || "■".equals(cell)) {
+
+                        rendered = squareFor(rank, file);
+
+                    } else if (cell.length() == 1 && "PNBRQKpnbrqk".indexOf(cell.charAt(0)) >= 0) {
+                        rendered = toUnicode(cell.charAt(0));
+                    } else {
+                        rendered = cell;
+                    }
+
+                    out.append(rendered);
+                    if (file != 7) out.append(' ');
+                }
+                out.append("  ").append(rank).append('\n');
+                continue;
+            }
+
+            out.append(line).append('\n');
         }
 
-        sb.append("   ");
-        for (int i = 0; i < 8; i++) {
-            sb.append((char)('a' + files[i]));
-            if (i < 7) sb.append("  ");
-        }
-        sb.append('\n');
-
-        return sb.toString();
+        String s = out.toString();
+        if (s.endsWith("\n")) s = s.substring(0, s.length() - 1);
+        return s;
     }
 }
