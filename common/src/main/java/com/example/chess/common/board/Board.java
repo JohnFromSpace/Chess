@@ -80,4 +80,20 @@ public class Board {
         sb.append("  a b c d e f g h\n");
         return sb.toString();
     }
+
+    public String toUnicodePrettyString() {
+        String ascii = toPrettyString();
+        StringBuilder sb = new StringBuilder(ascii.length());
+        for (int i = 0; i < ascii.length(); i++) {
+            char c = ascii.charAt(i);
+            sb.append(switch (c) {
+                case 'K' -> "\u2654"; case 'Q' -> "\u2655"; case 'R' -> "\u2656";
+                case 'B' -> "\u2657"; case 'N' -> "\u2658"; case 'P' -> "\u2659";
+                case 'k' -> "\u265A"; case 'q' -> "\u265B"; case 'r' -> "\u265C";
+                case 'b' -> "\u265D"; case 'n' -> "\u265E"; case 'p' -> "\u265F";
+                default -> String.valueOf(c);
+            });
+        }
+        return sb.toString();
+    }
 }
