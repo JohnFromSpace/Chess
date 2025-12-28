@@ -40,15 +40,12 @@ public class FileStores implements GameRepository {
     public Map<String, User> loadAllUsers() {
         try {
             Files.createDirectories(root);
-
-            if (!Files.exists(usersFile)) {
-                return new HashMap<>();
-            }
+            if (!Files.exists(usersFile)) return new HashMap<>();
 
             String json = Files.readString(usersFile, StandardCharsets.UTF_8);
             Map<String, User> users = GSON.fromJson(json, USER_MAP_TYPE);
             return users != null ? users : new HashMap<>();
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println("Failed to load all users: " + e.getMessage());
             e.printStackTrace();
             return new HashMap<>();

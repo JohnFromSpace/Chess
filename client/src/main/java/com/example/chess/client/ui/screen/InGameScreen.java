@@ -96,12 +96,10 @@ public class InGameScreen implements Screen {
             return;
         }
 
-        String oriented = GameUIOrchestrator.orient(b, state.isWhite());
-
         var youCap = state.isWhite() ? state.getCapturedByWhite() : state.getCapturedByBlack();
         var oppCap = state.isWhite() ? state.getCapturedByBlack() : state.getCapturedByWhite();
 
-        view.showBoardWithCaptured(oriented, youCap, oppCap);
+        view.showBoardWithCaptured(b, youCap, oppCap, state.isWhite());
     }
 
     private String renderClocksLine() {
@@ -185,4 +183,5 @@ public class InGameScreen implements Screen {
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Draw declined.");
     }
+
 }

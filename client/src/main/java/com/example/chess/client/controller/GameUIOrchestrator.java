@@ -103,13 +103,11 @@ public class GameUIOrchestrator {
             view.showMessage(topLineOrNull);
         }
 
-        String oriented = orient(board, state.isWhite());
-
         var youCap = state.isWhite() ? state.getCapturedByWhite() : state.getCapturedByBlack();
         var oppCap = state.isWhite() ? state.getCapturedByBlack() : state.getCapturedByWhite();
 
         view.showMessage("=== Game === You are " + (state.isWhite() ? "WHITE" : "BLACK"));
-        view.showBoardWithCaptured(oriented, youCap, oppCap);
+        view.showBoardWithCaptured(board, youCap, oppCap);
 
         renderCheckLine(p);
         renderClock(p);
