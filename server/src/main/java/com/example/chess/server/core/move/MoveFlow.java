@@ -56,11 +56,11 @@ final class MoveFlow {
 
         // timeout check
         if (ctx.game.getWhiteTimeMs() <= 0) {
-            finisher.finishLocked(ctx, Result.BLACK_WIN, "timeout.");
+            finisher.finishLocked(ctx, Result.BLACK_WIN, "Timeout.");
             return;
         }
         if (ctx.game.getBlackTimeMs() <= 0) {
-            finisher.finishLocked(ctx, Result.WHITE_WIN, "timeout.");
+            finisher.finishLocked(ctx, Result.WHITE_WIN, "Timeout.");
             return;
         }
 

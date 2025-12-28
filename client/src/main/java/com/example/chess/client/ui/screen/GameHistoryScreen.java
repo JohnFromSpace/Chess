@@ -27,8 +27,7 @@ public final class GameHistoryScreen implements Screen {
             long lastUpdate
     ) {
         long sortTs() {
-            // prefer createdAt; fall back to lastUpdate if createdAt missing
-            return createdAt > 0 ? createdAt : lastUpdate;
+            return lastUpdate > 0 ? lastUpdate : createdAt;
         }
 
         String matchupText() {
@@ -39,8 +38,9 @@ public final class GameHistoryScreen implements Screen {
 
         String resultText() {
             String res = (result == null || result.isBlank()) ? "?" : result;
-            if (reason == null || reason.isBlank()) return res;
-            return res + " (" + reason + ")";
+            String rr = normalizeReason(reason);
+            if (rr == null || rr.isBlank()) return res;
+            return res + " (" + rr + ")";
         }
 
         String idText() {
@@ -122,6 +122,23 @@ public final class GameHistoryScreen implements Screen {
                     c[0], c[1], c[2], c[3], c[4]
             ));
         }
+    }
+
+    private static String normalizeReason(String reason) {
+        if (reason == null) return null;
+        String r = reason.trim();
+        if (r.isEmpty()) return null;
+
+        String low = r.toLowerCase(Locale.ROOT);
+
+        if (low.contains("both disconnected")) return "Both disconnected.";
+        if (low.startsWith("aborted") && low.contains("no moves")) return "No moves.";
+
+        if (low.contains("resign")) return "Resignation.";
+        if (low.contains("timeout") || low.equals("time") || low.equals("time.")) return "Timeout.";
+
+        // Keep as-is, but ensure it ends with a period for consistency.
+        return r.endsWith(".") ? r : (r + ".");
     }
 
     private static String str(Object o) {

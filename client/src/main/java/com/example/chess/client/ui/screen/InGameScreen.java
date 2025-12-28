@@ -1,7 +1,6 @@
 package com.example.chess.client.ui.screen;
 
 import com.example.chess.client.SessionState;
-import com.example.chess.client.controller.GameUIOrchestrator;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.ui.menu.Menu;
 import com.example.chess.client.ui.menu.MenuItem;
@@ -99,7 +98,7 @@ public class InGameScreen implements Screen {
         var youCap = state.isWhite() ? state.getCapturedByWhite() : state.getCapturedByBlack();
         var oppCap = state.isWhite() ? state.getCapturedByBlack() : state.getCapturedByWhite();
 
-        view.showBoardWithCaptured(b, youCap, oppCap, state.isWhite());
+        view.showBoardWithCaptured(b, youCap, oppCap);
     }
 
     private String renderClocksLine() {

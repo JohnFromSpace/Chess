@@ -40,12 +40,15 @@ public class FileStores implements GameRepository {
     public Map<String, User> loadAllUsers() {
         try {
             Files.createDirectories(root);
-            if (!Files.exists(usersFile)) return new HashMap<>();
+
+            if (!Files.exists(usersFile)) {
+                return new HashMap<>();
+            }
 
             String json = Files.readString(usersFile, StandardCharsets.UTF_8);
             Map<String, User> users = GSON.fromJson(json, USER_MAP_TYPE);
             return users != null ? users : new HashMap<>();
-        } catch (Exception e) {
+        } catch (IOException e) {
             System.err.println("Failed to load all users: " + e.getMessage());
             e.printStackTrace();
             return new HashMap<>();
@@ -61,11 +64,10 @@ public class FileStores implements GameRepository {
                     json,
                     StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE
+                    StandardOpenOption.TRUNCATE_EXISTING
             );
         } catch (IOException e) {
-            System.err.println("Error writing all users: " + e.getMessage());
+            System.err.println("Failed to write users: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
@@ -75,13 +77,13 @@ public class FileStores implements GameRepository {
         return gamesDir.resolve(id + ".json");
     }
 
-    private static void sanitizeReason(Game g) {
-        if (g == null) return;
-        String r = g.getResultReason();
+    private static void sanitizeReason(Game game) {
+        if (game == null) return;
+        String r = game.getResultReason();
         if (r == null) return;
-        String t = r.trim();
-        if (t.equalsIgnoreCase("Time.") || t.equalsIgnoreCase("Time")) {
-            g.setResultReason("timeout");
+        r = r.trim();
+        if (r.equalsIgnoreCase("Time.") || r.equalsIgnoreCase("Time")) {
+            game.setResultReason("timeout");
         }
     }
 
@@ -116,19 +118,20 @@ public class FileStores implements GameRepository {
                     String json = Files.readString(file, StandardCharsets.UTF_8);
                     Game game = GSON.fromJson(json, Game.class);
 
-                    if (game == null || game.getId() == null || game.getId().isBlank()) continue;
+                    if (game == null || game.getId() == null) continue;
 
                     String w = game.getWhiteUser();
                     String b = game.getBlackUser();
 
                     if (w == null || b == null || w.isBlank() || b.isBlank()) continue;
                     if (w.equals(b)) continue;
-                    if (!validUsers.isEmpty() && (!validUsers.contains(w) || !validUsers.contains(b))) continue;
 
-                    if (username.equals(w) || username.equals(b)) {
-                        sanitizeReason(game);
-                        result.put(game.getId(), game);
-                    }
+                    if (!validUsers.contains(w) || !validUsers.contains(b)) continue;
+                    if (!username.equals(w) && !username.equals(b)) continue;
+
+                    sanitizeReason(game);
+                    result.put(game.getId(), game);
+
                 } catch (IOException e) {
                     System.err.println("Failed to read game file: " + file + " -> " + e.getMessage());
                 }
@@ -150,6 +153,7 @@ public class FileStores implements GameRepository {
 
         try {
             Files.createDirectories(gamesDir);
+            sanitizeReason(game);
             String json = GSON.toJson(game);
 
             Files.writeString(
@@ -161,29 +165,28 @@ public class FileStores implements GameRepository {
                     StandardOpenOption.WRITE
             );
         } catch (IOException e) {
-            System.err.println("Error writing game " + game.getId() + ": " + e.getMessage());
+            System.err.println("Failed to write game file: " + file + " -> " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
     }
 
-    public List<Game> loadAllGames() {
-        List<Game> out = new java.util.ArrayList<>();
-        if (!java.nio.file.Files.exists(gamesDir)) return out;
+    public java.util.List<Game> loadAllGames() {
+        java.util.List<Game> out = new java.util.ArrayList<>();
+        try {
+            if (!Files.exists(gamesDir)) return out;
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
-            for (Path file : stream) {
-                try {
-                    String json = Files.readString(file, StandardCharsets.UTF_8);
-                    Game g = GSON.fromJson(json, Game.class);
-                    if (g != null && g.getId() != null && !g.getId().isBlank()) {
-                        sanitizeReason(g);
-                        out.add(g);
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
+                for (Path file : stream) {
+                    try {
+                        String json = Files.readString(file, StandardCharsets.UTF_8);
+                        Game g = GSON.fromJson(json, Game.class);
+                        if (g != null && g.getId() != null && !g.getId().isBlank()) out.add(g);
+                    } catch (Exception exception) {
+                        System.err.println("Failed to read file!");
+                        exception.printStackTrace();
+                        throw new RuntimeException(exception);
                     }
-                } catch (Exception exception) {
-                    System.err.println("Failed to read file!");
-                    exception.printStackTrace();
-                    throw new RuntimeException(exception);
                 }
             }
         } catch (Exception ex) {

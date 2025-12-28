@@ -16,7 +16,6 @@ public class MessageCodec {
         return GSON.toJson(m) + "\n";
     }
 
-    // compatibility with your server calls in the txt
     public static String toJsonLine(Message m) { return toJson(m); }
     public static Message fromJsonLine(String line) { return fromJson(line); }
 
