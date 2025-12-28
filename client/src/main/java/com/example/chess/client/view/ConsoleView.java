@@ -15,18 +15,19 @@ public class ConsoleView {
         this.out = out;
     }
 
-    public int askInt(String prompt, int min, int max) {
-        while (true) {
-            out.print(prompt);
-            String s = in.nextLine().trim();
-            try {
-                int v = Integer.parseInt(s);
-                if (v < min || v > max) throw new NumberFormatException();
-                return v;
-            } catch (NumberFormatException e) {
-                out.println("Please enter a number between " + min + " and " + max + ".");
-            }
-        }
+    public void showMessage(String msg) {
+        out.println(msg);
+    }
+
+    public void showError(String msg) {
+        out.println("ERROR: " + msg);
+    }
+
+    public void showGameOver(String result, String reason) {
+        String r = (reason == null || reason.isBlank()) ? "" : (" (" + reason + ")");
+        showMessage("\n=== Game Over ===");
+        showMessage("Result: " + result + r);
+        showMessage("");
     }
 
     public String askLine(String prompt) {
@@ -34,31 +35,50 @@ public class ConsoleView {
         return in.nextLine();
     }
 
-    public void println(String s) { out.println(s); }
-
-    public void showBoard(String boardText) {
-        out.println(renderBoard(boardText, true));
+    public int askInt(String prompt) {
+        while (true) {
+            out.print(prompt);
+            String line = in.nextLine().trim();
+            try {
+                return Integer.parseInt(line);
+            } catch (NumberFormatException e) {
+                out.println("Please enter a number.");
+            }
+        }
     }
 
-    public void showBoard(String boardText, boolean whitePerspective) {
-        out.println(renderBoard(boardText, whitePerspective));
+    public void clearScreen() {
+        out.print("\u001B[2J\u001B[H");
+        out.flush();
+    }
+
+    public void showBoard(String boardText) {
+        showBoard(boardText, true);
+    }
+
+    public void showBoard(String boardText, boolean isWhitePerspective) {
+        if (boardText == null || boardText.isBlank()) {
+            out.println("(no board)");
+            return;
+        }
+        out.println(renderBoard(boardText, isWhitePerspective));
     }
 
     public void showBoardWithCaptured(String boardText,
-                                      boolean whitePerspective,
                                       List<String> capturedByYou,
-                                      List<String> capturedByOpp) {
+                                      List<String> capturedByOpp,
+                                      boolean isWhitePerspective) {
 
-        String rendered = renderBoard(boardText, whitePerspective);
-        String[] b = rendered.split("\\R");
+        String renderedBoard = renderBoard(boardText, isWhitePerspective).stripTrailing();
+        String[] b = renderedBoard.split("\n", -1);
+
+        int width = 0;
+        for (String line : b) width = Math.max(width, line.length());
 
         List<String> side = new ArrayList<>();
         side.add("Captured by YOU: " + renderPieces(capturedByYou));
         side.add("Captured by OPP: " + renderPieces(capturedByOpp));
         side.add("Promotion: q/r/b/n (not limited by captured pieces)");
-
-        int width = 0;
-        for (String line : b) width = Math.max(width, line.length());
 
         int rows = Math.max(b.length, side.size());
         for (int i = 0; i < rows; i++) {
@@ -68,14 +88,21 @@ public class ConsoleView {
         }
     }
 
-    private static String renderPieces(List<String> pcs) {
-        if (pcs == null || pcs.isEmpty()) return "-";
+    public void showBoardWithCaptured(String boardText,
+                                      List<String> capturedByYou,
+                                      List<String> capturedByOpp) {
+        showBoardWithCaptured(boardText, capturedByYou, capturedByOpp, true);
+    }
+
+    private static String renderPieces(List<String> pieces) {
+        if (pieces == null || pieces.isEmpty()) return "-";
         StringBuilder sb = new StringBuilder();
-        for (String s : pcs) {
+        for (String s : pieces) {
             if (s == null || s.isBlank()) continue;
-            sb.append(pieceToUnicode(s.charAt(0))).append(' ');
+            char c = s.trim().charAt(0);
+            sb.append(pieceToUnicode(c)).append(' ');
         }
-        return sb.toString().trim();
+        return sb.length() == 0 ? "-" : sb.toString().trim();
     }
 
     private static String pieceToUnicode(char c) {
@@ -108,11 +135,7 @@ public class ConsoleView {
             if (t.length < 10) continue;
 
             int rank;
-            try {
-                rank = Integer.parseInt(t[0]);
-            } catch (Exception e) {
-                continue;
-            }
+            try { rank = Integer.parseInt(t[0]); } catch (Exception e) { continue; }
             if (rank < 1 || rank > 8) continue;
 
             for (int f = 0; f < 8; f++) {
@@ -152,6 +175,7 @@ public class ConsoleView {
             for (int i = 0; i < 8; i++) {
                 int file = files[i];
                 char p = grid[row][file];
+
                 sb.append(p == '.' ? emptySquareSymbol(rank, file) : pieceToUnicode(p));
                 if (i < 7) sb.append(' ');
             }
