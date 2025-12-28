@@ -3,14 +3,13 @@ package com.example.chess.client.view;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 public class ConsoleView {
 
-    private final Scanner in;
+    private final ConsoleInput in;
     private final PrintStream out;
 
-    public ConsoleView(Scanner in, PrintStream out) {
+    public ConsoleView(ConsoleInput in, PrintStream out) {
         this.in = in;
         this.out = out;
     }
@@ -23,15 +22,23 @@ public class ConsoleView {
         out.println("ERROR: " + msg);
     }
 
+    // Blocking read (fallback for simple menus)
     public String askLine(String prompt) {
         out.print(prompt);
-        return in.nextLine();
+        // Wait indefinitely until a line is available
+        while (true) {
+            String line = in.pollLine(100);
+            if (line != null) return line;
+        }
+    }
+
+    public String pollLine(long timeoutMs) {
+        return in.pollLine(timeoutMs);
     }
 
     public int askInt(String prompt) {
         while (true) {
-            out.print(prompt);
-            String line = in.nextLine().trim();
+            String line = askLine(prompt).trim();
             try {
                 return Integer.parseInt(line);
             } catch (NumberFormatException e) {
@@ -72,19 +79,27 @@ public class ConsoleView {
         String renderedBoard = renderBoard(boardText, isWhitePerspective).stripTrailing();
         String[] b = renderedBoard.split("\n", -1);
 
-        int width = 0;
-        for (String line : b) width = Math.max(width, line.length());
+        int boardCols = 0;
+        for (String line : b) boardCols = Math.max(boardCols, displayWidth(line));
+        final int GAP = 10;
 
         List<String> side = new ArrayList<>();
         side.add("Captured by YOU: " + renderPieces(capturedByYou));
         side.add("Captured by OPP: " + renderPieces(capturedByOpp));
-        side.add("Promotion: q/r/b/n (not limited by captured pieces)");
+        side.add("Promotion: q/r/b/n");
 
         int rows = Math.max(b.length, side.size());
         for (int i = 0; i < rows; i++) {
             String left = (i < b.length) ? b[i] : "";
             String right = (i < side.size()) ? side.get(i) : "";
-            out.printf("%-" + width + "s   %s%n", left, right);
+
+            out.print(left);
+            int pad = (boardCols - displayWidth(left)) + GAP;
+            if (!right.isBlank()) {
+                out.print(" ".repeat(Math.max(1, pad)));
+                out.print(right);
+            }
+            out.println();
         }
     }
 
@@ -102,9 +117,8 @@ public class ConsoleView {
         if (grid == null) return boardText;
 
         int[] files = isWhitePerspective
-                ? new int[]{0,1,2,3,4,5,6,7}
-                : new int[]{7,6,5,4,3,2,1,0};
-
+                ? new int[]{0, 1, 2, 3, 4, 5, 6, 7}
+                : new int[]{7, 6, 5, 4, 3, 2, 1, 0};
         StringBuilder sb = new StringBuilder();
 
         appendFilesHeader(sb, files);
@@ -115,38 +129,28 @@ public class ConsoleView {
 
         for (int rank = startRank; ; rank += step) {
             int row = 8 - rank;
-
             sb.append(rank).append("  ");
 
             for (int i = 0; i < 8; i++) {
                 int file = files[i];
                 char p = grid[row][file];
-
                 sb.append(renderCell(p, rank, file));
             }
-
             sb.append("  ").append(rank).append('\n');
-
             if (rank == endRank) break;
         }
-
         appendFilesHeader(sb, files);
         return sb.toString();
     }
 
     private static void appendFilesHeader(StringBuilder sb, int[] files) {
-        // Each cell is visually 2 columns wide => print "a " per file
         sb.append("   ");
-        for (int i = 0; i < 8; i++) {
-            sb.append((char)('a' + files[i])).append(' ');
-        }
+        for (int i = 0; i < 8; i++) sb.append((char) ('a' + files[i])).append(' ');
         sb.append('\n');
     }
 
     private static String renderCell(char p, int rank, int fileIndex) {
-        if (p == '.') {
-            return emptySquareSymbol(rank, fileIndex);
-        }
+        if (p == '.') return emptySquareSymbol(rank, fileIndex);
         return pieceToUnicode(p) + " ";
     }
 
@@ -157,28 +161,21 @@ public class ConsoleView {
 
     private static char[][] tryParseAsciiBoard(String boardText) {
         if (boardText == null) return null;
-
         char[][] grid = new char[8][8];
         int found = 0;
-
         for (String raw : boardText.split("\\R")) {
             String line = raw.trim();
-            if (line.isEmpty()) continue;
-            if (!Character.isDigit(line.charAt(0))) continue;
-
+            if (line.isEmpty() || !Character.isDigit(line.charAt(0))) continue;
             String[] t = line.split("\\s+");
             if (t.length < 10) continue;
-
-            int rank;
-            try { rank = Integer.parseInt(t[0]); } catch (Exception e) { throw new RuntimeException(e); }
-            if (rank < 1 || rank > 8) continue;
-
-            for (int f = 0; f < 8; f++) {
-                grid[8 - rank][f] = t[f + 1].charAt(0);
+            try {
+                int rank = Integer.parseInt(t[0]);
+                if (rank < 1 || rank > 8) continue;
+                for (int f = 0; f < 8; f++) grid[8 - rank][f] = t[f + 1].charAt(0);
+                found++;
+            } catch (Exception ignored) {
             }
-            found++;
         }
-
         return found == 8 ? grid : null;
     }
 
@@ -195,11 +192,37 @@ public class ConsoleView {
 
     private static String pieceToUnicode(char c) {
         return switch (c) {
-            case 'K' -> "\u2654"; case 'Q' -> "\u2655"; case 'R' -> "\u2656";
-            case 'B' -> "\u2657"; case 'N' -> "\u2658"; case 'P' -> "\u2659";
-            case 'k' -> "\u265A"; case 'q' -> "\u265B"; case 'r' -> "\u265C";
-            case 'b' -> "\u265D"; case 'n' -> "\u265E"; case 'p' -> "\u265F";
+            case 'K' -> "\u2654";
+            case 'Q' -> "\u2655";
+            case 'R' -> "\u2656";
+            case 'B' -> "\u2657";
+            case 'N' -> "\u2658";
+            case 'P' -> "\u2659";
+            case 'k' -> "\u265A";
+            case 'q' -> "\u265B";
+            case 'r' -> "\u265C";
+            case 'b' -> "\u265D";
+            case 'n' -> "\u265E";
+            case 'p' -> "\u265F";
             default -> String.valueOf(c);
         };
+    }
+
+    private static int displayWidth(String s) {
+        int w = 0;
+        for (int i = 0; i < s.length(); ) {
+            int cp = s.codePointAt(i);
+            i += Character.charCount(cp);
+            int type = Character.getType(cp);
+            if (type == Character.NON_SPACING_MARK || type == Character.ENCLOSING_MARK) continue;
+            w += isWide(cp) ? 2 : 1;
+        }
+        return w;
+    }
+
+    private static boolean isWide(int cp) {
+        if (cp == 0x2B1B || cp == 0x2B1C) return true;
+        if (cp >= 0x1F300 && cp <= 0x1FAFF) return true;
+        return false;
     }
 }

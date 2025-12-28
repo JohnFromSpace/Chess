@@ -1,19 +1,19 @@
 {
-  "id": "0ffd84f7-a38d-45b9-8e43-afb7060b2505",
-  "whiteUser": "admin",
-  "blackUser": "borko",
+  "id": "4943d780-861a-40c3-b7c8-fdd35d3d14c1",
+  "whiteUser": "borko",
+  "blackUser": "admin",
   "whiteMove": true,
-  "createdAt": 1766949303458,
-  "lastUpdate": 1766950729759,
+  "createdAt": 1766950865412,
+  "lastUpdate": 1766951183285,
   "timeControlMs": 300000,
   "incrementMs": 3000,
-  "whiteTimeMs": 300000,
-  "blackTimeMs": 300000,
-  "whiteOfflineSince": 1766949316636,
-  "blackOfflineSince": 1766949316636,
-  "result": "ABORTED",
-  "resultReason": "Aborted (both disconnected).",
-  "rated": false,
+  "whiteTimeMs": 0,
+  "blackTimeMs": 288240,
+  "whiteOfflineSince": 0,
+  "blackOfflineSince": 0,
+  "result": "BLACK_WIN",
+  "resultReason": "timeout.",
+  "rated": true,
   "board": {
     "squares": [
       [
@@ -31,7 +31,7 @@
         "p",
         "p",
         "p",
-        "p",
+        ".",
         "p",
         "p",
         "p"
@@ -51,7 +51,17 @@
         ".",
         ".",
         ".",
+        "p",
         ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        "P",
         ".",
         ".",
         "."
@@ -67,21 +77,11 @@
         "."
       ],
       [
-        ".",
-        ".",
-        ".",
-        ".",
-        ".",
-        ".",
-        ".",
-        "."
-      ],
-      [
         "P",
         "P",
         "P",
         "P",
-        "P",
+        ".",
         "P",
         "P",
         "P"
@@ -98,14 +98,28 @@
       ]
     ]
   },
-  "moves": [],
-  "moveHistory": [],
+  "moves": [
+    "e2e4",
+    "e7e5"
+  ],
+  "moveHistory": [
+    {
+      "by": "borko",
+      "move": "e2e4",
+      "atMs": 1766951142411
+    },
+    {
+      "by": "admin",
+      "move": "e7e5",
+      "atMs": 1766951157171
+    }
+  ],
   "wK": true,
   "wQ": true,
   "bK": true,
   "bQ": true,
-  "enPassantRow": -1,
-  "enPassantCol": -1,
+  "enPassantRow": 2,
+  "enPassantCol": 4,
   "capturedByWhite": [],
   "capturedByBlack": []
 }

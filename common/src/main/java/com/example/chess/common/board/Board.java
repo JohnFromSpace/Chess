@@ -82,35 +82,102 @@ public class Board {
     }
 
     public String toUnicodePrettyString() {
+        final String LIGHT = "\u2B1C";
+        final String DARK  = "\u2B1B";
+
+        int cellW = 1;
+        cellW = Math.max(cellW, displayWidth(LIGHT));
+        cellW = Math.max(cellW, displayWidth(DARK));
+
+        for (char pc : new char[]{'K','Q','R','B','N','P','k','q','r','b','n','p'}) {
+            cellW = Math.max(cellW, displayWidth(pieceUnicode(pc)));
+        }
+
         StringBuilder sb = new StringBuilder();
-        sb.append("   a  b  c  d  e  f  g  h\n");
+
+        sb.append("   ");
+        for (int c = 0; c < 8; c++) {
+            char file = (char) ('a' + c);
+            sb.append(padRight(String.valueOf(file), cellW));
+        }
+        sb.append('\n');
 
         for (int r = 0; r < 8; r++) {
             int rank = 8 - r;
-            sb.append(rank).append("  ");
+            sb.append(String.format("%2d ", rank));
 
             for (int c = 0; c < 8; c++) {
                 char pc = squares[r][c];
-                sb.append(cellToUnicode(pc, rank, c)).append(' ');
+
+                final String cell;
+                if (pc == '.') {
+                    boolean dark = ((r + c) % 2 == 1);
+                    cell = dark ? DARK : LIGHT;
+                } else {
+                    cell = pieceUnicode(pc);
+                }
+
+                sb.append(padRight(cell, cellW));
             }
 
-            sb.append(' ').append(rank).append('\n');
+            sb.append(String.format(" %2d", rank));
+            sb.append('\n');
         }
 
-        sb.append("   a  b  c  d  e  f  g  h\n");
+        sb.append("   ");
+        for (int c = 0; c < 8; c++) {
+            char file = (char) ('a' + c);
+            sb.append(padRight(String.valueOf(file), cellW));
+        }
+        sb.append('\n');
+
         return sb.toString();
     }
 
-    private static String cellToUnicode(char pc, int rank, int file) {
-        boolean dark = ((rank + file) % 2) == 1;
-
-        return switch (pc) {
+    private static String pieceUnicode(char c) {
+        return switch (c) {
             case 'K' -> "\u2654"; case 'Q' -> "\u2655"; case 'R' -> "\u2656";
             case 'B' -> "\u2657"; case 'N' -> "\u2658"; case 'P' -> "\u2659";
             case 'k' -> "\u265A"; case 'q' -> "\u265B"; case 'r' -> "\u265C";
             case 'b' -> "\u265D"; case 'n' -> "\u265E"; case 'p' -> "\u265F";
-            case '.' -> dark ? "\u2B1B" : "\u2B1C";
-            default -> String.valueOf(pc);
+            default  -> String.valueOf(c);
         };
+    }
+
+    private static String padRight(String s, int targetWidth) {
+        int w = displayWidth(s);
+        if (w >= targetWidth) return s;
+        return s + " ".repeat(targetWidth - w);
+    }
+
+    private static int displayWidth(String s) {
+        int width = 0;
+        for (int i = 0; i < s.length(); ) {
+            int cp = s.codePointAt(i);
+            i += Character.charCount(cp);
+
+            int type = Character.getType(cp);
+            if (type == Character.NON_SPACING_MARK || type == Character.ENCLOSING_MARK) {
+                continue;
+            }
+
+            width += isWide(cp) ? 2 : 1;
+        }
+        return width;
+    }
+
+    private static boolean isWide(int cp) {
+        if (cp == 0x2B1B || cp == 0x2B1C) return true;
+
+        if (cp >= 0x1F300 && cp <= 0x1FAFF) return true;
+
+        if (cp >= 0x1100 && cp <= 0x115F) return true;
+        if (cp >= 0x2E80 && cp <= 0xA4CF) return true;
+        if (cp >= 0xAC00 && cp <= 0xD7A3) return true;
+        if (cp >= 0xF900 && cp <= 0xFAFF) return true;
+        if (cp >= 0xFE10 && cp <= 0xFE6F) return true;
+        if (cp >= 0xFF00 && cp <= 0xFF60) return true;
+
+        return false;
     }
 }
