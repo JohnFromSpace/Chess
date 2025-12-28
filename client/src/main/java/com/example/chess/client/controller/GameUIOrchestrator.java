@@ -3,6 +3,8 @@ package com.example.chess.client.controller;
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.ui.screen.InGameScreen;
+import com.example.chess.client.ui.screen.ProfileScreen;
+import com.example.chess.client.ui.screen.ProfileScreenUserMapper;
 import com.example.chess.client.view.ConsoleView;
 
 import java.util.List;
@@ -21,10 +23,6 @@ public class GameUIOrchestrator {
         state = s;
     }
 
-    /**
-     * Show the in-game screen once. It loops internally until the game ends.
-     * (Creating the screen inside another while-loop just creates confusion.)
-     */
     public void runGameLoop() {
         running.set(true);
         new InGameScreen(conn, view, state).show();
@@ -76,7 +74,6 @@ public class GameUIOrchestrator {
         state.setCapturedByWhite(listStr(p.get("capturedByWhite")));
         state.setCapturedByBlack(listStr(p.get("capturedByBlack")));
 
-        // Always show the move line (small), but only redraw the whole board if auto-board is ON.
         if (state.isAutoShowBoard()) {
             renderFrame(p, board, "Move: " + by + " " + mv);
         } else {
@@ -88,6 +85,14 @@ public class GameUIOrchestrator {
 
     public void onGameOver(Map<String, Object> p) {
         view.showGameOver(String.valueOf(p.get("result")), String.valueOf(p.get("reason")));
+
+        conn.getStats().thenAccept(status -> {
+           if (status != null && !status.isError()) {
+               var updated = ProfileScreenUserMapper.userFromPayload(status.payload);
+               if(updated != null) state.postUi(() -> state.setUser(updated));
+           }
+        });
+
         state.clearGame();
         running.set(false);
     }

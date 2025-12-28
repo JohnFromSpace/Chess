@@ -47,6 +47,8 @@ public class ProfileScreen implements Screen {
 
     @Override
     public void show() {
+        refresh();
+
         Menu menu = new Menu("Profile");
         menu.add(new MenuItem("Refresh", this::refresh));
         menu.add(new MenuItem("My games (list)", () -> new GameHistoryScreen(conn, view).show()));
