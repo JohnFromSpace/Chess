@@ -1,6 +1,7 @@
 package com.example.chess.client.view;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Scanner;
 
 public class ConsoleView {
@@ -56,15 +57,16 @@ public class ConsoleView {
     }
 
     public void showBoardWithCaptured(String boardText,
-                                      java.util.List<String> capturedByYou,
-                                      java.util.List<String> capturedByOpp) {
-        if (boardText == null) boardText = "(no board)";
+                                      List<String> capturedByYou,
+                                      List<String> capturedByOpp) {
+        boardText = toUnicodeBoardText(boardText);
 
         String[] b = boardText.split("\n", -1);
+
         int width = 0;
         for (String line : b) width = Math.max(width, line.length());
 
-        java.util.List<String> side = new java.util.ArrayList<>();
+        List<String> side = new java.util.ArrayList<>();
         side.add("Captured by YOU: " + renderPieces(capturedByYou));
         side.add("Captured by OPP: " + renderPieces(capturedByOpp));
         side.add("Promotion: q/r/b/n (not limited by captured pieces)");
@@ -77,7 +79,7 @@ public class ConsoleView {
         }
     }
 
-    private static String renderPieces(java.util.List<String> pcs) {
+    private static String renderPieces(List<String> pcs) {
         if (pcs == null || pcs.isEmpty()) return "-";
         StringBuilder sb = new StringBuilder();
         for (String s : pcs) {
@@ -104,5 +106,17 @@ public class ConsoleView {
             case 'k' -> "\u265A";
             default  -> String.valueOf(c);
         };
+    }
+
+    private static String toUnicodeBoardText(String boardText) {
+        if (boardText == null) return null;
+
+        StringBuilder sb = new StringBuilder(boardText.length());
+        for (int i = 0; i < boardText.length(); i++) {
+            char c = boardText.charAt(i);
+            if ("KQRBNPkqrbnp".indexOf(c) >= 0) sb.append(toUnicode(c));
+            else sb.append(c);
+        }
+        return sb.toString();
     }
 }
