@@ -29,7 +29,6 @@ public class ProfileScreen implements Screen {
         int drawn  = (u.stats != null) ? u.stats.drawn : 0;
         int rating = (u.stats != null && u.stats.rating > 0) ? u.stats.rating : 1200;
 
-        view.showMessage("\n=== Profile ===");
         view.showMessage("User: " + u.username + (u.name != null ? (" (" + u.name + ")") : ""));
         view.showMessage("ELO:  " + rating);
         view.showMessage("W/L/D: " + won + "/" + lost + "/" + drawn + "  | Played: " + played);
@@ -47,7 +46,7 @@ public class ProfileScreen implements Screen {
 
     @Override
     public void show() {
-        refresh();
+        view.clearScreen();
 
         Menu menu = new Menu("Profile");
         menu.add(new MenuItem("Refresh", this::refresh));
