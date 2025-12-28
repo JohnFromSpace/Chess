@@ -36,20 +36,14 @@ public class ClientController {
 
     public void shutdownGracefully() {
         try {
-            String gid = state.getActiveGameId();
-            if (state.isInGame() && gid != null && !gid.isBlank()) {
-                // resign so opponent doesn't wait 60s
-                bestEffort(conn.resign(gid), 800);
+            if (!state.isInGame()) {
+                conn.logout(); // best-effort
             }
-        } catch (Exception ignored) {}
-
-        try {
-            if (state.getUser() != null) {
-                bestEffort(conn.logout(), 800);
-            }
-        } catch (Exception ignored) {}
-
-        try { conn.close(); } catch (Exception ignored) {}
+        } catch (Exception exception) {
+            throw new RuntimeException("Failed to shutdown", exception);
+        } finally {
+            try { conn.close(); } catch (Exception e) { throw new RuntimeException("Failed to close connection", e);}
+        }
     }
 
     private static void bestEffort(java.util.concurrent.CompletableFuture<?> fut, long ms) {

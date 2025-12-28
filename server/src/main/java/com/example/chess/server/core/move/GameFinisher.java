@@ -21,7 +21,6 @@ final class GameFinisher {
     }
 
     void finishLocked(GameContext ctx, Result result, String reason) throws IOException {
-        // default: ABORTED => unrated, others => rated
         boolean rated = (result != Result.ABORTED);
         finishLocked(ctx, result, reason, rated);
     }

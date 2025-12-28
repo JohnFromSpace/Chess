@@ -108,15 +108,27 @@ public class ConsoleView {
         };
     }
 
-    private static String toUnicodeBoardText(String boardText) {
-        if (boardText == null) return null;
-
-        StringBuilder sb = new StringBuilder(boardText.length());
-        for (int i = 0; i < boardText.length(); i++) {
-            char c = boardText.charAt(i);
-            if ("KQRBNPkqrbnp".indexOf(c) >= 0) sb.append(toUnicode(c));
-            else sb.append(c);
+    private String toUnicodePrettyBoard(String ascii) {
+        StringBuilder out = new StringBuilder();
+        for (String line : ascii.split("\n", -1)) {
+            String trimmed = line.stripLeading();
+            if (!trimmed.isEmpty() && Character.isDigit(trimmed.charAt(0))) {
+                String[] t = trimmed.split("\\s+");
+                out.append(String.format("%2s ", t[0]));
+                for (int i = 1; i <= 8; i++) {
+                    char pc = t[i].charAt(0);
+                    out.append(String.format("%2s ", mapPieceCharToUnicode(pc)));
+                }
+                out.append(String.format("%2s", t[9]));
+            }
+            else if (trimmed.startsWith("a ")) {
+                out.append("   a  b  c  d  e  f  g  h");
+            }
+            else {
+                out.append(line);
+            }
+            out.append('\n');
         }
-        return sb.toString();
+        return out.toString();
     }
 }
