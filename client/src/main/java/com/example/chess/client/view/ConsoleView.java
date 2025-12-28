@@ -94,15 +94,8 @@ public class ConsoleView {
         showBoardWithCaptured(boardText, capturedByYou, capturedByOpp, true);
     }
 
-    // ------------------------------------------------------------
-    // BOARD LAYOUT FIX:
-    // - Use big squares ⬛⬜
-    // - Print cells with NO spaces between them
-    // - Pad pieces to 2-column cells (piece + ' ')
-    // ------------------------------------------------------------
-
-    private static final String DARK_SQ = "\u2B1B";  // ⬛
-    private static final String LIGHT_SQ = "\u2B1C"; // ⬜
+    private static final String DARK_SQ = "\u2B1B";
+    private static final String LIGHT_SQ = "\u2B1C";
 
     private static String renderBoard(String boardText, boolean isWhitePerspective) {
         char[][] grid = tryParseAsciiBoard(boardText);
@@ -129,7 +122,7 @@ public class ConsoleView {
                 int file = files[i];
                 char p = grid[row][file];
 
-                sb.append(renderCell(p, rank, file)); // <-- NO delimiter spaces
+                sb.append(renderCell(p, rank, file));
             }
 
             sb.append("  ").append(rank).append('\n');
@@ -152,9 +145,8 @@ public class ConsoleView {
 
     private static String renderCell(char p, int rank, int fileIndex) {
         if (p == '.') {
-            return emptySquareSymbol(rank, fileIndex); // ⬛/⬜ already visually wide
+            return emptySquareSymbol(rank, fileIndex);
         }
-        // Chess piece glyphs are usually visually narrower => pad to 2-column cell
         return pieceToUnicode(p) + " ";
     }
 
@@ -178,7 +170,7 @@ public class ConsoleView {
             if (t.length < 10) continue;
 
             int rank;
-            try { rank = Integer.parseInt(t[0]); } catch (Exception e) { continue; }
+            try { rank = Integer.parseInt(t[0]); } catch (Exception e) { throw new RuntimeException(e); }
             if (rank < 1 || rank > 8) continue;
 
             for (int f = 0; f < 8; f++) {

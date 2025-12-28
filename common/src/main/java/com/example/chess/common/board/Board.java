@@ -82,18 +82,35 @@ public class Board {
     }
 
     public String toUnicodePrettyString() {
-        String ascii = toPrettyString();
-        StringBuilder sb = new StringBuilder(ascii.length());
-        for (int i = 0; i < ascii.length(); i++) {
-            char c = ascii.charAt(i);
-            sb.append(switch (c) {
-                case 'K' -> "\u2654"; case 'Q' -> "\u2655"; case 'R' -> "\u2656";
-                case 'B' -> "\u2657"; case 'N' -> "\u2658"; case 'P' -> "\u2659";
-                case 'k' -> "\u265A"; case 'q' -> "\u265B"; case 'r' -> "\u265C";
-                case 'b' -> "\u265D"; case 'n' -> "\u265E"; case 'p' -> "\u265F";
-                default -> String.valueOf(c);
-            });
+        StringBuilder sb = new StringBuilder();
+        sb.append("   a b c d e f g h\n");
+
+        for (int r = 0; r < 8; r++) {
+            int rank = 8 - r;
+            sb.append(rank).append("  ");
+
+            for (int c = 0; c < 8; c++) {
+                char pc = squares[r][c];
+                sb.append(cellToUnicode(pc, rank, c)).append(' ');
+            }
+
+            sb.append(' ').append(rank).append('\n');
         }
+
+        sb.append("   a b c d e f g h\n");
         return sb.toString();
+    }
+
+    private static String cellToUnicode(char pc, int rank, int file) {
+        boolean dark = ((rank + file) % 2) == 1;
+
+        return switch (pc) {
+            case 'K' -> "\u2654"; case 'Q' -> "\u2655"; case 'R' -> "\u2656";
+            case 'B' -> "\u2657"; case 'N' -> "\u2658"; case 'P' -> "\u2659";
+            case 'k' -> "\u265A"; case 'q' -> "\u265B"; case 'r' -> "\u265C";
+            case 'b' -> "\u265D"; case 'n' -> "\u265E"; case 'p' -> "\u265F";
+            case '.' -> dark ? "\u2B1B" : "\u2B1C";   // ⬛ / ⬜
+            default -> String.valueOf(pc);
+        };
     }
 }
