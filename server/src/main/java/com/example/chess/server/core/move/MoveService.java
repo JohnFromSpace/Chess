@@ -62,9 +62,9 @@ public class MoveService {
                     if (!timeout) continue;
 
                     if (ctx.game.getWhiteTimeMs() <= 0) {
-                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.BLACK_WIN, "Time.");
+                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.BLACK_WIN, "timeout.");
                     } else if (ctx.game.getBlackTimeMs() <= 0) {
-                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "Time.");
+                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "timeout.");
                     }
                 }
             } catch (Exception e) {
