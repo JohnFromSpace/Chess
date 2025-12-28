@@ -29,6 +29,10 @@ public class LobbyScreen implements Screen {
         while (state.getUser() != null && !state.isInGame()) {
             state.drainUi();
 
+            if (state.isInGame()) {
+                break;
+            }
+
             if (state.isWaitingForMatch()) {
                 try { Thread.sleep(150); } catch (InterruptedException ignored) {}
                 continue;
@@ -37,7 +41,12 @@ public class LobbyScreen implements Screen {
             menu.render(view);
             menu.readAndExecute(view);
 
+            // Process any pushes that arrived while user was in the menu
             state.drainUi();
+
+            if (state.isInGame()) {
+                break;
+            }
         }
     }
 

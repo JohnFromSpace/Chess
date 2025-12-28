@@ -83,7 +83,7 @@ public class Board {
 
     public String toUnicodePrettyString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("   a b c d e f g h\n");
+        sb.append("   a  b  c  d  e  f  g  h\n");
 
         for (int r = 0; r < 8; r++) {
             int rank = 8 - r;
@@ -97,7 +97,7 @@ public class Board {
             sb.append(' ').append(rank).append('\n');
         }
 
-        sb.append("   a b c d e f g h\n");
+        sb.append("   a  b  c  d  e  f  g  h\n");
         return sb.toString();
     }
 
@@ -109,7 +109,7 @@ public class Board {
             case 'B' -> "\u2657"; case 'N' -> "\u2658"; case 'P' -> "\u2659";
             case 'k' -> "\u265A"; case 'q' -> "\u265B"; case 'r' -> "\u265C";
             case 'b' -> "\u265D"; case 'n' -> "\u265E"; case 'p' -> "\u265F";
-            case '.' -> dark ? "\u2B1B" : "\u2B1C";   // ⬛ / ⬜
+            case '.' -> dark ? "\u2B1B" : "\u2B1C";
             default -> String.valueOf(pc);
         };
     }
