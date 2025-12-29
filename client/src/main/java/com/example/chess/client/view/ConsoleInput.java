@@ -22,7 +22,8 @@ public final class ConsoleInput implements AutoCloseable {
                 while (!closed && (line = br.readLine()) != null) {
                     lines.put(line);
                 }
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                System.err.println("Failed to read/write line from buffer: " + ex.getMessage());
             } finally {
                 closed = true;
             }

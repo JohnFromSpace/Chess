@@ -40,7 +40,7 @@ final class ReconnectFlow {
                 ctx.game.setBlackOfflineSince(now);
             }
 
-            try { store.save(ctx.game); } catch (Exception ignored) {}
+            try { store.save(ctx.game); } catch (Exception ex) {System.err.println("Failed to store the current game to repository: " + ex.getMessage());}
 
             ClientHandler opp = ctx.opponentHandlerOf(u.username);
             if (opp != null) opp.sendInfo(u.username + " disconnected. Waiting 60s for reconnect...");
@@ -72,7 +72,9 @@ final class ReconnectFlow {
                 ctx.game.setBlackOfflineSince(0L);
             }
 
-            try { store.save(ctx.game); } catch (Exception ignored) {}
+            try { store.save(ctx.game); } catch (Exception ex) {
+                System.err.println("Failed to store current game inside the repository: " + ex.getMessage());
+            }
 
             newHandler.pushGameStarted(ctx.game, isWhite);
 

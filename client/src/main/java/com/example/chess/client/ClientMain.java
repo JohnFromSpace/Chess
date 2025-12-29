@@ -22,14 +22,24 @@ public class ClientMain {
             ClientController controller = new ClientController(connection, view);
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                try { controller.shutdownGracefully(); } finally { try { input.close(); } catch (Exception ignored) {} }
+                try {
+                    controller.shutdownGracefully();
+                }
+                finally {
+                    try {
+                        input.close();
+                    }
+                    catch (Exception ex) {
+                        System.err.println("Failed to close stream: " + ex.getMessage());
+                    }
+                }
             }, "client-shutdown"));
-
             controller.run();
-
         } catch (IOException e) {
             System.err.println("Failed to connect to server: " + e.getMessage());
-            try { input.close(); } catch (Exception ignored) {}
+            try { input.close(); } catch (Exception ex) {
+                throw new RuntimeException("Failed to close input: " + ex);
+            }
         }
     }
 }

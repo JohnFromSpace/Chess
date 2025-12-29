@@ -145,7 +145,8 @@ public final class GameHistoryScreen implements Screen {
         if (o instanceof Number n) return n.longValue();
         try {
             return o == null ? 0L : Long.parseLong(String.valueOf(o));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            System.err.println("Failed: " + e.getMessage());
             return 0L;
         }
     }

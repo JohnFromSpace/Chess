@@ -24,9 +24,12 @@ public class ClientController {
             if (!state.isInGame()) {
                 conn.logout();
             }
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            System.err.println("Failed to log out: " + ex.getMessage());
         } finally {
-            try { conn.close(); } catch (Exception ignored) {}
+            try { conn.close(); } catch (Exception ex) {
+                System.err.println("Failed to close current connection: " + ex.getMessage());
+            }
         }
     }
 

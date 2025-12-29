@@ -49,10 +49,14 @@ public class ServerMain {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 heartbeat.close();
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                System.err.println("Failed to close heartbeat: " + e.getMessage());
+            }
             try {
                 heartbeat.markGracefulShutdown();
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                System.err.println("Failed to shut down gracefully: " + e.getMessage());
+            }
         }, "shutdown-hook"));
 
         System.out.println("Chess server starting on port " + port + " ...");

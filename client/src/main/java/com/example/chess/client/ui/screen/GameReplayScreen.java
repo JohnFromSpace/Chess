@@ -66,10 +66,18 @@ public final class GameReplayScreen implements Screen {
         }
     }
 
-    private static String str(Object o) { return o == null ? null : String.valueOf(o); }
+    private static String str(Object o) {
+        return o == null ? null : String.valueOf(o);
+    }
+
     private static long longVal(Object o) {
         if (o instanceof Number n) return n.longValue();
-        try { return o == null ? 0L : Long.parseLong(String.valueOf(o)); }
-        catch (Exception ignored) { return 0L; }
+        try {
+            return o == null ? 0L : Long.parseLong(String.valueOf(o));
+        }
+        catch (Exception ex) {
+            System.err.println("Failed to parse string to long integer: " + ex.getMessage());
+            return 0L;
+        }
     }
 }

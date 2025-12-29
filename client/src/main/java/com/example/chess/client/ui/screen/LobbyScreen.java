@@ -75,7 +75,12 @@ public class LobbyScreen implements Screen {
     }
 
     private void logout() {
-        try { conn.logout().join(); } catch (Exception ignored) {}
+        try {
+            conn.logout().join();
+        }
+        catch (Exception ex) {
+            System.err.println("Failed to logout: " + ex.getMessage());
+        }
 
         state.setUser(null);
         state.clearGame();

@@ -1,0 +1,145 @@
+{
+  "id": "4e6fb5d0-b6ce-401d-bd8c-a6dc7d7d98f8",
+  "whiteUser": "admin",
+  "blackUser": "borko",
+  "whiteMove": false,
+  "createdAt": 1766977261434,
+  "lastUpdate": 1766977452892,
+  "timeControlMs": 300000,
+  "incrementMs": 3000,
+  "whiteTimeMs": 205046,
+  "blackTimeMs": 218620,
+  "whiteOfflineSince": 0,
+  "blackOfflineSince": 0,
+  "result": "BLACK_WIN",
+  "resultReason": "Resignation.",
+  "rated": true,
+  "board": {
+    "squares": [
+      [
+        "r",
+        "n",
+        "b",
+        "q",
+        "k",
+        "b",
+        "n",
+        "r"
+      ],
+      [
+        "p",
+        "p",
+        "p",
+        ".",
+        "p",
+        ".",
+        "p",
+        "p"
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "P",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        "p",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        "P",
+        "P",
+        "P",
+        "P",
+        ".",
+        "P",
+        "P",
+        "P"
+      ],
+      [
+        "R",
+        "N",
+        "B",
+        "Q",
+        "K",
+        "B",
+        "N",
+        "R"
+      ]
+    ]
+  },
+  "moves": [
+    "e2e4",
+    "d7d5",
+    "e4e5",
+    "f7f6",
+    "e5f6"
+  ],
+  "moveHistory": [
+    {
+      "by": "admin",
+      "move": "e2e4",
+      "atMs": 1766977304352
+    },
+    {
+      "by": "borko",
+      "move": "d7d5",
+      "atMs": 1766977343651
+    },
+    {
+      "by": "admin",
+      "move": "e4e5",
+      "atMs": 1766977370021
+    },
+    {
+      "by": "borko",
+      "move": "f7f6",
+      "atMs": 1766977407963
+    },
+    {
+      "by": "admin",
+      "move": "e5f6",
+      "atMs": 1766977442644
+    }
+  ],
+  "wK": true,
+  "wQ": true,
+  "bK": true,
+  "bQ": true,
+  "enPassantRow": -1,
+  "enPassantCol": -1,
+  "capturedByWhite": [
+    "p"
+  ],
+  "capturedByBlack": []
+}

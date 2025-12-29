@@ -147,7 +147,9 @@ public class MoveService {
 
                 g.setLastUpdate(Math.max(g.getLastUpdate(), serverDownAtMs));
 
-                try { store.save(g); } catch (Exception ignored) {}
+                try { store.save(g); } catch (Exception e) {
+                    System.err.println("Failed to save current game to repository: " + e.getMessage());
+                }
 
                 GameContext ctx = registration.rehydrateGame(g);
                 if (ctx != null) {
