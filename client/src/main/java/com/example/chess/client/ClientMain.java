@@ -12,8 +12,8 @@ public class ClientMain {
         String host = args.length > 0 ? args[0] : "localhost";
         int port = args.length > 1 ? Integer.parseInt(args[1]) : 5000;
 
-        ConsoleInput consoleInput = new ConsoleInput(System.in);
-        ConsoleView view = new ConsoleView(consoleInput, System.out);
+        ConsoleInput input = new ConsoleInput(System.in);
+        ConsoleView view = new ConsoleView(input, System.out);
 
         try {
             ClientConnection connection = new ClientConnection(host, port);
@@ -22,14 +22,14 @@ public class ClientMain {
             ClientController controller = new ClientController(connection, view);
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                controller.shutdownGracefully();
-                consoleInput.close();
+                try { controller.shutdownGracefully(); } finally { try { input.close(); } catch (Exception ignored) {} }
             }, "client-shutdown"));
 
             controller.run();
 
         } catch (IOException e) {
             System.err.println("Failed to connect to server: " + e.getMessage());
+            try { input.close(); } catch (Exception ignored) {}
         }
     }
 }

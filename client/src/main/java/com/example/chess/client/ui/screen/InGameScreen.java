@@ -2,100 +2,91 @@ package com.example.chess.client.ui.screen;
 
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;
+import com.example.chess.client.ui.menu.Menu;
 import com.example.chess.client.ui.menu.MenuItem;
 import com.example.chess.client.view.ConsoleView;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class InGameScreen implements Screen {
 
     private final ClientConnection conn;
     private final ConsoleView view;
     private final SessionState state;
-    private final List<MenuItem> menuItems = new ArrayList<>();
 
     public InGameScreen(ClientConnection conn, ConsoleView view, SessionState state) {
         this.conn = conn;
         this.view = view;
         this.state = state;
-        initMenu();
-    }
-
-    private void initMenu() {
-        // We build the list manually so we can handle input in our custom loop
-        menuItems.add(new MenuItem("Move", this::move));
-        menuItems.add(new MenuItem("Offer draw", this::offerDraw));
-        menuItems.add(new MenuItem("Accept draw", this::acceptDraw));
-        menuItems.add(new MenuItem("Decline draw", this::declineDraw));
-        menuItems.add(new MenuItem("Resign", this::resign));
-        menuItems.add(new MenuItem("Print board", this::printBoard));
-        menuItems.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
-        menuItems.add(new MenuItem("Back to lobby", this::backToLobby));
-        menuItems.add(new MenuItem("Exit program", () -> System.exit(0)));
     }
 
     @Override
     public void show() {
-        // Initial render
-        renderGameStatus();
-        printMenuOptions();
+        Menu menu = new Menu("Game");
+        menu.add(new MenuItem("Move", this::move));
+        menu.add(new MenuItem("Offer draw", this::offerDraw));
+        menu.add(new MenuItem("Accept draw", this::acceptDraw));
+        menu.add(new MenuItem("Decline draw", this::declineDraw));
+        menu.add(new MenuItem("Resign", this::resign));
+        menu.add(new MenuItem("Print board", this::printBoard));
+        menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
+        menu.add(new MenuItem("Back to lobby", this::backToLobby));
+        menu.add(new MenuItem("Exit program", () -> System.exit(0)));
 
-        while (state.getUser() != null && state.isInGame()) {
+        final boolean[] requestedFinalStateOnce = {false};
+
+        Runnable pump = () -> {
             state.drainUi();
 
-            if (!state.isInGame()) {
-                break;
-            }
             state.tickClocks();
+            if (state.isInGame()) {
+                boolean flagFell = (state.getWhiteTimeMs() <= 0) || (state.getBlackTimeMs() <= 0);
+                if (flagFell && !requestedFinalStateOnce[0]) {
+                    requestedFinalStateOnce[0] = true;
 
-            String line = view.pollLine(100);
-
-            if (line != null) {
-                processInput(line);
-                if (state.isInGame()) {
-                    renderGameStatus();
-                    printMenuOptions();
+                    String gid = state.getActiveGameId();
+                    if (gid != null && !gid.isBlank()) {
+                        conn.getGameDetails(gid).thenAccept(status -> {
+                            if (status == null || status.isError()) return;
+                            Object gameObj = status.payload == null ? null : status.payload.get("game");
+                            if (gameObj instanceof java.util.Map<?, ?> g) {
+                                Object res = g.get("result");
+                                Object reason = g.get("reason");
+                                if (res != null && !"ONGOING".equalsIgnoreCase(String.valueOf(res))) {
+                                    state.postUi(() -> view.showGameOver(String.valueOf(res), String.valueOf(reason)));
+                                    state.postUi(state::clearGame);
+                                }
+                            }
+                        });
+                    }
                 }
             }
+        };
+
+        while (state.getUser() != null && state.isInGame()) {
+            pump.run();
+
+            menu.render(view);
+            view.showMessage(renderClocksLine());
+            view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
+
+            // KEY FIX: do NOT block forever on input; keep pumping UI.
+            menu.readAndExecuteResponsive(
+                    view,
+                    120,
+                    pump,
+                    () -> !state.isInGame() || state.getUser() == null
+            );
+
+            pump.run();
         }
     }
-
-    private void renderGameStatus() {
-        view.showMessage(renderClocksLine());
-        view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
-    }
-
-    private void printMenuOptions() {
-        view.showMessage("\n=== Game Menu ===");
-        for (int i = 0; i < menuItems.size(); i++) {
-            view.showMessage((i + 1) + ") " + menuItems.get(i).getLabel());
-        }
-        view.showMessage("Choose: "); // Prompt
-    }
-
-    private void processInput(String line) {
-        line = line.trim();
-        if (line.isEmpty()) return;
-
-        try {
-            int choice = Integer.parseInt(line);
-            if (choice < 1 || choice > menuItems.size()) {
-                view.showError("Invalid choice.");
-            } else {
-                // Execute command
-                menuItems.get(choice - 1).getCommand().execute();
-            }
-        } catch (NumberFormatException e) {
-            view.showError("Please enter a number.");
-        }
-    }
-
-    // --- Action Methods (Unchanged) ---
 
     private void offerDraw() {
         String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); return; }
+        if (gameId == null || gameId.isBlank()) {
+            view.showError("No active game.");
+            return;
+        }
+
         var status = conn.offerDraw(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Draw offer sent.");
@@ -103,10 +94,15 @@ public class InGameScreen implements Screen {
 
     private void resign() {
         String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); return; }
+        if (gameId == null || gameId.isBlank()) {
+            view.showError("No active game.");
+            return;
+        }
+
         var status = conn.resign(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Resigned.");
+
         state.clearGame();
     }
 
@@ -131,8 +127,10 @@ public class InGameScreen implements Screen {
             view.showMessage("No board received yet.");
             return;
         }
+
         var youCap = state.isWhite() ? state.getCapturedByWhite() : state.getCapturedByBlack();
         var oppCap = state.isWhite() ? state.getCapturedByBlack() : state.getCapturedByWhite();
+
         view.showBoardWithCaptured(b, youCap, oppCap);
     }
 
@@ -152,12 +150,24 @@ public class InGameScreen implements Screen {
 
     private void move() {
         String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); return; }
+        if (gameId == null || gameId.isBlank()) {
+            view.showError("No active game.");
+            return;
+        }
 
-        // Note: askLine here will block until input is given, which is fine
-        // because the user has explicitly chosen to "Move".
-        String raw = view.askLine("Enter move (e2e4 / e7e8q). Captures: e5e4 or e5xe4: ");
-        if (raw == null) { view.showError("Empty move."); return; }
+        Runnable pump = () -> {
+            state.drainUi();
+            state.tickClocks();
+        };
+
+        String raw = view.askLineResponsive(
+                "Enter move (e2e4 / e7e8q). Captures: e5e4 or e5xe4: ",
+                120,
+                pump,
+                () -> !state.isInGame() || state.getUser() == null
+        );
+
+        if (raw == null) return; // game ended while typing
 
         String move;
         try {
@@ -175,14 +185,18 @@ public class InGameScreen implements Screen {
     private static String sanitizeMove(String raw) {
         String s = raw.trim().toLowerCase();
         if (s.isBlank()) throw new IllegalArgumentException("Empty move.");
+
         s = s.replaceAll("[\\s\\-x=:+]", "");
+
         if (s.length() != 4 && s.length() != 5) {
-            throw new IllegalArgumentException("Bad move format. Use e2e4 or e7e8q.");
+            throw new IllegalArgumentException("Bad move format. Use e2e4 or e7e8q (captures: e5e4 / e5xe4).");
         }
+
         char f1 = s.charAt(0), r1 = s.charAt(1), f2 = s.charAt(2), r2 = s.charAt(3);
         if (f1 < 'a' || f1 > 'h' || f2 < 'a' || f2 > 'h' || r1 < '1' || r1 > '8' || r2 < '1' || r2 > '8') {
             throw new IllegalArgumentException("Bad squares in move: " + raw);
         }
+
         if (s.length() == 5) {
             char p = s.charAt(4);
             if (p != 'q' && p != 'r' && p != 'b' && p != 'n') {

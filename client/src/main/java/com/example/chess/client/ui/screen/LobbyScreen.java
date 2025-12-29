@@ -26,27 +26,30 @@ public class LobbyScreen implements Screen {
         menu.add(new MenuItem("Logout", this::logout));
         menu.add(new MenuItem("Exit", () -> System.exit(0)));
 
-        while (state.getUser() != null && !state.isInGame()) {
-            state.drainUi();
+        Runnable pump = state::drainUi;
 
-            if (state.isInGame()) {
-                break;
-            }
+        while (state.getUser() != null && !state.isInGame()) {
+            pump.run();
+
+            if (state.isInGame()) break;
 
             if (state.isWaitingForMatch()) {
-                try { Thread.sleep(150); } catch (InterruptedException ignored) {}
+                // still pump UI quickly while waiting
+                try { Thread.sleep(80); } catch (InterruptedException ignored) {}
                 continue;
             }
 
             menu.render(view);
-            menu.readAndExecute(view);
+            menu.readAndExecuteResponsive(
+                    view,
+                    120,
+                    pump,
+                    () -> state.isInGame() || state.getUser() == null
+            );
 
-            // Process any pushes that arrived while user was in the menu
-            state.drainUi();
+            pump.run();
 
-            if (state.isInGame()) {
-                break;
-            }
+            if (state.isInGame()) break;
         }
     }
 

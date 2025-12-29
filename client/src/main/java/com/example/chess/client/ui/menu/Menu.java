@@ -4,6 +4,7 @@ import com.example.chess.client.view.ConsoleView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 public class Menu {
     private final String title;
@@ -26,6 +27,21 @@ public class Menu {
 
     public void readAndExecute(ConsoleView view) {
         int choice = view.askInt("Choose: ");
+        if (choice < 1 || choice > items.size()) {
+            view.showError("Invalid choice.");
+            return;
+        }
+        items.get(choice - 1).getCommand().execute();
+    }
+
+    public void readAndExecuteResponsive(ConsoleView view,
+                                         long pollEveryMs,
+                                         Runnable pump,
+                                         BooleanSupplier shouldAbort) {
+
+        int choice = view.askIntResponsive("Choose: ", pollEveryMs, pump, shouldAbort);
+        if (choice == Integer.MIN_VALUE) return; // aborted (e.g., game ended)
+
         if (choice < 1 || choice > items.size()) {
             view.showError("Invalid choice.");
             return;

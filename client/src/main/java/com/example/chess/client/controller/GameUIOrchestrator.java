@@ -48,11 +48,10 @@ public class GameUIOrchestrator {
         String board = str(p.get("board"));
         state.setLastBoard(board);
 
-        // If auto-board is ON, render the whole frame here (board + captured + check + clock).
         if (state.isAutoShowBoard()) {
-            renderFrame(p, board, null);
+            renderFrame(board, null);
         } else {
-            view.showMessage("=== Game started === You are " + (state.isWhite() ? "WHITE" : "BLACK"));
+            view.showMessage("=== Game started === \nYou are " + (state.isWhite() ? "WHITE" : "BLACK"));
             renderClock(p);
             view.showMessage("(Auto-board: OFF) Use 'Print board' if needed.");
         }
@@ -74,7 +73,7 @@ public class GameUIOrchestrator {
         state.setCapturedByBlack(listStr(p.get("capturedByBlack")));
 
         if (state.isAutoShowBoard()) {
-            renderFrame(p, board, "Move: " + by + " " + mv);
+            renderFrame(board, "Move: " + by + " " + mv);
         } else {
             view.showMessage("Move: " + by + " " + mv);
             renderClock(p);
@@ -96,21 +95,19 @@ public class GameUIOrchestrator {
         running.set(false);
     }
 
-    private void renderFrame(Map<String, Object> p, String board, String topLineOrNull) {
-        view.clearScreen();
+    private void renderFrame(String board, String extraLine) {
+        view.showMessage("\n=== Game === You are " + (state.isWhite() ? "WHITE" : "BLACK"));
 
-        if (topLineOrNull != null && !topLineOrNull.isBlank()) {
-            view.showMessage(topLineOrNull);
-        }
+        view.showBoard(board, state.isWhite());
 
         var youCap = state.isWhite() ? state.getCapturedByWhite() : state.getCapturedByBlack();
         var oppCap = state.isWhite() ? state.getCapturedByBlack() : state.getCapturedByWhite();
 
-        view.showMessage("=== Game === You are " + (state.isWhite() ? "WHITE" : "BLACK"));
-        view.showBoardWithCaptured(board, youCap, oppCap);
+        view.showMessage("Captured by YOU: " + joinCaptured(youCap));
+        view.showMessage("Captured by OPP: " + joinCaptured(oppCap));
+        view.showMessage("Promotion: q/r/b/n (not limited by captured pieces)");
 
-        renderCheckLine(p);
-        renderClock(p);
+        if (extraLine != null && !extraLine.isBlank()) view.showMessage(extraLine);
     }
 
     private void renderClock(Map<String, Object> p) {
@@ -156,5 +153,16 @@ public class GameUIOrchestrator {
         if (o instanceof List<?> l) return l.stream().map(String::valueOf).toList();
         if (o == null) return List.of();
         return List.of(String.valueOf(o));
+    }
+
+    private static String joinCaptured(java.util.List<String> pieces) {
+        if (pieces == null || pieces.isEmpty()) return "-";
+        StringBuilder sb = new StringBuilder();
+        for (String s : pieces) {
+            if (s == null || s.isBlank()) continue;
+            sb.append(s.trim().charAt(0)).append(' '); // prints captured as chars
+        }
+        String out = sb.toString().trim();
+        return out.isEmpty() ? "-" : out;
     }
 }

@@ -82,8 +82,8 @@ public class Board {
     }
 
     public String toUnicodePrettyString() {
-        final String LIGHT = "\u2B1C";
-        final String DARK  = "\u2B1B";
+        final String LIGHT = "...";
+        final String DARK  = "##";
 
         int cellW = 1;
         cellW = Math.max(cellW, displayWidth(LIGHT));
