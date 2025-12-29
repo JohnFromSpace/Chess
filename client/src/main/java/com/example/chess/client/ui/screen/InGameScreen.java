@@ -68,7 +68,6 @@ public class InGameScreen implements Screen {
             view.showMessage(renderClocksLine());
             view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
 
-            // KEY FIX: do NOT block forever on input; keep pumping UI.
             menu.readAndExecuteResponsive(
                     view,
                     120,
@@ -131,7 +130,7 @@ public class InGameScreen implements Screen {
         var youCap = state.isWhite() ? state.getCapturedByWhite() : state.getCapturedByBlack();
         var oppCap = state.isWhite() ? state.getCapturedByBlack() : state.getCapturedByWhite();
 
-        view.showBoardWithCaptured(b, youCap, oppCap);
+        view.showBoardWithCaptured(state.getLastBoard(), youCap, oppCap, state.isWhite());
     }
 
     private String renderClocksLine() {

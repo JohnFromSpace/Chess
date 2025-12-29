@@ -42,7 +42,7 @@ public class MoveApplier {
             int capRow = (mover == Color.WHITE) ? move.toRow + 1 : move.toRow - 1;
             Piece captured = board.getPieceAt(capRow, move.toCol);
 
-            if (updateState && game != null && captured != null) {
+            if (updateState && captured != null) {
                 recordCapture(game, mover, captured);
             }
 

@@ -1,19 +1,19 @@
 {
-  "id": "453bc6a5-650e-4dee-b6c2-3dbcbf25353b",
+  "id": "1099a26c-ab2a-4500-a4aa-076e7fec7ebc",
   "whiteUser": "admin",
   "blackUser": "borko",
   "whiteMove": true,
-  "createdAt": 1766971993654,
-  "lastUpdate": 1766973138178,
+  "createdAt": 1766975073280,
+  "lastUpdate": 1766975102065,
   "timeControlMs": 300000,
   "incrementMs": 3000,
-  "whiteTimeMs": 300000,
+  "whiteTimeMs": 271250,
   "blackTimeMs": 300000,
-  "whiteOfflineSince": 1766972081887,
-  "blackOfflineSince": 1766972081887,
-  "result": "ABORTED",
-  "resultReason": "Aborted (both disconnected).",
-  "rated": false,
+  "whiteOfflineSince": 0,
+  "blackOfflineSince": 0,
+  "result": "BLACK_WIN",
+  "resultReason": "Resignation.",
+  "rated": true,
   "board": {
     "squares": [
       [

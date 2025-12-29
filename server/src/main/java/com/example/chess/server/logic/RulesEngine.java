@@ -41,7 +41,6 @@ public final class RulesEngine {
                 Piece p = board.getPieceAt(fr, fc);
                 if (p == null || p.getColor() != side) continue;
 
-                // Generate candidates by brute-forcing targets (simple + robust).
                 for (int tr = 0; tr < 8; tr++) {
                     for (int tc = 0; tc < 8; tc++) {
                         if (fr == tr && fc == tc) continue;

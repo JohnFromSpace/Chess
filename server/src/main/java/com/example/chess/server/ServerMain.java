@@ -22,7 +22,6 @@ public class ServerMain {
         Path dataDir = Path.of("data");
         FileStores stores = new FileStores(dataDir);
 
-        // --- crash-aware server state (survives kill -9) ---
         ServerStateStore stateStore = new ServerStateStore(dataDir);
         long lastDownAtMs = stateStore.estimateLastDownAtMs(stateStore.read());
 
@@ -39,7 +38,6 @@ public class ServerMain {
         StatsAndRatingService statsAndElo = new StatsAndRatingService(userRepo);
         MoveService moves = new MoveService(gameRepo, clocks, statsAndElo);
 
-        // --- recovery: rehydrate ONGOING games and schedule disconnect resolution ---
         moves.recoverOngoingGames(stores.loadAllGames(), lastDownAtMs);
 
         MatchmakingService matchmaking = new MatchmakingService(moves, clocks);

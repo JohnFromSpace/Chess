@@ -142,13 +142,11 @@ public class MoveService {
                 if (g == null || g.getId() == null || g.getId().isBlank()) continue;
                 if (g.getResult() != com.example.chess.common.model.Result.ONGOING) continue;
 
-                // If offlineSince wasn't persisted earlier, assume BOTH became offline at serverDownAtMs
                 if (g.getWhiteOfflineSince() <= 0L) g.setWhiteOfflineSince(serverDownAtMs);
                 if (g.getBlackOfflineSince() <= 0L) g.setBlackOfflineSince(serverDownAtMs);
 
                 g.setLastUpdate(Math.max(g.getLastUpdate(), serverDownAtMs));
 
-                // persist these recovery markers so next restart is consistent
                 try { store.save(g); } catch (Exception ignored) {}
 
                 GameContext ctx = registration.rehydrateGame(g);

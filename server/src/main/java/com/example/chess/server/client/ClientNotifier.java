@@ -18,7 +18,7 @@ public final class ClientNotifier {
         p.put("whiteTimeMs", g.getWhiteTimeMs());
         p.put("blackTimeMs", g.getBlackTimeMs());
         p.put("whiteToMove", g.isWhiteMove());
-        p.put("board", g.getBoard().toUnicodePrettyString());
+        p.put("board", g.getBoard().toPrettyString());
         p.put("capturedByWhite", g.getCapturedByWhite());
         p.put("capturedByBlack", g.getCapturedByBlack());
         p.put("rated", g.isRated());
@@ -35,7 +35,7 @@ public final class ClientNotifier {
         p.put("whiteTimeMs", g.getWhiteTimeMs());
         p.put("blackTimeMs", g.getBlackTimeMs());
         p.put("whiteToMove", g.isWhiteMove());
-        p.put("board", g.getBoard().toUnicodePrettyString());
+        p.put("board", g.getBoard().toPrettyString());
         p.put("capturedByWhite", g.getCapturedByWhite());
         p.put("capturedByBlack", g.getCapturedByBlack());
         p.put("rated", g.isRated());

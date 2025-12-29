@@ -82,7 +82,6 @@ public final class GameHistoryScreen implements Screen {
             return;
         }
 
-        // chronological ascending (oldest -> newest)
         rows.sort(Comparator
                 .comparingLong(Row::sortTs)
                 .thenComparing(r -> r.id == null ? "" : r.id));
@@ -91,7 +90,6 @@ public final class GameHistoryScreen implements Screen {
                 .ofPattern("yyyy-MM-dd HH:mm")
                 .withZone(ZoneId.systemDefault());
 
-        // Build formatted columns first (so we can align widths nicely)
         List<String[]> cols = new ArrayList<>(rows.size());
         int numW = 0, matchW = 0, resW = 0, timeW = 0;
 
@@ -115,7 +113,6 @@ public final class GameHistoryScreen implements Screen {
 
         view.showMessage("\n=== Your Games ===");
 
-        // print aligned rows
         for (String[] c : cols) {
             view.showMessage(String.format(
                     "%-" + numW + "s | %-" + matchW + "s | %-" + resW + "s | %-" + timeW + "s | %s",
@@ -137,7 +134,6 @@ public final class GameHistoryScreen implements Screen {
         if (low.contains("resign")) return "Resignation.";
         if (low.contains("timeout") || low.equals("time") || low.equals("time.")) return "Timeout.";
 
-        // Keep as-is, but ensure it ends with a period for consistency.
         return r.endsWith(".") ? r : (r + ".");
     }
 

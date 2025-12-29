@@ -90,12 +90,11 @@ final class ReconnectFlow {
             long now = System.currentTimeMillis();
             long grace = reconnects.getGraceMs();
 
-            // Rebuild in-memory offline markers from persisted fields
             long wOff = ctx.game.getWhiteOfflineSince();
             long bOff = ctx.game.getBlackOfflineSince();
 
-            ctx.whiteOfflineAtMs = (wOff > 0L) ? wOff : 0L;
-            ctx.blackOfflineAtMs = (bOff > 0L) ? bOff : 0L;
+            ctx.whiteOfflineAtMs = Math.max(wOff, 0L);
+            ctx.blackOfflineAtMs = Math.max(bOff, 0L);
 
             if (ctx.whiteOfflineAtMs > 0L) {
                 long elapsed = now - ctx.whiteOfflineAtMs;

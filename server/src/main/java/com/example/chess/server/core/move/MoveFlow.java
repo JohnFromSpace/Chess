@@ -36,25 +36,20 @@ final class MoveFlow {
         if (!rules.isLegalMove(ctx.game, board, move))
             throw new IllegalArgumentException("Illegal move.");
 
-        // king-safety check (no self-check)
         Board test = board.copy();
         rules.applyMove(test, ctx.game, move, false);
         if (rules.isKingInCheck(test, moverIsWhite))
             throw new IllegalArgumentException("Illegal move: your king would be in check.");
 
-        // apply for real (+ update castling/ep state)
         rules.applyMove(board, ctx.game, move, true);
 
         ctx.game.recordMove(u.username, move.toString());
 
-        // update clock + flip side-to-move
         clocks.onMoveApplied(ctx.game);
 
-        // check flags (after move)
         boolean wChk = rules.isKingInCheck(board, true);
         boolean bChk = rules.isKingInCheck(board, false);
 
-        // timeout check
         if (ctx.game.getWhiteTimeMs() <= 0) {
             finisher.finishLocked(ctx, Result.BLACK_WIN, "Timeout.");
             return;
@@ -64,7 +59,6 @@ final class MoveFlow {
             return;
         }
 
-        // mate/stalemate check for side-to-move after flip
         boolean whiteToMove = ctx.game.isWhiteMove();
         boolean inCheck = rules.isKingInCheck(board, whiteToMove);
         boolean anyLegal = rules.hasAnyLegalMove(ctx.game, board, whiteToMove);

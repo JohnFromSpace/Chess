@@ -27,16 +27,18 @@ public class LobbyScreen implements Screen {
         menu.add(new MenuItem("Exit", () -> System.exit(0)));
 
         Runnable pump = state::drainUi;
+        boolean waitingHintShown = false;
 
         while (state.getUser() != null && !state.isInGame()) {
             pump.run();
-
             if (state.isInGame()) break;
 
-            if (state.isWaitingForMatch()) {
-                // still pump UI quickly while waiting
-                try { Thread.sleep(80); } catch (InterruptedException ignored) {}
-                continue;
+            if (state.isWaitingForMatch() && !waitingHintShown) {
+                view.showMessage("Waiting for opponent... (you can still Exit / Logout / Profile)");
+                waitingHintShown = true;
+            }
+            if (!state.isWaitingForMatch()) {
+                waitingHintShown = false;
             }
 
             menu.render(view);
@@ -48,14 +50,13 @@ public class LobbyScreen implements Screen {
             );
 
             pump.run();
-
             if (state.isInGame()) break;
         }
     }
 
     private void requestGame() {
         if (state.isWaitingForMatch()) {
-            view.showMessage("Already waiting for a match...");
+            view.showMessage("Already waiting for a match.");
             return;
         }
 

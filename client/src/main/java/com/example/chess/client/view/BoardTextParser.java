@@ -26,7 +26,6 @@ final class BoardTextParser {
 
             int start = 1;
 
-            // If there's a right-side rank label (e.g. "... 8"), ignore it implicitly by reading t[1..8].
             if (t.length < start + 8) continue;
 
             for (int f = 0; f < 8; f++) {
@@ -44,16 +43,13 @@ final class BoardTextParser {
         String s = tok.trim();
         if (s.isEmpty()) return '.';
 
-        // Empty squares from different formats
         if (s.equals(".") || s.equals("..") || s.equals("...") || s.equals("##")) return '.';
 
-        // Already a piece char (P,k,...)
         if (s.length() == 1) {
             char c = s.charAt(0);
             if ("KQRBNPkqrbnp".indexOf(c) >= 0) return c;
         }
 
-        // Unicode chess pieces (U+2654..U+265F)
         int cp = s.codePointAt(0);
         return switch (cp) {
             case 0x2654 -> 'K'; case 0x2655 -> 'Q'; case 0x2656 -> 'R';
