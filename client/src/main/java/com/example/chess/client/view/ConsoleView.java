@@ -209,22 +209,75 @@ public class ConsoleView {
         for (String raw : boardText.split("\\R")) {
             String line = raw.trim();
             if (line.isEmpty()) continue;
+
+            // Must start with a rank number (1..8)
             if (!Character.isDigit(line.charAt(0))) continue;
 
             String[] t = line.split("\\s+");
-            if (t.length < 10) continue;
+            if (t.length < 9) continue; // need at least: rank + 8 cells
 
             int rank;
-            try { rank = Integer.parseInt(t[0]); } catch (Exception e) { return null; }
+            try { rank = Integer.parseInt(t[0]); }
+            catch (Exception e) { continue; }
+
             if (rank < 1 || rank > 8) continue;
 
-            for (int f = 0; f < 8; f++) {
-                grid[8 - rank][f] = t[f + 1].charAt(0);
+            int start = 1;
+
+            // If the line contains a right-side rank label, it's the last token and numeric.
+            // Example: "8  ♜ ♞ ...  8"
+            // In that case cells are t[1]..t[8].
+            // If not, we still read t[1]..t[8].
+            if (t.length >= 10) {
+                // If last token is numeric, ignore it.
+                String last = t[t.length - 1];
+                if (last.chars().allMatch(Character::isDigit)) {
+                    // ok, cells still start at 1
+                }
             }
+
+            for (int f = 0; f < 8; f++) {
+                String cellTok = t[start + f];
+                grid[8 - rank][f] = normalizeCellToPieceChar(cellTok);
+            }
+
             found++;
         }
 
         return found == 8 ? grid : null;
+    }
+
+    private static char normalizeCellToPieceChar(String tok) {
+        if (tok == null) return '.';
+        String s = tok.trim();
+        if (s.isEmpty()) return '.';
+
+        // Empty squares from different formats
+        if (s.equals(".") || s.equals("..") || s.equals("...") || s.equals("##")) return '.';
+
+        // If it's already a piece char like 'P', 'k', etc.
+        if (s.length() == 1) {
+            char c = s.charAt(0);
+            if ("KQRBNPkqrbnp".indexOf(c) >= 0) return c;
+        }
+
+        // Unicode chess pieces (U+2654..U+265F)
+        int cp = s.codePointAt(0);
+        return switch (cp) {
+            case 0x2654 -> 'K'; // ♔
+            case 0x2655 -> 'Q'; // ♕
+            case 0x2656 -> 'R'; // ♖
+            case 0x2657 -> 'B'; // ♗
+            case 0x2658 -> 'N'; // ♘
+            case 0x2659 -> 'P'; // ♙
+            case 0x265A -> 'k'; // ♚
+            case 0x265B -> 'q'; // ♛
+            case 0x265C -> 'r'; // ♜
+            case 0x265D -> 'b'; // ♝
+            case 0x265E -> 'n'; // ♞
+            case 0x265F -> 'p'; // ♟
+            default -> '.';
+        };
     }
 
     private static String renderPieces(List<String> pieces) {
