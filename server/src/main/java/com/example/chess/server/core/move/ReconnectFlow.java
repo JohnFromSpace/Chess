@@ -1,8 +1,10 @@
 package com.example.chess.server.core.move;
 
 import com.example.chess.common.UserModels.User;
+import com.example.chess.common.model.Game;
 import com.example.chess.common.model.Result;
 import com.example.chess.server.client.ClientHandler;
+import com.example.chess.server.client.ClientNotifier;
 import com.example.chess.server.core.ReconnectService;
 import com.example.chess.server.util.Log;
 
@@ -26,8 +28,15 @@ final class ReconnectFlow {
         GameContext ctx = games.findCtxByUser(u.username);
         if (ctx == null) return;
 
+
+        ClientHandler opp = ctx.opponentHandlerOf(u.username);
+        String oppMsg = null;
+
         synchronized (ctx) {
-            if (ctx.game.getResult() != Result.ONGOING) return;
+            if (ctx.game.getResult() != Result.ONGOING) {
+                games.remove(ctx);
+                return;
+            }
 
             boolean isWhite = ctx.isWhiteUser(u.username);
             long now = System.currentTimeMillis();
@@ -40,47 +49,76 @@ final class ReconnectFlow {
                 ctx.game.setBlackOfflineSince(now);
             }
 
-            try { store.save(ctx.game); } catch (Exception ex) {System.err.println("Failed to store the current game to repository: " + ex.getMessage());}
+            try {
+                store.save(ctx.game);
+            } catch (Exception ex) {
+                Log.warn("Failed to persist disconnect markers for game: " + ctx.game.getId(), ex);
+            }
 
-            ClientHandler opp = ctx.opponentHandlerOf(u.username);
-            if (opp != null) opp.sendInfo(u.username + " disconnected. Waiting 60s for reconnect...");
+            if (opp != null)
+                oppMsg = u.username + " disconnected. Waiting " + (reconnects.getGraceMs() / 1000);
 
             scheduleDropTask(ctx, u.username, isWhite, reconnects.getGraceMs());
         }
+
+        if(opp != null && oppMsg != null) opp.sendInfo(oppMsg);
     }
 
     void tryReconnect(User u, ClientHandler newHandler) {
-        if (u == null || u.username == null || newHandler == null) return;
+        if (u == null) throw new IllegalArgumentException("Missing user.");
+        if (newHandler == null) throw new IllegalArgumentException("Missing handler.");
+        if (u.username == null || u.username.isBlank()) throw new IllegalArgumentException("Missing username");
 
         GameContext ctx = games.findCtxByUser(u.username);
         if (ctx == null) return;
 
+        boolean isWhite = true;
+        boolean pushGameOver = false;
+        Game gameToPush;
+
+        ClientHandler opp = null;
+        String oppMsg = null;
+
         synchronized (ctx) {
-            if (ctx.game.getResult() != Result.ONGOING) return;
-
-            boolean isWhite = ctx.isWhiteUser(u.username);
-
-            reconnects.cancel(key(ctx.game.getId(), u.username));
-
-            if (isWhite) {
-                ctx.white = newHandler;
-                ctx.whiteOfflineAtMs = 0L;
-                ctx.game.setWhiteOfflineSince(0L);
+            if (ctx.game.getResult() != Result.ONGOING) {
+                gameToPush = ctx.game;
+                pushGameOver = true;
+                games.remove(ctx);
             } else {
-                ctx.black = newHandler;
-                ctx.blackOfflineAtMs = 0L;
-                ctx.game.setBlackOfflineSince(0L);
+                isWhite = ctx.isWhiteUser(u.username);
+
+                reconnects.cancel(key(ctx.game.getId(), u.username));
+
+                if (isWhite) {
+                    ctx.white = newHandler;
+                    ctx.whiteOfflineAtMs = 0L;
+                    ctx.game.setWhiteOfflineSince(0L);
+                } else {
+                    ctx.black = newHandler;
+                    ctx.blackOfflineAtMs = 0L;
+                    ctx.game.setBlackOfflineSince(0L);
+                }
+
+                try {
+                    store.save(ctx.game);
+                } catch (Exception ex) {
+                    Log.warn("Failed to persist reconnect markers for game " + ctx.game.getId(), ex);
+                }
+
+                gameToPush = ctx.game;
+
+                opp = ctx.opponentHandlerOf(u.username);
+                if (opp != null) oppMsg = u.username + " reconnected.";
             }
-
-            try { store.save(ctx.game); } catch (Exception ex) {
-                System.err.println("Failed to store current game inside the repository: " + ex.getMessage());
-            }
-
-            newHandler.pushGameStarted(ctx.game, isWhite);
-
-            ClientHandler opp = ctx.opponentHandlerOf(u.username);
-            if (opp != null) opp.sendInfo(u.username + " reconnected.");
         }
+
+        if(pushGameOver) {
+            newHandler.pushGameOver(gameToPush, true);
+            return;
+        }
+
+        newHandler.pushGameStarted(ctx.game, isWhite);
+        if (opp != null && oppMsg != null) opp.sendInfo(oppMsg);
     }
 
     void recoverAfterRestart(GameContext ctx) {
