@@ -73,18 +73,16 @@ public final class RulesEngine {
         if (p instanceof Pawn) {
             int lastRow = whiteToMove ? 0 : 7;
 
-            // Only expand promotions when the pawn is moving into last rank.
             if (tr == lastRow) {
                 out.add(new Move(fr, fc, tr, tc, 'q'));
                 out.add(new Move(fr, fc, tr, tc, 'r'));
                 out.add(new Move(fr, fc, tr, tc, 'b'));
                 out.add(new Move(fr, fc, tr, tc, 'n'));
-                out.add(new Move(fr, fc, tr, tc, null)); // allow default promotion behavior if supported
+                out.add(new Move(fr, fc, tr, tc, null));
                 return out;
             }
         }
 
-        // Normal case
         out.add(new Move(fr, fc, tr, tc, null));
         return out;
     }
