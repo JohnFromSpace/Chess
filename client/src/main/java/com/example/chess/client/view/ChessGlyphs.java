@@ -7,7 +7,6 @@ final class ChessGlyphs {
     private ChessGlyphs() {}
 
     static String pieceCell(char p) {
-        // Keep your 2-char cell: glyph + space
         return pieceToUnicode(p) + " ";
     }
 
