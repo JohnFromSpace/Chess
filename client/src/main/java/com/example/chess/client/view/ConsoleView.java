@@ -3,6 +3,7 @@ package com.example.chess.client.view;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
 public class ConsoleView {

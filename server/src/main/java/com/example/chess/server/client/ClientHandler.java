@@ -13,6 +13,7 @@ import com.example.chess.server.util.Log;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Map;
 
 public class ClientHandler implements Runnable {
 
@@ -57,11 +58,11 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleLine(String line) throws IOException {
-        if (line == null) return;
+        if (line == null) throw new IOException("Line is empty.");
         line = line.trim();
-        if (line.isEmpty()) return;
+        if (line.isEmpty()) throw new IOException("The trimmed line is empty.");
 
-        Message parsed;
+        Message parsed = null;
         try {
             parsed = MessageCodec.fromJsonLine(line);
         } catch (Exception e) {
@@ -80,17 +81,15 @@ public class ClientHandler implements Runnable {
     public void send(ResponseMessage m) {
         try {
             String line = MessageCodec.toJsonLine(m);
-            synchronized (this) {
-                out.write(line);
-                out.flush();
-            }
+            out.write(line);
+            out.flush();
         } catch (Exception e) {
             Log.warn("Failed to send response to client", e);
         }
     }
 
     public void sendInfo(String message) {
-        send(ResponseMessage.push("info", java.util.Map.of("message", message)));
+        send(ResponseMessage.push("info", Map.of("message", message)));
     }
 
     public void pushGameStarted(Game g, boolean isWhite) {

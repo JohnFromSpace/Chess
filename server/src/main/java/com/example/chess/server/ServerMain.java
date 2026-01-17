@@ -50,12 +50,12 @@ public class ServerMain {
             try {
                 heartbeat.close();
             } catch (Exception e) {
-                System.err.println("Failed to close heartbeat: " + e.getMessage());
+                com.example.chess.server.util.Log.warn("Failed to close heartbeat: ", e);
             }
             try {
                 heartbeat.markGracefulShutdown();
             } catch (Exception e) {
-                System.err.println("Failed to shut down gracefully: " + e.getMessage());
+                com.example.chess.server.util.Log.warn("Failed to shut down gracefully: ", e);
             }
         }, "shutdown-hook"));
 
@@ -69,7 +69,7 @@ public class ServerMain {
                 t.start();
             }
         } catch (IOException e) {
-            System.err.println("Server error: " + e.getMessage());
+            com.example.chess.server.util.Log.warn("Server error: ", e);
         }
     }
 }

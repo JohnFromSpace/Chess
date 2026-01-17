@@ -64,7 +64,7 @@ public class Game {
     }
 
     public void recordMove(String by, String moveUci) {
-        if (moveUci == null) return;
+        if (moveUci == null) throw new IllegalArgumentException("Empty move UCI.");
         if (moves == null) moves = new ArrayList<>();
         if (moveHistory == null) moveHistory = new ArrayList<>();
 
@@ -74,9 +74,9 @@ public class Game {
     }
 
     public void ensureMoveHistory() {
-        if (moveHistory != null && !moveHistory.isEmpty()) return;
+        if (moveHistory != null && !moveHistory.isEmpty()) throw new IllegalArgumentException("There is no move history.");
         moveHistory = new ArrayList<>();
-        if (moves == null) return;
+        if (moves == null) throw new IllegalArgumentException("There are no moves.");
         for (String m : moves) moveHistory.add(new MoveEntry(null, m, 0L));
     }
 
@@ -139,7 +139,6 @@ public class Game {
     public void setMoves(List<String> moves) { this.moves = moves; }
 
     public List<MoveEntry> getMoveHistory() { return moveHistory; }
-    public void setMoveHistory(List<MoveEntry> moveHistory) { this.moveHistory = moveHistory; }
 
     public boolean isWK() { return wK; }
     public void setWK(boolean wK) { this.wK = wK; }
@@ -160,14 +159,8 @@ public class Game {
     public void setEnPassantCol(int enPassantCol) { this.enPassantCol = enPassantCol; }
 
     public List<String> getCapturedByWhite() { return capturedByWhite; }
-    public void setCapturedByWhite(List<String> capturedByWhite) {
-        this.capturedByWhite = (capturedByWhite == null) ? new ArrayList<>() : capturedByWhite;
-    }
 
     public List<String> getCapturedByBlack() { return capturedByBlack; }
-    public void setCapturedByBlack(List<String> capturedByBlack) {
-        this.capturedByBlack = (capturedByBlack == null) ? new ArrayList<>() : capturedByBlack;
-    }
 
     public void addCapturedByWhite(char piece) {
         if (capturedByWhite == null) capturedByWhite = new ArrayList<>();
