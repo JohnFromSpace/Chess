@@ -91,8 +91,4 @@ public class ConsoleView {
             out.println();
         }
     }
-
-    public void showBoardWithCaptured(String boardText, List<String> capturedByYou, List<String> capturedByOpp) {
-        showBoardWithCaptured(boardText, capturedByYou, capturedByOpp, true);
-    }
 }
