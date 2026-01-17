@@ -22,7 +22,7 @@ public class GameUIOrchestrator {
         state = s;
     }
 
-    public void runGameLoop() {
+    public void runGameLoop() throws InterruptedException {
         running.set(true);
         new InGameScreen(conn, view, state).show();
         running.set(false);

@@ -19,7 +19,7 @@ public class LobbyScreen implements Screen {
     }
 
     @Override
-    public void show() {
+    public void show() throws InterruptedException {
         Menu menu = new Menu("Lobby");
         menu.add(new MenuItem("Request game", this::requestGame));
         menu.add(new MenuItem("Profile", this::openProfile));

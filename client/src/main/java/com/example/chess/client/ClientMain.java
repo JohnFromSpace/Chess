@@ -40,6 +40,8 @@ public class ClientMain {
             try { input.close(); } catch (Exception ex) {
                 throw new RuntimeException("Failed to close input: " + ex);
             }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }

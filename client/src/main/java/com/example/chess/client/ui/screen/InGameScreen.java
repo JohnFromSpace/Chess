@@ -19,7 +19,7 @@ public class InGameScreen implements Screen {
     }
 
     @Override
-    public void show() {
+    public void show() throws InterruptedException {
         Menu menu = new Menu("Game");
         menu.add(new MenuItem("Move", this::move));
         menu.add(new MenuItem("Offer draw", this::offerDraw));
@@ -147,7 +147,7 @@ public class InGameScreen implements Screen {
         return String.format("%02d:%02d", m, r);
     }
 
-    private void move() {
+    private void move() throws InterruptedException {
         String gameId = state.getActiveGameId();
         if (gameId == null || gameId.isBlank()) {
             view.showError("No active game.");

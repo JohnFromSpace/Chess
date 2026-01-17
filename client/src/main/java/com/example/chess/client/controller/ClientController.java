@@ -33,7 +33,7 @@ public class ClientController {
         }
     }
 
-    public void run() {
+    public void run() throws InterruptedException {
         while (true) {
             new AuthScreen(conn, view, state).show();
             new LobbyScreen(conn, view, state).show();

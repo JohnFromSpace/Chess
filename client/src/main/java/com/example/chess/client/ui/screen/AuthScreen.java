@@ -22,7 +22,7 @@ public class AuthScreen implements Screen {
     }
 
     @Override
-    public void show() {
+    public void show() throws InterruptedException {
         Menu menu = new Menu("Auth");
         menu.add(new MenuItem("Login", this::login));
         menu.add(new MenuItem("Register", this::register));

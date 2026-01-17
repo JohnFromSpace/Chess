@@ -25,7 +25,7 @@ public class Menu {
         }
     }
 
-    public void readAndExecute(ConsoleView view) {
+    public void readAndExecute(ConsoleView view) throws InterruptedException {
         int choice = view.askInt("Choose: ");
         if (choice < 1 || choice > items.size()) {
             view.showError("Invalid choice.");
@@ -37,7 +37,7 @@ public class Menu {
     public void readAndExecuteResponsive(ConsoleView view,
                                          long pollEveryMs,
                                          Runnable pump,
-                                         BooleanSupplier shouldAbort) {
+                                         BooleanSupplier shouldAbort) throws InterruptedException {
 
         int choice = view.askIntResponsive("Choose: ", pollEveryMs, pump, shouldAbort);
         if (choice == Integer.MIN_VALUE) return; // aborted (e.g., game ended)
