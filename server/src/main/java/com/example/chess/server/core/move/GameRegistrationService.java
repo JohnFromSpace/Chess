@@ -19,58 +19,58 @@ final class GameRegistrationService {
         this.store = store;
     }
 
-    void registerGame(Game g,
+    void registerGame(Game game,
                       String whiteUser,
                       String blackUser,
                       ClientHandler h1,
                       ClientHandler h2,
                       boolean h1IsWhite) throws IOException {
 
-        if (g == null || g.getId() == null || g.getId().isBlank()) return;
+        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("There is no current game.");
 
-        if (g.getWhiteUser() == null || g.getWhiteUser().isBlank()) g.setWhiteUser(whiteUser);
-        if (g.getBlackUser() == null || g.getBlackUser().isBlank()) g.setBlackUser(blackUser);
+        if (game.getWhiteUser() == null || game.getWhiteUser().isBlank()) game.setWhiteUser(whiteUser);
+        if (game.getBlackUser() == null || game.getBlackUser().isBlank()) game.setBlackUser(blackUser);
 
         ClientHandler whiteH = h1IsWhite ? h1 : h2;
         ClientHandler blackH = h1IsWhite ? h2 : h1;
 
-        registerGame(g, whiteH, blackH);
+        registerGame(game, whiteH, blackH);
     }
 
-    void registerGame(Game g, ClientHandler whiteH, ClientHandler blackH) throws IOException {
-        if (g == null || g.getId() == null || g.getId().isBlank()) return;
+    void registerGame(Game game, ClientHandler whiteH, ClientHandler blackH) throws IOException {
+        if (game == null || game.getId() == null || game.getId().isBlank()) return;
 
         long now = System.currentTimeMillis();
-        if (g.getCreatedAt() == 0L) g.setCreatedAt(now);
-        g.setLastUpdate(now);
-        g.setResult(Result.ONGOING);
+        if (game.getCreatedAt() == 0L) game.setCreatedAt(now);
+        game.setLastUpdate(now);
+        game.setResult(Result.ONGOING);
 
-        if (g.getBoard() == null) g.setBoard(com.example.chess.common.board.Board.initial());
+        if (game.getBoard() == null) game.setBoard(com.example.chess.common.board.Board.initial());
 
-        GameContext ctx = new GameContext(g, whiteH, blackH);
+        GameContext ctx = new GameContext(game, whiteH, blackH);
         games.put(ctx);
 
-        clocks.register(g);
-        store.save(g);
+        clocks.register(game);
+        store.save(game);
 
-        if (whiteH != null) whiteH.pushGameStarted(g, true);
-        if (blackH != null) blackH.pushGameStarted(g, false);
+        if (whiteH != null) whiteH.pushGameStarted(game, true);
+        if (blackH != null) blackH.pushGameStarted(game, false);
     }
 
-    GameContext rehydrateGame(Game g) throws IOException {
-        if (g == null || g.getId() == null || g.getId().isBlank()) return null;
+    GameContext rehydrateGame(Game game) throws IOException {
+        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("There is no current game.");
 
-        if (g.getBoard() == null) g.setBoard(com.example.chess.common.board.Board.initial());
+        if (game.getBoard() == null) game.setBoard(com.example.chess.common.board.Board.initial());
 
         // No pushing, no resetting timestamps/result: disk state is source-of-truth.
-        GameContext ctx = new GameContext(g, null, null);
+        GameContext ctx = new GameContext(game, null, null);
 
         // Rehydrate offline markers from persisted fields
-        ctx.whiteOfflineAtMs = g.getWhiteOfflineSince();
-        ctx.blackOfflineAtMs = g.getBlackOfflineSince();
+        ctx.whiteOfflineAtMs = game.getWhiteOfflineSince();
+        ctx.blackOfflineAtMs = game.getBlackOfflineSince();
 
         games.put(ctx);
-        clocks.register(g);
+        clocks.register(game);
 
         return ctx;
     }
