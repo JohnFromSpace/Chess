@@ -4,7 +4,6 @@ import com.example.chess.common.UserModels.User;
 import com.example.chess.common.model.Game;
 import com.example.chess.common.model.Result;
 import com.example.chess.server.client.ClientHandler;
-import com.example.chess.server.client.ClientNotifier;
 import com.example.chess.server.core.ReconnectService;
 import com.example.chess.server.util.Log;
 

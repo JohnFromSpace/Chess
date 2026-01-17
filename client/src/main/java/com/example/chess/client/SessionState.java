@@ -107,8 +107,7 @@ public class SessionState {
             try {
                 r.run();
             } catch (Exception e) {
-                System.err.println("[UI] Task failed: " + e.getMessage());
-                e.printStackTrace(System.err);
+                com.example.chess.server.util.Log.warn("[UI] Task failed: ", e);
             }
         }
     }
