@@ -50,8 +50,8 @@ public final class ServerStateStore {
         long now = System.currentTimeMillis();
         if (prev == null) return now;
 
-        if (prev.graceful && prev.lastShutdownAtMs > 0) return prev.lastShutdownAtMs;
-        if (prev.lastHeartbeatAtMs > 0) return prev.lastHeartbeatAtMs;
+        if (prev.getGraceful() && prev.getLastShutdownAtMs() > 0) return prev.getLastShutdownAtMs()
+        if (prev.getLastHeartbeatAtMs() > 0) return prev.getLastHeartbeatAtMs();
 
         return now;
     }
