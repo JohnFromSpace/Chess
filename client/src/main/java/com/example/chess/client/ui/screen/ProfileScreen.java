@@ -45,7 +45,7 @@ public class ProfileScreen implements Screen {
     }
 
     @Override
-    public void show() {
+    public void show() throws InterruptedException {
         view.clearScreen();
 
         Menu menu = new Menu("Profile");

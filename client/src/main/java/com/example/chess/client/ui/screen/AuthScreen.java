@@ -36,7 +36,7 @@ public class AuthScreen implements Screen {
         }
     }
 
-    private void login() {
+    private void login() throws InterruptedException {
         String u = view.askLine("Username: ").trim();
         String p = view.askLine("Password: ").trim();
 
@@ -68,7 +68,7 @@ public class AuthScreen implements Screen {
         view.showMessage("Logged in as " + user.username);
     }
 
-    private void register() {
+    private void register() throws InterruptedException {
         String username = view.askLine("Username: ").trim();
         String name = view.askLine("Name: ").trim();
         String pass = view.askLine("Password: ").trim();

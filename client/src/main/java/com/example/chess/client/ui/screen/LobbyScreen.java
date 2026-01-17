@@ -70,7 +70,7 @@ public class LobbyScreen implements Screen {
         view.showMessage("Queued / matched. Waiting for server...");
     }
 
-    private void openProfile() {
+    private void openProfile() throws InterruptedException {
         new ProfileScreen(conn, view, state).show();
     }
 

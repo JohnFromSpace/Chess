@@ -4,15 +4,16 @@
   "blackUser": "admin",
   "whiteMove": true,
   "createdAt": 1767014170544,
-  "lastUpdate": 1767014170544,
+  "lastUpdate": 1768682036026,
   "timeControlMs": 300000,
   "incrementMs": 3000,
   "whiteTimeMs": 300000,
   "blackTimeMs": 300000,
-  "whiteOfflineSince": 0,
-  "blackOfflineSince": 0,
-  "result": "ONGOING",
-  "rated": true,
+  "whiteOfflineSince": 1767014182699,
+  "blackOfflineSince": 1767014182699,
+  "result": "ABORTED",
+  "resultReason": "Aborted (both disconnected).",
+  "rated": false,
   "board": {
     "squares": [
       [

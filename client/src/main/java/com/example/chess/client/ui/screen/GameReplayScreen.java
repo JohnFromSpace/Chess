@@ -18,7 +18,7 @@ public final class GameReplayScreen implements Screen {
     }
 
     @Override
-    public void show() {
+    public void show() throws InterruptedException {
         String token = view.askLine("Enter gameId (or UUID prefix): ").trim();
         if (token.isBlank()) return;
 
