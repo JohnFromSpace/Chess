@@ -21,8 +21,8 @@ public class StatsService {
 
     public Game getGameForUser(String gameId, String username) {
         Game g = games.findGameById(gameId).orElse(null);
-        if (g == null) return null;
-        if (!username.equals(g.getWhiteUser()) && !username.equals(g.getBlackUser())) return null;
+        if (g == null) com.example.chess.server.util.Log.warn("There is no game for current user.", null);
+        if (!username.equals(g.getWhiteUser()) && !username.equals(g.getBlackUser())) com.example.chess.server.util.Log.warn("There is no game with that username.", null);
         return g;
     }
 

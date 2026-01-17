@@ -1,6 +1,7 @@
 package com.example.chess.server.core;
 
 import com.example.chess.common.model.Game;
+import jdk.jshell.spi.ExecutionControl;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -18,7 +19,7 @@ public class ClockService {
     private final ConcurrentMap<String, State> clocks = new ConcurrentHashMap<>();
 
     public void register(Game g) {
-        if (g == null || g.getId() == null) return;
+        if (g == null || g.getId() == null) throw new IllegalArgumentException("There is no game.");
 
         State s = new State();
         s.whiteMs = g.getWhiteTimeMs();
@@ -35,10 +36,9 @@ public class ClockService {
     }
 
     public void onMoveApplied(Game g) {
-        if (g == null || g.getId() == null) return;
+        if (g == null || g.getId() == null) throw new IllegalArgumentException("There is no game.");
         State s = clocks.get(g.getId());
-        if (s == null) return;
-
+        if (s == null) throw new IllegalArgumentException("Empty state.");
         long now = System.currentTimeMillis();
         long elapsed = Math.max(0, now - s.lastTickMs);
 

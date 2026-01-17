@@ -53,7 +53,6 @@ final class ClientRequestRouter {
         } catch (IllegalArgumentException ex) {
             h.send(ResponseMessage.error(corrId, ex.getMessage()));
         } catch (Exception ex) {
-            ex.printStackTrace();
             h.send(ResponseMessage.error(corrId, "Internal server error."));
         }
     }

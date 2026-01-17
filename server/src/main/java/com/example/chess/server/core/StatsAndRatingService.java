@@ -6,6 +6,7 @@ import com.example.chess.common.model.Result;
 import com.example.chess.server.core.move.GameEndHook;
 import com.example.chess.server.fs.repository.UserRepository;
 
+import java.nio.channels.IllegalChannelGroupException;
 import java.util.Map;
 
 public final class StatsAndRatingService implements GameEndHook {
@@ -22,9 +23,9 @@ public final class StatsAndRatingService implements GameEndHook {
 
     @Override
     public void onGameFinished(Game g) throws Exception {
-        if (g == null) return;
-        if (g.getId() == null || g.getId().isBlank()) return;
-        if (g.getWhiteUser() == null || g.getBlackUser() == null) return;
+        if (g == null) throw new IllegalArgumentException("There is no game.");
+        if (g.getId() == null || g.getId().isBlank()) throw new IllegalArgumentException("This game has no ID.");
+        if (g.getWhiteUser() == null || g.getBlackUser() == null) throw new IllegalArgumentException("There is no white/black player.");
 
         if (g.getResult() == null || g.getResult() == Result.ONGOING) return;
 

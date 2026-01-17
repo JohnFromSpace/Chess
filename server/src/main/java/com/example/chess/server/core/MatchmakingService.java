@@ -22,7 +22,7 @@ public class MatchmakingService {
     }
 
     public synchronized void enqueue(ClientHandler h, User u) throws IOException {
-        if (h == null || u == null || u.username == null) return;
+        if (h == null || u == null || u.username == null) throw new IllegalArgumentException("Empty client handler.");
 
         if (queue.containsKey(u.username)) {
             h.sendInfo("Already waiting for opponent.");
@@ -70,7 +70,7 @@ public class MatchmakingService {
     }
 
     public synchronized void onDisconnect(User u) {
-        if (u == null || u.username == null) return;
+        if (u == null || u.username == null) throw new IllegalArgumentException("There is no user.");
         queue.remove(u.username);
     }
 }
