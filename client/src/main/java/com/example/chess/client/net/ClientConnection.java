@@ -79,7 +79,7 @@ public class ClientConnection implements AutoCloseable {
         } finally {
             // ensure resources are gone
             try { close(); } catch (Exception exception) {
-                System.err.println("Failed to release resources: " + exception.getMessage());
+                com.example.chess.server.util.Log.warn("Failed to release resources: ", exception);
             }
         }
     }
@@ -116,12 +116,12 @@ public class ClientConnection implements AutoCloseable {
         pending.clear();
 
         // close streams/socket
-        try { if (in != null) in.close(); } catch (Exception e) {System.err.println("Failed to close input stream: " + e.getMessage());}
-        try { if (out != null) out.close(); } catch (Exception e) {System.err.println("Failed to close output stream: " + e.getMessage());}
-        try { if (socket != null) socket.close(); } catch (Exception e) {System.err.println("Failed to close current socket: " + e.getMessage());}
+        try { if (in != null) in.close(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to close input stream: ", e);}
+        try { if (out != null) out.close(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to close output stream: ", e);}
+        try { if (socket != null) socket.close(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to close current socket: ", e);}
 
         // stop reader thread if needed
-        try { if (readerThread != null) readerThread.interrupt(); } catch (Exception e) {System.err.println("Failed to interrupt reader (thread): " + e.getMessage());}
+        try { if (readerThread != null) readerThread.interrupt(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to interrupt reader (thread): ", e);}
     }
 
     public CompletableFuture<StatusMessage> login(String username, String password) {

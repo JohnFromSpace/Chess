@@ -18,7 +18,10 @@ public class ClientPushRouter {
     }
 
     public void handle(ResponseMessage msg) {
-        if (msg == null) return;
+        if (msg == null) {
+            com.example.chess.server.util.Log.warn("There's no message.", null);
+        }
+
         Map<String, Object> p = msg.payload == null ? Map.of() : msg.payload;
 
         state.postUi(() -> {
