@@ -10,13 +10,13 @@ import com.example.chess.common.pieces.Piece;
 public class EnPassantRule {
 
     public void clearEp(Game game) {
-        if (game == null) return;
+        if (game == null) throw new IllegalArgumentException("There is no game.");
         game.setEnPassantRow(-1);
         game.setEnPassantCol(-1);
     }
 
     public boolean isEnPassantCapture(Game game, Board board, Move m, Color mover) {
-        if (game == null) return false;
+        if (game == null) throw new IllegalArgumentException("There is no game.");
         if (game.getEnPassantRow() != m.toRow || game.getEnPassantCol() != m.toCol) return false;
 
         Piece piece = board.getPieceAt(m.fromRow, m.fromCol);
@@ -42,7 +42,7 @@ public class EnPassantRule {
     }
 
     public void onPawnMoveMaybeSetTarget(Game game, Move move, Color mover) {
-        if (game == null) return;
+        if (game == null) throw new IllegalArgumentException("There is no game.");
 
         int startRow = (mover == Color.WHITE) ? 6 : 1;
         int dir = (mover == Color.WHITE) ? -1 : 1;

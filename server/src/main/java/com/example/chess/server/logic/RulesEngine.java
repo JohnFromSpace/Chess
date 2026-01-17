@@ -4,7 +4,6 @@ import com.example.chess.common.board.Board;
 import com.example.chess.common.board.Color;
 import com.example.chess.common.board.Move;
 import com.example.chess.common.model.Game;
-import com.example.chess.common.pieces.King;
 import com.example.chess.common.pieces.Pawn;
 import com.example.chess.common.pieces.Piece;
 
@@ -32,7 +31,7 @@ public final class RulesEngine {
     }
 
     public boolean hasAnyLegalMove(Game game, Board board, boolean whiteToMove) {
-        if (board == null) return false;
+        if (board == null) throw new IllegalArgumentException("There is no board.");
 
         Color side = whiteToMove ? Color.WHITE : Color.BLACK;
 
@@ -85,20 +84,5 @@ public final class RulesEngine {
 
         out.add(new Move(fr, fc, tr, tc, null));
         return out;
-    }
-
-    public boolean isKingInCheck(Game game, Board board, Color kingColor) {
-        return isKingInCheck(board, kingColor == Color.WHITE);
-    }
-
-    public int[] findKing(Board board, boolean whiteKing) {
-        if (board == null) return null;
-        char kingChar = whiteKing ? 'K' : 'k';
-        for (int r = 0; r < 8; r++) {
-            for (int c = 0; c < 8; c++) {
-                if (board.get(r, c) == kingChar) return new int[]{r, c};
-            }
-        }
-        return null;
     }
 }

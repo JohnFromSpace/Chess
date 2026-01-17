@@ -21,7 +21,7 @@ public class MoveApplier {
 
     public void applyMove(Board board, Game game, Move move, boolean updateState) {
         Piece piece = board.getPieceAt(move.fromRow, move.fromCol);
-        if (piece == null) return;
+        if (piece == null) throw new IllegalArgumentException("There is no piece at that position.");
 
         Color mover = piece.getColor();
         Piece dst = board.getPieceAt(move.toRow, move.toCol);
@@ -79,7 +79,7 @@ public class MoveApplier {
     }
 
     private static void recordCapture(Game game, Color mover, Piece captured) {
-        if (game == null || captured == null) return;
+        if (game == null || captured == null) throw new IllegalArgumentException("There is no game/captured figure to be recorded.");
         char ch = captured.toChar();
         if (mover == Color.WHITE) game.addCapturedByWhite(ch);
         else game.addCapturedByBlack(ch);
