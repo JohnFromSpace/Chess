@@ -1,5 +1,7 @@
 package com.example.chess.client.view;
 
+import java.util.Optional;
+
 final class BoardTextParser {
 
     private BoardTextParser() {}
@@ -25,8 +27,6 @@ final class BoardTextParser {
             if (rank < 1 || rank > 8) continue;
 
             int start = 1;
-
-            if (t.length < start + 8) continue;
 
             for (int f = 0; f < 8; f++) {
                 grid[8 - rank][f] = normalizeCellToPieceChar(t[start + f]);

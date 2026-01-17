@@ -23,7 +23,7 @@ public final class ConsoleInput implements AutoCloseable {
                     lines.put(line);
                 }
             } catch (Exception ex) {
-                System.err.println("Failed to read/write line from buffer: " + ex.getMessage());
+                com.example.chess.server.util.Log.warn("Failed to read/write line from buffer: ", ex);
             } finally {
                 closed = true;
             }
@@ -33,13 +33,13 @@ public final class ConsoleInput implements AutoCloseable {
     }
 
     /** Returns null on timeout or if closed. */
-    public String pollLine(long timeoutMs) {
+    public String pollLine(long timeoutMs) throws InterruptedException {
         if (closed) return null;
         try {
             return lines.poll(Math.max(0L, timeoutMs), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return null;
+            throw new InterruptedException("Interrupted " + e);
         }
     }
 

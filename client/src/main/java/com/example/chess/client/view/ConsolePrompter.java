@@ -13,7 +13,7 @@ final class ConsolePrompter {
         this.out = out;
     }
 
-    String askLineResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) {
+    String askLineResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) throws InterruptedException {
         out.print(prompt);
         out.flush();
 
@@ -27,7 +27,7 @@ final class ConsolePrompter {
         }
     }
 
-    int askIntResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) {
+    int askIntResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) throws InterruptedException {
         while (true) {
             String line = askLineResponsive(prompt, pollEveryMs, pump, shouldAbort);
             if (line == null) return Integer.MIN_VALUE;
@@ -40,11 +40,11 @@ final class ConsolePrompter {
         }
     }
 
-    String askLine(String prompt) {
+    String askLine(String prompt) throws InterruptedException {
         return askLineResponsive(prompt, 1_000_000L, null, () -> false);
     }
 
-    int askInt(String prompt) {
+    int askInt(String prompt) throws InterruptedException {
         int v = askIntResponsive(prompt, 1_000_000L, null, () -> false);
         return v == Integer.MIN_VALUE ? 0 : v;
     }

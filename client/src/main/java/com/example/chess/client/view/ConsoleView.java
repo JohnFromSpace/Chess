@@ -37,16 +37,16 @@ public class ConsoleView {
         out.flush();
     }
 
-    public String askLineResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) {
+    public String askLineResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) throws InterruptedException {
         return prompter.askLineResponsive(prompt, pollEveryMs, pump, shouldAbort);
     }
 
-    public int askIntResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) {
+    public int askIntResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) throws InterruptedException {
         return prompter.askIntResponsive(prompt, pollEveryMs, pump, shouldAbort);
     }
 
-    public String askLine(String prompt) { return prompter.askLine(prompt); }
-    public int askInt(String prompt) { return prompter.askInt(prompt); }
+    public String askLine(String prompt) throws InterruptedException { return prompter.askLine(prompt); }
+    public int askInt(String prompt) throws InterruptedException { return prompter.askInt(prompt); }
 
     public void showBoard(String boardText) { showBoard(boardText, true); }
 
