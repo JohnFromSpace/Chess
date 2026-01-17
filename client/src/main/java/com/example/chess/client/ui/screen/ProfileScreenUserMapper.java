@@ -1,15 +1,18 @@
 package com.example.chess.client.ui.screen;
 
 import com.example.chess.common.UserModels;
+import com.example.chess.common.model.Result;
 
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalDouble;
 
 public final class ProfileScreenUserMapper {
     private ProfileScreenUserMapper() {}
 
     @SuppressWarnings("unchecked")
     public static UserModels.User userFromPayload(Map<String, Object> payload) {
-        if (payload == null) return null;
+        if (payload == null) throw new IllegalArgumentException("The payload is empty.");
         Object userObj = payload.get("user");
         if (!(userObj instanceof Map<?, ?> um)) return null;
 
@@ -32,8 +35,8 @@ public final class ProfileScreenUserMapper {
     private static int intVal(Object o) {
         if (o == null) return 0;
         if (o instanceof Number n) return n.intValue();
-        try { return Integer.parseInt(String.valueOf(o)); }
-        catch (Exception e) { return 0; }
+
+        return Integer.parseInt(String.valueOf(o));
     }
 
     private static int intValOr(Object o, int def) {

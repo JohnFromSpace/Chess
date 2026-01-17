@@ -53,7 +53,6 @@ public final class GameHistoryScreen implements Screen {
         var status = conn.listGames().join();
         if (status.isError()) {
             view.showError(status.getMessage());
-            return;
         }
 
         Object gObj = status.payload == null ? null : status.payload.get("games");
@@ -79,7 +78,6 @@ public final class GameHistoryScreen implements Screen {
 
         if (rows.isEmpty()) {
             view.showMessage("No games found.");
-            return;
         }
 
         rows.sort(Comparator
@@ -122,9 +120,9 @@ public final class GameHistoryScreen implements Screen {
     }
 
     private static String normalizeReason(String reason) {
-        if (reason == null) return null;
+        if (reason == null) throw new IllegalArgumentException("Empty message.");
         String r = reason.trim();
-        if (r.isEmpty()) return null;
+        if (r.isEmpty()) throw new IllegalArgumentException("Empty trimmed message.");
 
         String low = r.toLowerCase(Locale.ROOT);
 
@@ -146,7 +144,7 @@ public final class GameHistoryScreen implements Screen {
         try {
             return o == null ? 0L : Long.parseLong(String.valueOf(o));
         } catch (Exception e) {
-            System.err.println("Failed: " + e.getMessage());
+            com.example.chess.server.util.Log.warn("Failed: ", e);
             return 0L;
         }
     }

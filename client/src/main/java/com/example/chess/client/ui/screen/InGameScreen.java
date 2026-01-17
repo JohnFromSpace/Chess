@@ -29,7 +29,7 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Print board", this::printBoard));
         menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
         menu.add(new MenuItem("Back to lobby", this::backToLobby));
-        menu.add(new MenuItem("Exit program", () -> System.exit(0)));
+        menu.add(new MenuItem("Exit program", () -> System.err.close()));
 
         final boolean[] requestedFinalStateOnce = {false};
 
@@ -166,7 +166,7 @@ public class InGameScreen implements Screen {
                 () -> !state.isInGame() || state.getUser() == null
         );
 
-        if (raw == null) return; // game ended while typing
+        if (raw == null) com.example.chess.server.util.Log.warn("Game ended while typing.", null); // game ended while typing
 
         String move;
         try {
@@ -207,7 +207,7 @@ public class InGameScreen implements Screen {
 
     private void acceptDraw() {
         String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); return; }
+        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); }
         var status = conn.acceptDraw(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Draw accepted.");
@@ -215,7 +215,7 @@ public class InGameScreen implements Screen {
 
     private void declineDraw() {
         String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); return; }
+        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); }
         var status = conn.declineDraw(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Draw declined.");

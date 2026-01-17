@@ -26,7 +26,7 @@ public class AuthScreen implements Screen {
         Menu menu = new Menu("Auth");
         menu.add(new MenuItem("Login", this::login));
         menu.add(new MenuItem("Register", this::register));
-        menu.add(new MenuItem("Exit", () -> System.exit(0)));
+        menu.add(new MenuItem("Exit", () -> System.err.close()));
 
         while (state.getUser() == null) {
             state.drainUi();
@@ -85,7 +85,7 @@ public class AuthScreen implements Screen {
     private static int intVal(Object o) {
         if (o == null) return 0;
         if (o instanceof Number n) return n.intValue();
-        try { return Integer.parseInt(String.valueOf(o)); }
-        catch (Exception e) { return 0; }
+
+        return Integer.parseInt(String.valueOf(o));
     }
 }

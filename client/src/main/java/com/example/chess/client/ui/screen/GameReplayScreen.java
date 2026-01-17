@@ -22,7 +22,6 @@ public final class GameReplayScreen implements Screen {
         String token = view.askLine("Enter gameId (or UUID prefix): ").trim();
         if (token.isBlank()) return;
 
-        // simplest: require full gameId (you can keep your #N alias if you already added it)
         var status = conn.getGameDetails(token).join();
         if (status.isError()) {
             view.showError(status.getMessage());
@@ -76,7 +75,7 @@ public final class GameReplayScreen implements Screen {
             return o == null ? 0L : Long.parseLong(String.valueOf(o));
         }
         catch (Exception ex) {
-            System.err.println("Failed to parse string to long integer: " + ex.getMessage());
+            com.example.chess.server.util.Log.warn("Failed to parse string to long integer: ", ex);
             return 0L;
         }
     }
