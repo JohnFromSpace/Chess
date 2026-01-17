@@ -23,9 +23,9 @@ final class ActiveGames {
     }
 
     GameContext findCtxByUser(String username) {
-        if (username == null) return null;
+        if (username == null) throw new IllegalArgumentException("There is no username.");
         String gid = userToGame.get(username);
-        if (gid == null) return null;
+        if (gid == null) throw new IllegalArgumentException("There is no game id.");
         return active.get(gid);
     }
 

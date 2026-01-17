@@ -21,7 +21,7 @@ public class MatchmakingService {
         this.clocks = clocks;
     }
 
-    public synchronized void enqueue(ClientHandler h, User u) throws IOException {
+    public void enqueue(ClientHandler h, User u) throws IOException {
         if (h == null || u == null || u.username == null) throw new IllegalArgumentException("Empty client handler.");
 
         if (queue.containsKey(u.username)) {
@@ -69,7 +69,7 @@ public class MatchmakingService {
         moves.registerGame(g, whiteUser, blackUser, h1, h2, h1IsWhite);
     }
 
-    public synchronized void onDisconnect(User u) {
+    public void onDisconnect(User u) {
         if (u == null || u.username == null) throw new IllegalArgumentException("There is no user.");
         queue.remove(u.username);
     }
