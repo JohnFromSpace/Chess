@@ -51,13 +51,11 @@ public class CastlingRule {
 
         if (kingSide) {
             if (attacks.isSquareAttacked(board, row, 5, mover.opposite())) return false;
-            if (attacks.isSquareAttacked(board, row, 6, mover.opposite())) return false;
+            return !attacks.isSquareAttacked(board, row, 6, mover.opposite());
         } else {
             if (attacks.isSquareAttacked(board, row, 3, mover.opposite())) return false;
-            if (attacks.isSquareAttacked(board, row, 2, mover.opposite())) return false;
+            return !attacks.isSquareAttacked(board, row, 2, mover.opposite());
         }
-
-        return true;
     }
 
     public void applyCastle(Board board, Game game, Color mover, boolean kingSide, Piece king, boolean updateState) {
@@ -83,7 +81,7 @@ public class CastlingRule {
     }
 
     public void onRookCaptured(Game game, Move move) {
-        if (game == null) return;
+        if (game == null) throw new IllegalArgumentException("There is no game.");
         if (move.toRow == 7 && move.toCol == 0) game.setWQ(false);
         if (move.toRow == 7 && move.toCol == 7) game.setWK(false);
         if (move.toRow == 0 && move.toCol == 0) game.setBQ(false);
@@ -91,7 +89,7 @@ public class CastlingRule {
     }
 
     public void onKingOrRookMoved(Game game, Piece piece, Move move, Color mover) {
-        if (game == null || piece == null) return;
+        if (game == null || piece == null) throw new IllegalArgumentException("There is no game/piece.");
 
         if (piece instanceof King) {
             if (mover == Color.WHITE) { game.setWK(false); game.setWQ(false); }

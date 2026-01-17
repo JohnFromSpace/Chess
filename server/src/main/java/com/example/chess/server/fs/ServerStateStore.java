@@ -6,6 +6,7 @@ import com.google.gson.GsonBuilder;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.Optional;
 
 public final class ServerStateStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -27,13 +28,13 @@ public final class ServerStateStore {
             String json = Files.readString(file, StandardCharsets.UTF_8);
             return GSON.fromJson(json, ServerState.class);
         } catch (Exception e) {
-            return null;
+            throw new IllegalArgumentException("Failed to read the server state: " + e.getMessage());
         }
     }
 
     public void write(ServerState s) {
         try {
-            if (s == null) return;
+            if (s == null) throw new IllegalArgumentException("There is no current state for the server.");
             String json = GSON.toJson(s);
             Files.writeString(
                     file, json, StandardCharsets.UTF_8,
@@ -50,7 +51,7 @@ public final class ServerStateStore {
         long now = System.currentTimeMillis();
         if (prev == null) return now;
 
-        if (prev.getGraceful() && prev.getLastShutdownAtMs() > 0) return prev.getLastShutdownAtMs()
+        if (prev.getGraceful() && prev.getLastShutdownAtMs() > 0) return prev.getLastShutdownAtMs();
         if (prev.getLastHeartbeatAtMs() > 0) return prev.getLastHeartbeatAtMs();
 
         return now;

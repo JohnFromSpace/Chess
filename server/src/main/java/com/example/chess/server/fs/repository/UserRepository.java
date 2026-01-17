@@ -17,25 +17,25 @@ public class UserRepository {
     }
 
     public Optional<User> findByUsername(String username) {
+        Map<String, User> all = fileStores.loadAllUsers();
         synchronized (userLock) {
-            Map<String, User> all = fileStores.loadAllUsers();
             return Optional.ofNullable(all.get(username));
         }
     }
 
     public void saveUser(User user) throws IOException {
+        Map<String, User> all = fileStores.loadAllUsers();
         synchronized (userLock) {
-            Map<String, User> all = fileStores.loadAllUsers();
             all.put(user.username, user);
-            fileStores.writeAllUsers(all);
         }
+        fileStores.writeAllUsers(all);
     }
 
     public void updateUsers(Consumer<Map<String, User>> mutator) throws IOException {
+        Map<String, User> all = fileStores.loadAllUsers();
         synchronized (userLock) {
-            Map<String, User> all = fileStores.loadAllUsers();
             mutator.accept(all);
-            fileStores.writeAllUsers(all);
         }
+        fileStores.writeAllUsers(all);
     }
 }
