@@ -49,8 +49,7 @@ public class FileStores implements GameRepository {
             Map<String, User> users = GSON.fromJson(json, USER_MAP_TYPE);
             return users != null ? users : new HashMap<>();
         } catch (IOException e) {
-            System.err.println("Failed to load all users: " + e.getMessage());
-            e.printStackTrace();
+            com.example.chess.server.util.Log.warn("Failed to load all users.", e);
             return new HashMap<>();
         }
     }
@@ -67,9 +66,7 @@ public class FileStores implements GameRepository {
                     StandardOpenOption.TRUNCATE_EXISTING
             );
         } catch (IOException e) {
-            System.err.println("Failed to write users: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+            com.example.chess.server.util.Log.warn("Failed to save all users.", e);
         }
     }
 
@@ -78,9 +75,9 @@ public class FileStores implements GameRepository {
     }
 
     private static void sanitizeReason(Game game) {
-        if (game == null) return;
+        if (game == null) throw new IllegalArgumentException("There is no game.");
         String r = game.getResultReason();
-        if (r == null) return;
+        if (r == null) throw new IllegalArgumentException("There is no result saved for this game.");
         r = r.trim();
         if (r.equalsIgnoreCase("Time.") || r.equalsIgnoreCase("Time")) {
             game.setResultReason("timeout");
@@ -165,9 +162,7 @@ public class FileStores implements GameRepository {
                     StandardOpenOption.WRITE
             );
         } catch (IOException e) {
-            System.err.println("Failed to write game file: " + file + " -> " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+            com.example.chess.server.util.Log.warn("Failed to save current game.", e);
         }
     }
 
@@ -183,16 +178,12 @@ public class FileStores implements GameRepository {
                         Game g = GSON.fromJson(json, Game.class);
                         if (g != null && g.getId() != null && !g.getId().isBlank()) out.add(g);
                     } catch (Exception exception) {
-                        System.err.println("Failed to read file!");
-                        exception.printStackTrace();
-                        throw new RuntimeException(exception);
+                        com.example.chess.server.util.Log.warn("Failed to read file.", exception);
                     }
                 }
             }
         } catch (Exception ex) {
-            System.err.println("Failed to load all games!");
-            ex.printStackTrace();
-            throw new RuntimeException(ex);
+            com.example.chess.server.util.Log.warn("Failed to load all games.", ex);
         }
         return out;
     }
