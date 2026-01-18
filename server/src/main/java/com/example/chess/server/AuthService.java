@@ -27,8 +27,7 @@ public class AuthService {
         try {
             userRepository.saveUser(user);
         } catch (IOException e) {
-            System.err.print("Failed to save user: " + e);
-            throw new RuntimeException(e);
+            com.example.chess.server.util.Log.warn("Failed to save user.", e);
         }
         return user;
     }
