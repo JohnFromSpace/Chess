@@ -4,6 +4,7 @@ import com.example.chess.client.controller.ClientController;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.view.ConsoleInput;
 import com.example.chess.client.view.ConsoleView;
+import com.example.chess.server.util.Log;
 
 import java.io.IOException;
 
@@ -15,33 +16,47 @@ public class ClientMain {
         ConsoleInput input = new ConsoleInput(System.in);
         ConsoleView view = new ConsoleView(input, System.out);
 
+        ClientConnection connection = null;
+        ClientController controller = null;
+
         try {
-            ClientConnection connection = new ClientConnection(host, port);
+            connection = new ClientConnection(host, port);
             connection.start();
 
-            ClientController controller = new ClientController(connection, view);
+            controller = new ClientController(connection, view);
 
+            ClientController finalController = controller;
+            ConsoleInput finalInput = input;
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
-                    controller.shutdownGracefully();
+                    finalController.shutdownGracefully();
                 }
                 finally {
                     try {
-                        input.close();
+                        finalInput.close();
                     }
                     catch (Exception ex) {
-                        System.err.println("Failed to close stream: " + ex.getMessage());
+                        Log.warn("Failed to close stream.", ex);
                     }
                 }
             }, "client-shutdown"));
             controller.run();
         } catch (IOException e) {
-            System.err.println("Failed to connect to server: " + e.getMessage());
-            try { input.close(); } catch (Exception ex) {
-                throw new RuntimeException("Failed to close input: " + ex);
-            }
+            Log.warn("Failed to start client.", e);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+           Thread.currentThread().interrupt();
+           Log.warn("Client interrupted", null);
+        } finally {
+            if(controller != null) {
+                controller.shutdownGracefully();
+            } else if(connection != null) {
+                connection.close();
+            }
+        }
+        try {
+            input.close();
+        } catch (Exception ex) {
+            Log.warn("Failed to close stream.", ex);
         }
     }
 }
