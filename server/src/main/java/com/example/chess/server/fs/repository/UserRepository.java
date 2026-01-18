@@ -10,7 +10,6 @@ import java.util.function.Consumer;
 
 public class UserRepository {
     private final FileStores fileStores;
-    private final Object userLock = new Object();
 
     public UserRepository(FileStores fileStores) {
         this.fileStores = fileStores;
