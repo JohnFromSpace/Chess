@@ -24,10 +24,10 @@ final class MoveFlow {
     }
 
     void makeMoveLocked(GameContext ctx, User u, String uci) throws IOException {
-        if (!ctx.isParticipant(u.username)) throw new IllegalArgumentException("You are not a participant in this game.");
+        if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
-        boolean moverIsWhite = ctx.isWhiteUser(u.username);
+        boolean moverIsWhite = ctx.isWhiteUser(u.getUsername());
         if (ctx.game.isWhiteMove() != moverIsWhite) throw new IllegalArgumentException("Not your turn.");
 
         Move move = Move.parse(uci);
@@ -43,7 +43,7 @@ final class MoveFlow {
 
         rules.applyMove(board, ctx.game, move, true);
 
-        ctx.game.recordMove(u.username, move.toString());
+        ctx.game.recordMove(u.getUsername(), move.toString());
 
         clocks.onMoveApplied(ctx.game);
 
@@ -74,7 +74,7 @@ final class MoveFlow {
 
         store.save(ctx.game);
 
-        if (ctx.white != null) ctx.white.pushMove(ctx.game, u.username, move.toString(), wChk, bChk);
-        if (ctx.black != null) ctx.black.pushMove(ctx.game, u.username, move.toString(), wChk, bChk);
+        if (ctx.white != null) ctx.white.pushMove(ctx.game, u.getUsername(), move.toString(), wChk, bChk);
+        if (ctx.black != null) ctx.black.pushMove(ctx.game, u.getUsername(), move.toString(), wChk, bChk);
     }
 }

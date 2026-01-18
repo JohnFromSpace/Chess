@@ -18,9 +18,9 @@ public class CastlingRule {
 
     public boolean isCastleAttempt(Piece piece, Move move) {
         if (!(piece instanceof King)) return false;
-        if (move.fromCol != 4) return false;
-        if (move.fromRow != move.toRow) return false;
-        return move.toCol == 6 || move.toCol == 2;
+        if (move.getFromCol() != 4) return false;
+        if (move.getFromRow() != move.getToRow()) return false;
+        return move.getToCol() == 6 || move.getToCol() == 2;
     }
 
     public boolean isLegalCastle(Game game, Board board, Color mover, boolean kingSide) {
@@ -82,10 +82,10 @@ public class CastlingRule {
 
     public void onRookCaptured(Game game, Move move) {
         if (game == null) throw new IllegalArgumentException("There is no game.");
-        if (move.toRow == 7 && move.toCol == 0) game.setWQ(false);
-        if (move.toRow == 7 && move.toCol == 7) game.setWK(false);
-        if (move.toRow == 0 && move.toCol == 0) game.setBQ(false);
-        if (move.toRow == 0 && move.toCol == 7) game.setBK(false);
+        if (move.getToRow() == 7 && move.getToCol() == 0) game.setWQ(false);
+        if (move.getToRow() == 7 && move.getToCol() == 7) game.setWK(false);
+        if (move.getToRow() == 0 && move.getToCol() == 0) game.setBQ(false);
+        if (move.getToRow() == 0 && move.getToCol() == 7) game.setBK(false);
     }
 
     public void onKingOrRookMoved(Game game, Piece piece, Move move, Color mover) {
@@ -98,10 +98,10 @@ public class CastlingRule {
         }
 
         if (piece instanceof Rook) {
-            if (mover == Color.WHITE && move.fromRow == 7 && move.fromCol == 0) game.setWQ(false);
-            if (mover == Color.WHITE && move.fromRow == 7 && move.fromCol == 7) game.setWK(false);
-            if (mover == Color.BLACK && move.fromRow == 0 && move.fromCol == 0) game.setBQ(false);
-            if (mover == Color.BLACK && move.fromRow == 0 && move.fromCol == 7) game.setBK(false);
+            if (mover == Color.WHITE && move.getFromRow() == 7 && move.getFromCol() == 0) game.setWQ(false);
+            if (mover == Color.WHITE && move.getFromRow() == 7 && move.getFromCol() == 7) game.setWK(false);
+            if (mover == Color.BLACK && move.getFromRow() == 0 && move.getFromCol() == 0) game.setBQ(false);
+            if (mover == Color.BLACK && move.getFromRow() == 0 && move.getFromCol() == 7) game.setBK(false);
         }
     }
 }

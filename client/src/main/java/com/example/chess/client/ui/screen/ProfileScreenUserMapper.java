@@ -17,8 +17,8 @@ public final class ProfileScreenUserMapper {
         if (!(userObj instanceof Map<?, ?> um)) throw new IllegalArgumentException("There is no user.");
 
         UserModels.User u = new UserModels.User();
-        u.username = str(um.get("username"));
-        u.name     = str(um.get("name"));
+        u.setUsername(str(um.get("username")));
+        u.setName(str(um.get("name")));
 
         if (u.stats == null) u.stats = new UserModels.Stats();
         u.stats.setPlayed(intVal(um.get("played")));

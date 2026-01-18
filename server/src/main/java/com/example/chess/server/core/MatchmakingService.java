@@ -22,15 +22,15 @@ public class MatchmakingService {
     }
 
     public void enqueue(ClientHandler h, User u) throws IOException {
-        if (h == null || u == null || u.username == null) throw new IllegalArgumentException("Empty client handler.");
+        if (h == null || u == null || u.getUsername() == null) throw new IllegalArgumentException("Empty client handler.");
 
-        if (queue.containsKey(u.username)) {
+        if (queue.containsKey(u.getUsername())) {
             h.sendInfo("Already waiting for opponent.");
             return;
         }
 
         if (queue.isEmpty()) {
-            queue.put(u.username, h);
+            queue.put(u.getUsername(), h);
             h.sendInfo("Waiting for opponent...");
             return;
         }
@@ -48,8 +48,8 @@ public class MatchmakingService {
     private void startMatch(ClientHandler h1, String u1, ClientHandler h2, User u2) throws IOException {
         boolean h1IsWhite = Math.random() < 0.5;
 
-        String whiteUser = h1IsWhite ? u1 : u2.username;
-        String blackUser = h1IsWhite ? u2.username : u1;
+        String whiteUser = h1IsWhite ? u1 : u2.getUsername();
+        String blackUser = h1IsWhite ? u2.getUsername() : u1;
 
         Game g = new Game();
         g.setId(UUID.randomUUID().toString());
@@ -70,7 +70,7 @@ public class MatchmakingService {
     }
 
     public void onDisconnect(User u) {
-        if (u == null || u.username == null) throw new IllegalArgumentException("There is no user.");
-        queue.remove(u.username);
+        if (u == null || u.getUsername() == null) throw new IllegalArgumentException("There is no user.");
+        queue.remove(u.getUsername());
     }
 }

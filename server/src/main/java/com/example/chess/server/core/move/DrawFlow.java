@@ -17,24 +17,24 @@ final class DrawFlow {
     }
 
     void offerDrawLocked(GameContext ctx, User u) throws IOException {
-        if (!ctx.isParticipant(u.username)) throw new IllegalArgumentException("You are not a participant in this game.");
+        if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
-        ctx.game.setDrawOfferedBy(u.username);
+        ctx.game.setDrawOfferedBy(u.getUsername());
         ctx.game.setLastUpdate(System.currentTimeMillis());
         store.save(ctx.game);
 
-        ClientHandler opp = ctx.opponentHandlerOf(u.username);
-        if (opp != null) opp.pushDrawOffered(ctx.game.getId(), u.username);
+        ClientHandler opp = ctx.opponentHandlerOf(u.getUsername());
+        if (opp != null) opp.pushDrawOffered(ctx.game.getId(), u.getUsername());
     }
 
     void respondDrawLocked(GameContext ctx, User u, boolean accept) throws IOException {
-        if (!ctx.isParticipant(u.username)) throw new IllegalArgumentException("You are not a participant in this game.");
+        if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
         String by = ctx.game.getDrawOfferedBy();
         if (by == null || by.isBlank()) throw new IllegalArgumentException("No draw offer to respond to.");
-        if (by.equals(u.username)) throw new IllegalArgumentException("You cannot respond to your own draw offer.");
+        if (by.equals(u.getUsername())) throw new IllegalArgumentException("You cannot respond to your own draw offer.");
 
         if (accept) {
             finisher.finishLocked(ctx, Result.DRAW, "Draw agreed.");
@@ -44,7 +44,7 @@ final class DrawFlow {
             store.save(ctx.game);
 
             ClientHandler offerer = ctx.handlerOf(by);
-            if (offerer != null) offerer.pushDrawDeclined(ctx.game.getId(), u.username);
+            if (offerer != null) offerer.pushDrawDeclined(ctx.game.getId(), u.getUsername());
         }
     }
 }

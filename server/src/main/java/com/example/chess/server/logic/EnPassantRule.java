@@ -17,28 +17,28 @@ public class EnPassantRule {
 
     public boolean isEnPassantCapture(Game game, Board board, Move m, Color mover) {
         if (game == null) throw new IllegalArgumentException("There is no game.");
-        if (game.getEnPassantRow() != m.toRow || game.getEnPassantCol() != m.toCol) return false;
+        if (game.getEnPassantRow() != m.getToRow() || game.getEnPassantCol() != m.getToCol()) return false;
 
-        Piece piece = board.getPieceAt(m.fromRow, m.fromCol);
+        Piece piece = board.getPieceAt(m.getFromRow(), m.getFromCol());
         if (!(piece instanceof Pawn) || piece.getColor() != mover) return false;
 
         int dir = (mover == Color.WHITE) ? -1 : 1;
-        int dr = m.toRow - m.fromRow;
-        int dc = m.toCol - m.fromCol;
+        int dr = m.getToRow() - m.getFromRow();
+        int dc = m.getToCol() - m.getFromCol();
 
         if (dr != dir || Math.abs(dc) != 1) return false;
-        if (!board.isEmptyAt(m.toRow, m.toCol)) return false;
+        if (!board.isEmptyAt(m.getToRow(), m.getToCol())) return false;
 
-        int capRow = (mover == Color.WHITE) ? m.toRow + 1 : m.toRow - 1;
-        Piece cap = board.getPieceAt(capRow, m.toCol);
+        int capRow = (mover == Color.WHITE) ? m.getToRow() + 1 : m.getToRow() - 1;
+        Piece cap = board.getPieceAt(capRow, m.getToCol());
         return (cap instanceof Pawn) && cap.getColor() == mover.opposite();
     }
 
     public void applyEnPassant(Board board, Move m, Color mover, Piece pawn) {
-        int capRow = (mover == Color.WHITE) ? m.toRow + 1 : m.toRow - 1;
-        board.setPieceAt(capRow, m.toCol, null);
-        board.setPieceAt(m.fromRow, m.fromCol, null);
-        board.setPieceAt(m.toRow, m.toCol, pawn);
+        int capRow = (mover == Color.WHITE) ? m.getToRow() + 1 : m.getToRow() - 1;
+        board.setPieceAt(capRow, m.getToCol(), null);
+        board.setPieceAt(m.getFromRow(), m.getFromCol(), null);
+        board.setPieceAt(m.getToRow(), m.getToCol(), pawn);
     }
 
     public void onPawnMoveMaybeSetTarget(Game game, Move move, Color mover) {
@@ -47,11 +47,11 @@ public class EnPassantRule {
         int startRow = (mover == Color.WHITE) ? 6 : 1;
         int dir = (mover == Color.WHITE) ? -1 : 1;
 
-        if (move.fromRow == startRow &&
-                move.toRow == startRow + 2 * dir &&
-                move.fromCol == move.toCol) {
-            game.setEnPassantRow(move.fromRow + dir);
-            game.setEnPassantCol(move.fromCol);
+        if (move.getFromRow() == startRow &&
+                move.getToRow() == startRow + 2 * dir &&
+                move.getFromCol() == move.getToCol()) {
+            game.setEnPassantRow(move.getFromRow() + dir);
+            game.setEnPassantCol(move.getFromCol());
         }
     }
 }

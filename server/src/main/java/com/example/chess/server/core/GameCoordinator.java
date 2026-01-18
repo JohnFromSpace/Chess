@@ -23,17 +23,17 @@ public class GameCoordinator {
     }
 
     public void onUserOnline(ClientHandler h, User u) {
-        online.markOnline(u.username, h);
+        online.markOnline(u.getUsername(), h);
     }
 
     public void onUserOffline(ClientHandler h, User u) {
-        if (u != null) online.markOffline(u.username, h);
+        if (u != null) online.markOffline(u.getUsername(), h);
         matchmaking.onDisconnect(u);
         moves.onDisconnect(u);
     }
 
     public void onUserLogout(ClientHandler h, User u) {
-        if (u != null) online.markOffline(u.username, h);
+        if (u != null) online.markOffline(u.getUsername(), h);
         matchmaking.onDisconnect(u);
     }
 

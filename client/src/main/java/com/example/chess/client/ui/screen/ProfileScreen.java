@@ -29,7 +29,7 @@ public class ProfileScreen implements Screen {
         int drawn  = (u.stats != null) ? u.stats.getDrawn() : 0;
         int rating = (u.stats != null && u.stats.getRating() > 0) ? u.stats.getRating() : 1200;
 
-        view.showMessage("User: " + u.getUsername() + (u.getUsername() != null ? (" (" + u.name + ")") : ""));
+        view.showMessage("User: " + u.getUsername() + (u.getUsername() != null ? (" (" + u.getUsername() + ")") : ""));
         view.showMessage("ELO:  " + rating);
         view.showMessage("W/L/D: " + won + "/" + lost + "/" + drawn + "  | Played: " + played);
     }
@@ -39,7 +39,7 @@ public class ProfileScreen implements Screen {
         if (status.isError()) { view.showError(status.getMessage()); return; }
 
         UserModels.User updated = ProfileScreenUserMapper.userFromPayload(status.payload);
-        if (updated != null) state.setUser(updated);
+        state.setUser(updated);
 
         renderProfile();
     }

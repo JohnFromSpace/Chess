@@ -31,12 +31,16 @@ public class UserModels {
     }
 
     public static class User {
+        private String name;
         private String username;
         private String passHash;  // PBKDF2 hash stored on server
         public Stats stats = new Stats();
 
         public void setUsername(String username) {this.username = username;}
         public void setPassHash(String passHash) {this.passHash = passHash;}
+
+        public String getName() {return name;}
+        public void setName(String name) {this.name = name;}
 
         public String getUsername() {return username;}
         public String getPassHash() {return passHash;}

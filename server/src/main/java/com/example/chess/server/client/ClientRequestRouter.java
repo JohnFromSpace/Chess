@@ -70,8 +70,8 @@ final class ClientRequestRouter {
         UserModels.User user = auth.register(username, name, password);
 
         Map<String, Object> u = new HashMap<>();
-        u.put("username", user.username);
-        u.put("name", user.name);
+        u.put("username", user.getUsername());
+        u.put("name", user.getName());
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("user", u);
@@ -143,10 +143,10 @@ final class ClientRequestRouter {
         h.send(ResponseMessage.ok("resignOk", req.corrId));
     }
 
-    private void listGames(RequestMessage req, ClientHandler h) throws IOException {
+    private void listGames(RequestMessage req, ClientHandler h) {
         UserModels.User u = mustLogin(h);
 
-        List<Game> games = coordinator.listGamesForUser(u.username);
+        List<Game> games = coordinator.listGamesForUser(u.getUsername());
 
         List<Map<String, Object>> out = games.stream().map(g -> {
             Map<String, Object> m = new HashMap<>();
@@ -158,7 +158,7 @@ final class ClientRequestRouter {
             m.put("createdAt", g.getCreatedAt());
             m.put("lastUpdate", g.getLastUpdate());
 
-            String me = u.username;
+            String me = u.getUsername();
             String opponent = me.equals(g.getWhiteUser()) ? g.getBlackUser() : g.getWhiteUser();
             String color = me.equals(g.getWhiteUser()) ? "WHITE" : "BLACK";
             m.put("opponent", opponent);
@@ -172,11 +172,11 @@ final class ClientRequestRouter {
         h.send(ResponseMessage.ok("listGamesOk", req.corrId, payload));
     }
 
-    private void getGameDetails(RequestMessage req, ClientHandler h) throws IOException {
+    private void getGameDetails(RequestMessage req, ClientHandler h) {
         UserModels.User u = mustLogin(h);
         String gameId = reqStr(req, "gameId");
 
-        Game g = coordinator.getGameForUser(gameId, u.username);
+        Game g = coordinator.getGameForUser(gameId, u.getUsername());
         if (g == null) throw new IllegalArgumentException("No such game (or you are not a participant).");
 
         Map<String, Object> payload = coordinator.toGameDetailsPayload(g);
@@ -186,7 +186,7 @@ final class ClientRequestRouter {
     private void getStats(RequestMessage req, ClientHandler h) {
         UserModels.User u = mustLogin(h);
 
-        UserModels.User fresh = auth.getUser(u.username);
+        UserModels.User fresh = auth.getUser(u.getUsername());
         h.setCurrentUser(fresh);
 
         Map<String, Object> payload = new HashMap<>();
@@ -211,14 +211,14 @@ final class ClientRequestRouter {
 
     private static Map<String, Object> userMap(UserModels.User user) {
         Map<String, Object> u = new HashMap<>();
-        u.put("username", user.username);
-        u.put("name", user.name);
+        u.put("username", user.getUsername());
+        u.put("name", user.getName());
 
         UserModels.Stats st = user.stats == null ? new UserModels.Stats() : user.stats;
 
         int derivedLost = st.getPlayed() - st.getWon() - st.getDrawn();
         if(derivedLost >= 0 && derivedLost != st.getLost()) {
-            st.lost = derivedLost; // repair lost counts
+            st.setLost(derivedLost); // repair lost counts
         }
 
         u.put("played", st.getPlayed());

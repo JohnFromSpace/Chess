@@ -23,12 +23,12 @@ public final class MoveLegalityChecker {
     public boolean isLegalMove(Game game, Board board, Move move) {
         if (board == null || move == null) return false;
 
-        if (!board.inside(move.fromRow, move.fromCol) || !board.inside(move.toRow, move.toCol)) return false;
-        if (move.fromRow == move.toRow && move.fromCol == move.toCol) return false;
+        if (!board.inside(move.getFromRow(), move.getFromCol()) || !board.inside(move.getToRow(), move.getToCol())) return false;
+        if (move.getFromRow() == move.getToRow() && move.getFromCol() == move.getToCol()) return false;
 
         if (game != null && game.getResult() != null && game.getResult() != Result.ONGOING) return false;
 
-        Piece piece = board.getPieceAt(move.fromRow, move.fromCol);
+        Piece piece = board.getPieceAt(move.getFromRow(), move.getFromCol());
         if (piece == null) return false;
 
         // enforce turn if game is present
@@ -37,14 +37,14 @@ public final class MoveLegalityChecker {
             if (piece.isWhite() != wantsWhite) return false;
         }
 
-        Piece dst = board.getPieceAt(move.toRow, move.toCol);
+        Piece dst = board.getPieceAt(move.getToRow(), move.getToCol());
         if (dst != null && dst.getColor() == piece.getColor()) return false;
 
         Color mover = piece.getColor();
 
         // castling
         if (game != null && piece instanceof King && castling.isCastleAttempt(piece, move)) {
-            boolean kingSide = (move.toCol == 6);
+            boolean kingSide = (move.getToCol() == 6);
             return castling.isLegalCastle(game, board, mover, kingSide);
         }
 

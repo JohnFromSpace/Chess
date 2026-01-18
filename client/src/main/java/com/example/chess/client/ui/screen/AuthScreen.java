@@ -53,8 +53,8 @@ public class AuthScreen implements Screen {
         }
 
         UserModels.User user = new UserModels.User();
-        user.username = str(um.get("username"));
-        user.name = str(um.get("name"));
+        user.setUsername(str(um.get("username")));
+        user.setName(str(um.get("name")));
 
         UserModels.Stats st = new UserModels.Stats();
         st.setPlayed(intVal(um.get("played")));
@@ -65,7 +65,7 @@ public class AuthScreen implements Screen {
         user.stats = st;
 
         state.setUser(user);
-        view.showMessage("Logged in as " + user.username);
+        view.showMessage("Logged in as " + user.getUsername());
     }
 
     private void register() throws InterruptedException {
