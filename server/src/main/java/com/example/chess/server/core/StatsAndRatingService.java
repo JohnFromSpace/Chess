@@ -26,9 +26,9 @@ public final class StatsAndRatingService implements GameEndHook {
         if (g.getId() == null || g.getId().isBlank()) throw new IllegalArgumentException("This game has no ID.");
         if (g.getWhiteUser() == null || g.getBlackUser() == null) throw new IllegalArgumentException("There is no white/black player.");
 
-        if (g.getResult() == null || g.getResult() == Result.ONGOING) return;
+        if (g.getResult() == null || g.getResult() == Result.ONGOING) throw new IllegalArgumentException("There is no game result/ game is ongoing.");
 
-        if (!g.isRated() || g.getResult() == Result.ABORTED) return;
+        if (!g.isRated() || g.getResult() == Result.ABORTED) throw new IllegalArgumentException("The game is not rated because it was aborted.");
 
         users.updateUsers(all -> {
             UserModels.User w = mustUser(all, g.getWhiteUser());
