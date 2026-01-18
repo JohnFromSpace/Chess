@@ -77,10 +77,7 @@ public class ClientConnection implements AutoCloseable {
             pending.values().forEach(f -> f.completeExceptionally(e));
             pending.clear();
         } finally {
-            // ensure resources are gone
-            try { close(); } catch (Exception exception) {
-                com.example.chess.server.util.Log.warn("Failed to release resources: ", exception);
-            }
+            close();
         }
     }
 
@@ -97,20 +94,22 @@ public class ClientConnection implements AutoCloseable {
         try {
             if (!isOpen()) throw new IOException("Connection closed.");
             String json = MessageCodec.toJson(msg);
+
             out.write(json);
+            out.newLine();
             out.flush();
         } catch (IOException e) {
             pending.remove(corrId);
             fut.completeExceptionally(e);
         }
-
         return fut;
     }
 
     @Override
     public void close() {
         // complete any waiters
-        pending.values().forEach(f -> f.completeExceptionally(new IOException("Connection closed.")));
+        IOException closedEx = new IOException("Connection closed.");
+        pending.values().forEach(f -> f.completeExceptionally(closedEx));
         pending.clear();
 
         // close streams/socket
@@ -119,7 +118,20 @@ public class ClientConnection implements AutoCloseable {
         try { if (socket != null) socket.close(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to close current socket: ", e);}
 
         // stop reader thread if needed
-        try { if (readerThread != null) readerThread.interrupt(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to interrupt reader (thread): ", e);}
+        try {
+            if (readerThread != null) readerThread.interrupt();
+        } catch (Exception e) {
+            com.example.chess.server.util.Log.warn("Failed to interrupt reader (thread): ", e);
+        }
+
+        try {
+            if(readerThread != null && Thread.currentThread() != readerThread) {
+                readerThread.join(500);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Current thread failed to wait for 500 milliseconds: " + e.getMessage());
+        }
     }
 
     public CompletableFuture<StatusMessage> login(String username, String password) {
