@@ -6,7 +6,6 @@ import com.google.gson.GsonBuilder;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.Optional;
 
 public final class ServerStateStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -24,7 +23,7 @@ public final class ServerStateStore {
 
     public ServerState read() {
         try {
-            if (!Files.exists(file)) return null;
+            if (!Files.exists(file)) throw new IllegalArgumentException("The file " + file.getFileName() + "doesn't exist.");
             String json = Files.readString(file, StandardCharsets.UTF_8);
             return GSON.fromJson(json, ServerState.class);
         } catch (Exception e) {
