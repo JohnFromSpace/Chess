@@ -1,7 +1,6 @@
 package com.example.chess.client.view;
 
 import java.io.PrintStream;
-import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
 final class ConsolePrompter {
@@ -20,7 +19,8 @@ final class ConsolePrompter {
 
         while (true) {
             if (shouldAbort != null && shouldAbort.getAsBoolean()) {
-                return String.valueOf(Optional.empty());
+                out.println();
+                return null;
             }
 
             String line = in.pollLine(pollEveryMs);

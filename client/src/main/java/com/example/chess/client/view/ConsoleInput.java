@@ -33,7 +33,7 @@ public final class ConsoleInput implements AutoCloseable {
     }
 
     public String pollLine(long timeoutMs) throws InterruptedException {
-        if (closed) throw new RuntimeException("Timeout.");
+        if (closed) return null;
         try {
             return lines.poll(Math.max(0L, timeoutMs), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
