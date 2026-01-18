@@ -24,7 +24,7 @@ public class LobbyScreen implements Screen {
         menu.add(new MenuItem("Request game", this::requestGame));
         menu.add(new MenuItem("Profile", this::openProfile));
         menu.add(new MenuItem("Logout", this::logout));
-        menu.add(new MenuItem("Exit", state::isExitReqeuested));
+        menu.add(new MenuItem("Exit", state::requestExit));
 
         Runnable pump = state::drainUi;
         boolean waitingHintShown = false;

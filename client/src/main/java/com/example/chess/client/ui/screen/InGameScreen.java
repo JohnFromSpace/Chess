@@ -29,7 +29,7 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Print board", this::printBoard));
         menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
         menu.add(new MenuItem("Back to lobby", this::backToLobby));
-        menu.add(new MenuItem("Exit program", () -> System.err.close()));
+        menu.add(new MenuItem("Exit program", state::requestExit));
 
         final boolean[] requestedFinalStateOnce = {false};
 
@@ -61,7 +61,7 @@ public class InGameScreen implements Screen {
             }
         };
 
-        while (state.getUser() != null && state.isInGame()) {
+        while (state.getUser() != null && state.isInGame() && !state.isExitReqeuested()) {
             pump.run();
 
             menu.render(view);
@@ -72,7 +72,7 @@ public class InGameScreen implements Screen {
                     view,
                     120,
                     pump,
-                    () -> !state.isInGame() || state.getUser() == null
+                    () -> !state.isInGame() || state.getUser() == null || state.isExitReqeuested()
             );
 
             pump.run();
