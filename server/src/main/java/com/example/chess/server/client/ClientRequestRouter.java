@@ -216,16 +216,16 @@ final class ClientRequestRouter {
 
         UserModels.Stats st = user.stats == null ? new UserModels.Stats() : user.stats;
 
-        int derivedLost = st.played - st.won - st.drawn;
-        if(derivedLost >= 0 && derivedLost != st.lost) {
+        int derivedLost = st.getPlayed() - st.getWon() - st.getDrawn();
+        if(derivedLost >= 0 && derivedLost != st.getLost()) {
             st.lost = derivedLost; // repair lost counts
         }
 
-        u.put("played", st.played);
-        u.put("won", st.won);
-        u.put("lost", st.lost);
-        u.put("drawn", st.drawn);
-        u.put("rating", st.rating);
+        u.put("played", st.getPlayed());
+        u.put("won", st.getWon());
+        u.put("lost", st.getLost());
+        u.put("drawn", st.getDrawn());
+        u.put("rating", st.getRating());
 
         return u;
     }

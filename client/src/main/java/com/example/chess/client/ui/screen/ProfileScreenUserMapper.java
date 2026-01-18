@@ -21,11 +21,11 @@ public final class ProfileScreenUserMapper {
         u.name     = str(um.get("name"));
 
         if (u.stats == null) u.stats = new UserModels.Stats();
-        u.stats.played = intVal(um.get("played"));
-        u.stats.won    = intVal(um.get("won"));
-        u.stats.lost   = intVal(um.get("lost"));
-        u.stats.drawn  = intVal(um.get("drawn"));
-        u.stats.rating = intValOr(um.get("rating"), 1200);
+        u.stats.setPlayed(intVal(um.get("played")));
+        u.stats.setWon(intVal(um.get("won")));
+        u.stats.setLost(intVal(um.get("lost")));
+        u.stats.setDrawn(intVal(um.get("drawn")));
+        u.stats.setRating(intValOr(um.get("rating"), 1200));
 
         return u;
     }

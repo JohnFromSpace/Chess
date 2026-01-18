@@ -20,9 +20,9 @@ public class AuthService {
         }
 
         User user = new User();
-        user.username = username;
-        user.name = name;
-        user.passHash = PasswordUtil.hash(password);
+        user.setUsername(username);
+        user.setUsername(username);
+        user.setPassHash(PasswordUtil.hash(password));
 
         try {
             userRepository.saveUser(user);
@@ -37,7 +37,7 @@ public class AuthService {
         User currentUser = userRepository.findByUsername(username).
                 orElseThrow(() -> new IllegalArgumentException("Invalid credentials."));
 
-        if (!PasswordUtil.verify(password, currentUser.passHash)) {
+        if (!PasswordUtil.verify(password, currentUser.getPassHash())) {
             throw new IllegalArgumentException("Invalid credentials.");
         }
 

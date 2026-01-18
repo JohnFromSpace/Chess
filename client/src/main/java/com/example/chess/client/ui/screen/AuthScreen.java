@@ -57,11 +57,11 @@ public class AuthScreen implements Screen {
         user.name = str(um.get("name"));
 
         UserModels.Stats st = new UserModels.Stats();
-        st.played = intVal(um.get("played"));
-        st.won = intVal(um.get("won"));
-        st.drawn = intVal(um.get("drawn"));
-        st.lost = intVal(um.get("lost"));
-        st.rating = intVal(um.get("rating"));
+        st.setPlayed(intVal(um.get("played")));
+        st.setWon(intVal(um.get("won")));
+        st.setDrawn(intVal(um.get("drawn")));
+        st.setLost(intVal(um.get("lost")));
+        st.setRating(intVal(um.get("rating")));
         user.stats = st;
 
         state.setUser(user);

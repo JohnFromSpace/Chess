@@ -6,7 +6,6 @@ import com.example.chess.common.model.Result;
 import com.example.chess.server.core.move.GameEndHook;
 import com.example.chess.server.fs.repository.UserRepository;
 
-import java.nio.channels.IllegalChannelGroupException;
 import java.util.Map;
 
 public final class StatsAndRatingService implements GameEndHook {
@@ -38,21 +37,21 @@ public final class StatsAndRatingService implements GameEndHook {
             ensureStats(w);
             ensureStats(b);
 
-            w.stats.played++;
-            b.stats.played++;
+            w.stats.setPlayed(w.stats.getPlayed() + 1);
+            b.stats.setPlayed(b.stats.getPlayed() + 1);
 
             double sw;
             if (g.getResult() == Result.WHITE_WIN) {
-                w.stats.won++;
-                b.stats.lost++;
+                w.stats.setWon(w.stats.getWon() + 1);
+                b.stats.setWon(b.stats.getWon() + 1);
                 sw = 1.0;
             } else if (g.getResult() == Result.BLACK_WIN) {
-                b.stats.won++;
-                w.stats.lost++;
+                b.stats.setWon(b.stats.getWon() + 1);
+                w.stats.setLost(w.stats.getLost() + 1);
                 sw = 0.0;
             } else {
-                w.stats.drawn++;
-                b.stats.drawn++;
+                w.stats.setDrawn(w.stats.getDrawn() + 1);
+                b.stats.setDrawn(b.stats.getDrawn() + 1);
                 sw = 0.5;
             }
 
@@ -65,8 +64,8 @@ public final class StatsAndRatingService implements GameEndHook {
             int newRw = (int) Math.round(rw + K * (sw - ew));
             int newRb = (int) Math.round(rb + K * ((1.0 - sw) - eb));
 
-            w.stats.rating = Math.max(MIN_RATING, newRw);
-            b.stats.rating = Math.max(MIN_RATING, newRb);
+            w.stats.setRating(Math.max(MIN_RATING, newRw));
+            b.stats.setRating(Math.max(MIN_RATING, newRb));
         });
     }
 
@@ -78,12 +77,12 @@ public final class StatsAndRatingService implements GameEndHook {
 
     private static void ensureStats(UserModels.User u) {
         if (u.stats == null) u.stats = new UserModels.Stats();
-        if (u.stats.rating <= 0) u.stats.rating = DEFAULT_RATING;
+        if (u.stats.getRating() <= 0) u.stats.setRating(DEFAULT_RATING);
     }
 
     private static int ratingOf(UserModels.User u) {
-        if (u == null || u.stats == null || u.stats.rating <= 0) return DEFAULT_RATING;
-        return u.stats.rating;
+        if (u == null || u.stats == null || u.stats.getRating() <= 0) return DEFAULT_RATING;
+        return u.stats.getRating();
     }
 
     private static double expected(int ra, int rb) {
