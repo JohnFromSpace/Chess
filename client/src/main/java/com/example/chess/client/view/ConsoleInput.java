@@ -32,9 +32,8 @@ public final class ConsoleInput implements AutoCloseable {
         reader.start();
     }
 
-    /** Returns null on timeout or if closed. */
     public String pollLine(long timeoutMs) throws InterruptedException {
-        if (closed) return null;
+        if (closed) throw new RuntimeException("Timeout.");
         try {
             return lines.poll(Math.max(0L, timeoutMs), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
