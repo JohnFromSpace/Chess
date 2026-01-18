@@ -130,11 +130,11 @@ public class FileStores implements GameRepository {
                     result.put(game.getId(), game);
 
                 } catch (IOException e) {
-                    System.err.println("Failed to read game file: " + file + " -> " + e.getMessage());
+                    com.example.chess.server.util.Log.warn("Failed to read game file: " + file, e);
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to list games directory: " + gamesDir, e);
+            com.example.chess.server.util.Log.warn("Failed to list games directory: " + gamesDir, e);
         }
 
         return result;
