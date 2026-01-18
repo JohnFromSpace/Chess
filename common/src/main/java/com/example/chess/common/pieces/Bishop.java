@@ -12,9 +12,9 @@ public final class Bishop extends Piece {
 
     @Override
     public boolean canMove(Board board, Move m) {
-        int dx = Math.abs(m.toCol - m.fromCol);
-        int dy = Math.abs(m.toRow - m.fromRow);
+        int dx = Math.abs(m.getToRow() - m.getFromRow());
+        int dy = Math.abs(m.getToRow() - m.getFromRow());
         if (dx == 0 || dx != dy) return false;
-        return board.isPathClear(m.fromRow, m.fromCol, m.toRow, m.toCol);
+        return board.isPathClear(m.getFromRow(), m.getFromCol(), m.getToRow(), m.getToCol());
     }
 }

@@ -14,8 +14,8 @@ public final class Knight extends Piece {
 
     @Override
     public boolean canMove(Board board, Move m) {
-        int dx = Math.abs(m.toCol - m.fromCol);
-        int dy = Math.abs(m.toRow - m.fromRow);
+        int dx = Math.abs(m.getToCol() - m.getFromCol());
+        int dy = Math.abs(m.getToRow() - m.getFromRow());
         return dx * dx + dy * dy == 5;
     }
 }

@@ -12,8 +12,8 @@ public final class King extends Piece {
 
     @Override
     public boolean canMove(Board board, Move m) {
-        int dx = Math.abs(m.toCol - m.fromCol);
-        int dy = Math.abs(m.toRow - m.fromRow);
+        int dx = Math.abs(m.getToCol() - m.getFromCol());
+        int dy = Math.abs(m.getToRow() - m.getFromRow());
         return dx <= 1 && dy <= 1 && !(dx == 0 && dy == 0);
     }
 }
