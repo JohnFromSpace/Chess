@@ -1,31 +1,31 @@
 {
   "borko": {
-    "username": "borko",
     "name": "boril ignatov",
+    "username": "borko",
     "passHash": "pbkdf2$65536$Pei08168dMLwCGqGF+O4/g\u003d\u003d$bOOto/8kspBKWL+kykDVLHC20sFPYJkQZoixYbhdZgI\u003d",
     "stats": {
-      "played": 20,
+      "played": 21,
       "won": 12,
       "drawn": 0,
-      "rating": 1256,
-      "lost": 6
+      "rating": 1235,
+      "lost": 7
     }
   },
   "admin": {
-    "username": "admin",
     "name": "0000",
+    "username": "admin",
     "passHash": "pbkdf2$65536$VUCS6+V37KRwnI0ok6XiiQ\u003d\u003d$tJDL7eThkshdWly9Rm2LhtfSHrCh0g0XoU9qy9I1Jyg\u003d",
     "stats": {
-      "played": 20,
-      "won": 8,
+      "played": 21,
+      "won": 9,
       "drawn": 0,
-      "rating": 1144,
+      "rating": 1165,
       "lost": 9
     }
   },
   "1": {
-    "username": "1",
     "name": "2",
+    "username": "1",
     "passHash": "pbkdf2$65536$VlZapbrHldmn5yBshIEpjw\u003d\u003d$JE8XrJ9iEboT/QVEdXN8nYE8KZKakIPgAaFDGwhKlOU\u003d",
     "stats": {
       "played": 0,

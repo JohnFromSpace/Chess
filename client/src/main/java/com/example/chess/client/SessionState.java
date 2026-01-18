@@ -25,6 +25,7 @@ public class SessionState {
 
     private final Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 
+    private volatile boolean exitReqeuested = false;
 
     private java.util.List<String> capturedByWhite = java.util.List.of();
     private java.util.List<String> capturedByBlack = java.util.List.of();
@@ -111,4 +112,11 @@ public class SessionState {
         }
     }
 
+    public boolean isExitReqeuested() {
+        return exitReqeuested;
+    }
+
+    public void requestExit() {
+        exitReqeuested = true;
+    }
 }
