@@ -25,10 +25,10 @@ public class ClientController {
                 conn.logout();
             }
         } catch (Exception ex) {
-            System.err.println("Failed to log out: " + ex.getMessage());
+            com.example.chess.server.util.Log.warn("Failed to log out.", ex);
         } finally {
             try { conn.close(); } catch (Exception ex) {
-                System.err.println("Failed to close current connection: " + ex.getMessage());
+                com.example.chess.server.util.Log.warn("Failed to close current connection.", ex);
             }
         }
     }
