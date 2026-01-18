@@ -14,7 +14,7 @@ public final class ProfileScreenUserMapper {
     public static UserModels.User userFromPayload(Map<String, Object> payload) {
         if (payload == null) throw new IllegalArgumentException("The payload is empty.");
         Object userObj = payload.get("user");
-        if (!(userObj instanceof Map<?, ?> um)) return null;
+        if (!(userObj instanceof Map<?, ?> um)) throw new IllegalArgumentException("There is no user.");
 
         UserModels.User u = new UserModels.User();
         u.username = str(um.get("username"));
