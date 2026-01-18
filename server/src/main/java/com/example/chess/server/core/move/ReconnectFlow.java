@@ -8,7 +8,6 @@ import com.example.chess.server.core.ReconnectService;
 import com.example.chess.server.util.Log;
 
 final class ReconnectFlow {
-
     private final ActiveGames games;
     private final ReconnectService reconnects;
     private final GameFinisher finisher;
@@ -22,12 +21,12 @@ final class ReconnectFlow {
     }
 
     void onDisconnect(User u) {
-        if (u == null || u.username == null) throw new IllegalArgumentException("There is no user.");
-        GameContext ctx = games.findCtxByUser(u.username);
+        if (u == null || u.getUsername() == null) throw new IllegalArgumentException("There is no user.");
+        GameContext ctx = games.findCtxByUser(u.getUsername());
         if (ctx == null) throw new IllegalArgumentException("There is no such game context for this user.");
 
 
-        ClientHandler opp = ctx.opponentHandlerOf(u.username);
+        ClientHandler opp = ctx.opponentHandlerOf(u.getUsername());
         String oppMsg = null;
 
         synchronized (ctx) {
@@ -36,7 +35,7 @@ final class ReconnectFlow {
                 return;
             }
 
-            boolean isWhite = ctx.isWhiteUser(u.username);
+            boolean isWhite = ctx.isWhiteUser(u.getUsername());
             long now = System.currentTimeMillis();
 
             if (isWhite) {
@@ -54,20 +53,20 @@ final class ReconnectFlow {
             }
 
             if (opp != null)
-                oppMsg = u.username + " disconnected. Waiting " + (reconnects.getGraceMs() / 1000);
+                oppMsg = u.getUsername() + " disconnected. Waiting " + (reconnects.getGraceMs() / 1000);
 
-            scheduleDropTask(ctx, u.username, isWhite, reconnects.getGraceMs());
+            scheduleDropTask(ctx, u.getUsername(), isWhite, reconnects.getGraceMs());
         }
 
-        if(opp != null && oppMsg != null) opp.sendInfo(oppMsg);
+        if(opp != null) opp.sendInfo(oppMsg);
     }
 
     void tryReconnect(User u, ClientHandler newHandler) {
         if (u == null) throw new IllegalArgumentException("Missing user.");
         if (newHandler == null) throw new IllegalArgumentException("Missing handler.");
-        if (u.username == null || u.username.isBlank()) throw new IllegalArgumentException("Missing username");
+        if (u.getUsername() == null || u.getUsername().isBlank()) throw new IllegalArgumentException("Missing username");
 
-        GameContext ctx = games.findCtxByUser(u.username);
+        GameContext ctx = games.findCtxByUser(u.getUsername());
         if (ctx == null) throw new IllegalArgumentException("There is no game context for current user.");
 
         boolean isWhite = true;
@@ -83,9 +82,9 @@ final class ReconnectFlow {
                 pushGameOver = true;
                 games.remove(ctx);
             } else {
-                isWhite = ctx.isWhiteUser(u.username);
+                isWhite = ctx.isWhiteUser(u.getUsername());
 
-                reconnects.cancel(key(ctx.game.getId(), u.username));
+                reconnects.cancel(key(ctx.game.getId(), u.getUsername()));
 
                 if (isWhite) {
                     ctx.white = newHandler;
@@ -105,8 +104,8 @@ final class ReconnectFlow {
 
                 gameToPush = ctx.game;
 
-                opp = ctx.opponentHandlerOf(u.username);
-                if (opp != null) oppMsg = u.username + " reconnected.";
+                opp = ctx.opponentHandlerOf(u.getUsername());
+                if (opp != null) oppMsg = u.getUsername() + " reconnected.";
             }
         }
 
@@ -116,35 +115,32 @@ final class ReconnectFlow {
         }
 
         newHandler.pushGameStarted(ctx.game, isWhite);
-        if (opp != null && oppMsg != null) opp.sendInfo(oppMsg);
+        if (opp != null) opp.sendInfo(oppMsg);
     }
 
     void recoverAfterRestart(GameContext ctx) {
         if (ctx == null || ctx.game == null) throw new IllegalArgumentException("There is no game context.");
+        if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is no longer ongoing.");
 
-        synchronized (ctx) {
-            if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is no longer ongoing.");
+        long now = System.currentTimeMillis();
+        long grace = reconnects.getGraceMs();
 
-            long now = System.currentTimeMillis();
-            long grace = reconnects.getGraceMs();
+        long wOff = ctx.game.getWhiteOfflineSince();
+        long bOff = ctx.game.getBlackOfflineSince();
 
-            long wOff = ctx.game.getWhiteOfflineSince();
-            long bOff = ctx.game.getBlackOfflineSince();
+        ctx.whiteOfflineAtMs = Math.max(wOff, 0L);
+        ctx.blackOfflineAtMs = Math.max(bOff, 0L);
 
-            ctx.whiteOfflineAtMs = Math.max(wOff, 0L);
-            ctx.blackOfflineAtMs = Math.max(bOff, 0L);
+        if (ctx.whiteOfflineAtMs > 0L) {
+            long elapsed = now - ctx.whiteOfflineAtMs;
+            long remaining = grace - elapsed;
+            scheduleDropTask(ctx, ctx.game.getWhiteUser(), true, remaining);
+        }
 
-            if (ctx.whiteOfflineAtMs > 0L) {
-                long elapsed = now - ctx.whiteOfflineAtMs;
-                long remaining = grace - elapsed;
-                scheduleDropTask(ctx, ctx.game.getWhiteUser(), true, remaining);
-            }
-
-            if (ctx.blackOfflineAtMs > 0L) {
-                long elapsed = now - ctx.blackOfflineAtMs;
-                long remaining = grace - elapsed;
-                scheduleDropTask(ctx, ctx.game.getBlackUser(), false, remaining);
-            }
+        if (ctx.blackOfflineAtMs > 0L) {
+            long elapsed = now - ctx.blackOfflineAtMs;
+            long remaining = grace - elapsed;
+            scheduleDropTask(ctx, ctx.game.getBlackUser(), false, remaining);
         }
     }
 
@@ -153,31 +149,29 @@ final class ReconnectFlow {
 
         reconnects.scheduleDrop(k, () -> {
             try {
-                synchronized (ctx) {
-                    if (ctx.game.getResult() != Result.ONGOING) return;
+                if (ctx.game.getResult() != Result.ONGOING) return;
 
-                    long off = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
-                    if (off == 0L) return;
+                long off = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
+                if (off == 0L) return;
 
-                    boolean noMoves = !ctx.game.hasAnyMoves();
-                    boolean bothOffline = (ctx.whiteOfflineAtMs != 0L) && (ctx.blackOfflineAtMs != 0L);
+                boolean noMoves = !ctx.game.hasAnyMoves();
+                boolean bothOffline = (ctx.whiteOfflineAtMs != 0L) && (ctx.blackOfflineAtMs != 0L);
 
-                    if (noMoves || bothOffline) {
-                        finisher.finishLocked(
-                                ctx,
-                                Result.ABORTED,
-                                bothOffline ? "Aborted (both disconnected)." : "Aborted (no moves).",
-                                false
-                        );
-                        return;
-                    }
-
+                if (noMoves || bothOffline) {
                     finisher.finishLocked(
                             ctx,
-                            isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
-                            "Disconnected for more than 60 seconds."
+                            Result.ABORTED,
+                            bothOffline ? "Aborted (both disconnected)." : "Aborted (no moves).",
+                            false
                     );
+                    return;
                 }
+
+                finisher.finishLocked(
+                        ctx,
+                        isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
+                        "Disconnected for more than 60 seconds."
+                );
             } catch (Exception e) {
                 Log.warn("Reconnect drop task failed for game " + ctx.game.getId(), e);
             }
