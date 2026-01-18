@@ -97,10 +97,8 @@ public class ClientConnection implements AutoCloseable {
         try {
             if (!isOpen()) throw new IOException("Connection closed.");
             String json = MessageCodec.toJson(msg);
-            synchronized (out) {
-                out.write(json);
-                out.flush();
-            }
+            out.write(json);
+            out.flush();
         } catch (IOException e) {
             pending.remove(corrId);
             fut.completeExceptionally(e);
