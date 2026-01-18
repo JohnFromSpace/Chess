@@ -75,9 +75,9 @@ public class FileStores implements GameRepository {
     }
 
     private static void sanitizeReason(Game game) {
-        if (game == null) throw new IllegalArgumentException("There is no game.");
+        if (game == null) return; // avoid throwing exceptions for an unstarted game
         String r = game.getResultReason();
-        if (r == null) throw new IllegalArgumentException("There is no result saved for this game.");
+        if (r == null) return; // allow ongoing games
         r = r.trim();
         if (r.equalsIgnoreCase("Time.") || r.equalsIgnoreCase("Time")) {
             game.setResultReason("timeout");
