@@ -18,24 +18,18 @@ public class UserRepository {
 
     public Optional<User> findByUsername(String username) {
         Map<String, User> all = fileStores.loadAllUsers();
-        synchronized (userLock) {
-            return Optional.ofNullable(all.get(username));
-        }
+        return Optional.ofNullable(all.get(username));
     }
 
     public void saveUser(User user) throws IOException {
         Map<String, User> all = fileStores.loadAllUsers();
-        synchronized (userLock) {
-            all.put(user.username, user);
-        }
+        all.put(user.getUsername(), user);
         fileStores.writeAllUsers(all);
     }
 
     public void updateUsers(Consumer<Map<String, User>> mutator) throws IOException {
         Map<String, User> all = fileStores.loadAllUsers();
-        synchronized (userLock) {
-            mutator.accept(all);
-        }
+        mutator.accept(all);
         fileStores.writeAllUsers(all);
     }
 }
