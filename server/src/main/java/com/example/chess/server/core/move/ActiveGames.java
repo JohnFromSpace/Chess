@@ -30,7 +30,7 @@ final class ActiveGames {
     }
 
     void remove(GameContext ctx) {
-        if (ctx == null || ctx.game == null || ctx.game.getId() == null) return;
+        if (ctx == null || ctx.game == null || ctx.game.getId() == null) throw new IllegalArgumentException("There is nothing to remove.");
 
         String gid = ctx.game.getId();
         active.remove(gid);
