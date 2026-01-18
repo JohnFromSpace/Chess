@@ -29,7 +29,7 @@ public class Board {
     }
 
     public Piece getPieceAt(int row, int col) {
-        if (!inside(row, col)) return null;
+        if (!inside(row, col)) throw new IllegalArgumentException("Incorrect positions [rol/col].");
         return PieceFactory.fromCharOrNull(get(row, col));
     }
 
