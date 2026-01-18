@@ -24,7 +24,7 @@ public class LobbyScreen implements Screen {
         menu.add(new MenuItem("Request game", this::requestGame));
         menu.add(new MenuItem("Profile", this::openProfile));
         menu.add(new MenuItem("Logout", this::logout));
-        menu.add(new MenuItem("Exit", () -> System.exit(0)));
+        menu.add(new MenuItem("Exit", System.err::close));
 
         Runnable pump = state::drainUi;
         boolean waitingHintShown = false;
@@ -79,7 +79,7 @@ public class LobbyScreen implements Screen {
             conn.logout().join();
         }
         catch (Exception ex) {
-            System.err.println("Failed to logout: " + ex.getMessage());
+            com.example.chess.server.util.Log.warn("Failed to logout.", ex);
         }
 
         state.setUser(null);
