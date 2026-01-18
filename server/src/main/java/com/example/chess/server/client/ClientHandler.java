@@ -58,11 +58,11 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleLine(String line) throws IOException {
-        if (line == null) throw new IOException("Line is empty.");
+        if (line == null) return;
         line = line.trim();
-        if (line.isEmpty()) throw new IOException("The trimmed line is empty.");
+        if (line.isEmpty()) return;
 
-        Message parsed = null;
+        Message parsed;
         try {
             parsed = MessageCodec.fromJsonLine(line);
         } catch (Exception e) {

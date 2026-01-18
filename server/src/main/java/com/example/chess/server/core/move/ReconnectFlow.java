@@ -21,10 +21,9 @@ final class ReconnectFlow {
     }
 
     void onDisconnect(User u) {
-        if (u == null || u.getUsername() == null) throw new IllegalArgumentException("There is no user.");
+        if (u == null || u.getUsername() == null) return;
         GameContext ctx = games.findCtxByUser(u.getUsername());
-        if (ctx == null) throw new IllegalArgumentException("There is no such game context for this user.");
-
+        if (ctx == null) return;
 
         ClientHandler opp = ctx.opponentHandlerOf(u.getUsername());
         String oppMsg = null;
