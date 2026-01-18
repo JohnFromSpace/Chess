@@ -38,7 +38,7 @@ final class GameRegistrationService {
     }
 
     void registerGame(Game game, ClientHandler whiteH, ClientHandler blackH) throws IOException {
-        if (game == null || game.getId() == null || game.getId().isBlank()) return;
+        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("There is no game/id.");
 
         long now = System.currentTimeMillis();
         if (game.getCreatedAt() == 0L) game.setCreatedAt(now);
