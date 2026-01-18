@@ -1,13 +1,11 @@
 package com.example.chess.client.view;
 
-import java.util.Optional;
-
 final class BoardTextParser {
 
     private BoardTextParser() {}
 
     static char[][] tryParse(String boardText) {
-        if (boardText == null) return null;
+        if (boardText == null) throw new IllegalArgumentException("There is no board to be printed out.");
 
         char[][] grid = new char[8][8];
         int found = 0;
