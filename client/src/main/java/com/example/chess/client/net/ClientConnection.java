@@ -14,6 +14,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+
 public class ClientConnection implements AutoCloseable {
 
     private final String host;
@@ -34,7 +37,17 @@ public class ClientConnection implements AutoCloseable {
     }
 
     public void start() throws IOException {
-        socket = new Socket(host, port);
+        boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "false"));
+        if(tls) {
+            socket = SSLSocketFactory.getDefault().createSocket(host, port);
+            ((SSLSocket) socket).startHandshake();
+        } else {
+            socket = new Socket(host, port);
+        }
+
+        socket.setTcpNoDelay(true);
+        socket.setKeepAlive(true);
+
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 

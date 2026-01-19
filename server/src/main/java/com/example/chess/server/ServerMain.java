@@ -14,9 +14,12 @@ import java.net.Socket;
 import java.nio.file.Path;
 import java.util.UUID;
 
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+
 public class ServerMain {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         int port = 5000;
 
         Path dataDir = Path.of("data");
@@ -61,15 +64,19 @@ public class ServerMain {
 
         System.out.println("Chess server starting on port " + port + " ...");
 
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            while (true) {
-                Socket client = serverSocket.accept();
-                ClientHandler handler = new ClientHandler(client, auth, coordinator, moves);
-                Thread t = new Thread(handler, "Client-" + client.getPort());
-                t.start();
-            }
-        } catch (IOException e) {
-            com.example.chess.server.util.Log.warn("Server error: ", e);
+        boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "false"));
+        ServerSocket serverSocket = tls
+                ? SSLServerSocketFactory.getDefault().createServerSocket(port)
+                : new ServerSocket(port);
+        if(serverSocket instanceof SSLServerSocket ssl) {
+            ssl.setNeedClientAuth(false);
+        }
+
+        while (true) {
+            Socket client = serverSocket.accept();
+            ClientHandler handler = new ClientHandler(client, auth, coordinator, moves);
+            Thread t = new Thread(handler, "Client-" + client.getPort());
+            t.start();
         }
     }
 }
