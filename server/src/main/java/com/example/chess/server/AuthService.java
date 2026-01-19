@@ -21,7 +21,7 @@ public class AuthService {
 
         User user = new User();
         user.setUsername(username);
-        user.setUsername(username);
+        user.setName(name);
         user.setPassHash(PasswordUtil.hash(password));
 
         try {
