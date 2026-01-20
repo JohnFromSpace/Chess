@@ -41,11 +41,11 @@ public class ClientMain {
                 }
             }, "client-shutdown"));
             controller.run();
-        } catch (IOException e) {
-            Log.warn("Failed to start client.", e);
         } catch (InterruptedException e) {
            Thread.currentThread().interrupt();
            Log.warn("Client interrupted", null);
+        } catch (Exception e) {
+            Log.warn("Failed to start client.", e);
         } finally {
             if(controller != null) {
                 controller.shutdownGracefully();

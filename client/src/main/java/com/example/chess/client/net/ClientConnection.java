@@ -5,6 +5,7 @@ import com.example.chess.common.message.Message;
 import com.example.chess.common.message.RequestMessage;
 import com.example.chess.common.message.ResponseMessage;
 import com.example.chess.common.message.StatusMessage;
+import com.example.chess.client.security.Tls;
 
 import java.io.*;
 import java.net.Socket;
@@ -36,14 +37,9 @@ public class ClientConnection implements AutoCloseable {
         this.port = port;
     }
 
-    public void start() throws IOException {
+    public void start() throws Exception {
         boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "false"));
-        if(tls) {
-            socket = SSLSocketFactory.getDefault().createSocket(host, port);
-            ((SSLSocket) socket).startHandshake();
-        } else {
-            socket = new Socket(host, port);
-        }
+        socket = tls ? Tls.createClientSocket(host, port) : new Socket(host, port);
 
         socket.setTcpNoDelay(true);
         socket.setKeepAlive(true);
