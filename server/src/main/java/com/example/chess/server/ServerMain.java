@@ -7,15 +7,18 @@ import com.example.chess.server.fs.FileStores;
 import com.example.chess.server.fs.ServerStateStore;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
+import com.example.chess.server.util.Log;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
-import java.util.UUID;
 
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.net.SocketException;
+import java.util.concurrent.*;
 
 public class ServerMain {
 
@@ -27,10 +30,6 @@ public class ServerMain {
 
         ServerStateStore stateStore = new ServerStateStore(dataDir);
         long lastDownAtMs = stateStore.estimateLastDownAtMs(stateStore.read());
-
-        String instanceId = UUID.randomUUID().toString();
-        ServerHeartbeatService heartbeat = new ServerHeartbeatService(stateStore, instanceId);
-        heartbeat.start();
 
         UserRepository userRepo = new UserRepository(stores);
         GameRepository gameRepo = stores;
@@ -49,21 +48,6 @@ public class ServerMain {
         GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
         AuthService auth = new AuthService(userRepo);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                heartbeat.close();
-            } catch (Exception e) {
-                com.example.chess.server.util.Log.warn("Failed to close heartbeat: ", e);
-            }
-            try {
-                heartbeat.markGracefulShutdown();
-            } catch (Exception e) {
-                com.example.chess.server.util.Log.warn("Failed to shut down gracefully: ", e);
-            }
-        }, "shutdown-hook"));
-
-        System.out.println("Chess server starting on port " + port + " ...");
-
         boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "false"));
         ServerSocket serverSocket = tls
                 ? SSLServerSocketFactory.getDefault().createServerSocket(port)
@@ -72,11 +56,71 @@ public class ServerMain {
             ssl.setNeedClientAuth(false);
         }
 
-        while (true) {
-            Socket client = serverSocket.accept();
-            ClientHandler handler = new ClientHandler(client, auth, coordinator, moves);
-            Thread t = new Thread(handler, "Client-" + client.getPort());
-            t.start();
+        int core     = Integer.parseInt(System.getProperty("chess.server.threads.core", "8"));
+        int max      = Integer.parseInt(System.getProperty("chess.server.threads.max", "64"));
+        int queueCap = Integer.parseInt(System.getProperty("chess.server.queue.capacity", "256"));
+
+        ThreadPoolExecutor clientPool = new ThreadPoolExecutor(
+                core,
+                max,
+                60L, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(queueCap),
+                r -> {
+                    Thread t = new Thread(r, "client-handler");
+                    t.setDaemon(false);
+                    return t;
+                },
+                new ThreadPoolExecutor.AbortPolicy()
+        );
+
+        AtomicBoolean running = new AtomicBoolean(true);
+
+        ServerHeartbeatService heartBeat = new ServerHeartbeatService(clocks, coordinator);
+        heartBeat.start();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+           running.set(false);
+
+           try {
+               serverSocket.close();
+           } catch (IOException e) {
+               throw new RuntimeException("Failed to close server socket.", e);
+           }
+
+           clientPool.shutdown();
+           try {
+               heartBeat.close();
+           } catch (RuntimeException e) {
+               throw new RuntimeException("Failed to close heartbeat.", e);
+           }
+        }, "server.shutdown"));
+
+        System.out.println("Chess server starting on port: " + port + " ...");
+
+        while(running.get()) {
+            try {
+                Socket clientSocket = serverSocket.accept();
+                clientSocket.setTcpNoDelay(true);
+                clientSocket.setKeepAlive(true);
+
+                try {
+                    clientPool.execute(new ClientHandler(clientSocket, router));
+                } catch (RejectedExecutionException rex) {
+                    try {
+                        clientSocket.close();
+                    } catch (RuntimeException e) {
+                        throw new RuntimeException("Failed to close socket.", e);
+                    }
+                    Log.warn("Rejected client connection server overloaded.", rex);
+                }
+            } catch (SocketException se) {
+                if(running.get()) {
+                    Log.warn("Server socket error in accept().", se);
+                }
+                break;
+            } catch (IOException ioException) {
+                Log.warn("I/O error in accept().", ioException);
+            }
         }
     }
 }
