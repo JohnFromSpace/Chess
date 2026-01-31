@@ -55,7 +55,7 @@ public class ServerMain {
         ServerSocket serverSocket;
         if (tls) {
             try {
-                serverSocket = com.example.chess.server.security.Tls.createServerSocket(port);
+                serverSocket = Tls.createServerSocket(port);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to init TLS server socket", e);
             }
@@ -85,7 +85,9 @@ public class ServerMain {
 
         AtomicBoolean running = new AtomicBoolean(true);
 
-        ServerHeartbeatService heartBeat = new ServerHeartbeatService(clocks, coordinator);
+        String instanceId = java.util.UUID.randomUUID().toString();
+
+        ServerHeartbeatService heartBeat = new ServerHeartbeatService(stateStore, instanceId);
         heartBeat.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -99,7 +101,7 @@ public class ServerMain {
 
            clientPool.shutdown();
            try {
-               heartBeat.close();
+               heartBeat.markGracefulShutdown();
            } catch (RuntimeException e) {
                throw new RuntimeException("Failed to close heartbeat.", e);
            }

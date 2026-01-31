@@ -23,7 +23,6 @@ public final class ServerStateStore {
 
     public ServerState read() {
         try {
-            if (!Files.exists(file)) throw new IllegalArgumentException("The file " + file.getFileName() + "doesn't exist.");
             String json = Files.readString(file, StandardCharsets.UTF_8);
             return GSON.fromJson(json, ServerState.class);
         } catch (Exception e) {
