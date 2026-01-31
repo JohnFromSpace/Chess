@@ -52,9 +52,16 @@ public class ServerMain {
         SessionManager sessionManager = new SessionManager(TimeUnit.HOURS.toMillis(12));
 
         boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "false"));
-        ServerSocket serverSocket = tls
-                ? SSLServerSocketFactory.getDefault().createServerSocket(port)
-                : new ServerSocket(port);
+        ServerSocket serverSocket;
+        if (tls) {
+            try {
+                serverSocket = com.example.chess.server.security.Tls.createServerSocket(port);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to init TLS server socket", e);
+            }
+        } else {
+            serverSocket = new ServerSocket(port);
+        }
         if(serverSocket instanceof SSLServerSocket ssl) {
             ssl.setNeedClientAuth(false);
         }
@@ -107,7 +114,7 @@ public class ServerMain {
                 clientSocket.setKeepAlive(true);
 
                 try {
-                    clientPool.execute(new ClientHandler(clientSocket, router));
+                    clientPool.execute(new ClientHandler(clientSocket, auth, coordinator, moves));
                 } catch (RejectedExecutionException rex) {
                     try {
                         clientSocket.close();
