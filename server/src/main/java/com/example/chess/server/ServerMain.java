@@ -7,7 +7,6 @@ import com.example.chess.server.fs.FileStores;
 import com.example.chess.server.fs.ServerStateStore;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
-import com.example.chess.server.security.SessionManager;
 import com.example.chess.server.util.Log;
 import com.example.chess.server.security.Tls;
 
