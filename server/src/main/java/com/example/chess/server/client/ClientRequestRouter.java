@@ -59,6 +59,7 @@ final class ClientRequestRouter {
 
     void onDisconnect(ClientHandler h) {
         UserModels.User u = h.getCurrentUser();
+        if (u == null) return;
         coordinator.onUserOffline(h, u);
     }
 
