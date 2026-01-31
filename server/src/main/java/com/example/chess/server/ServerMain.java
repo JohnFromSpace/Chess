@@ -7,6 +7,7 @@ import com.example.chess.server.fs.FileStores;
 import com.example.chess.server.fs.ServerStateStore;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
+import com.example.chess.server.security.SessionManager;
 import com.example.chess.server.util.Log;
 import com.example.chess.server.security.Tls;
 
@@ -47,6 +48,8 @@ public class ServerMain {
 
         GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
         AuthService auth = new AuthService(userRepo);
+
+        SessionManager sessionManager = new SessionManager(TimeUnit.HOURS.toMillis(12));
 
         boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "false"));
         ServerSocket serverSocket = tls

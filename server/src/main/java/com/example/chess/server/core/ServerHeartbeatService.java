@@ -15,7 +15,7 @@ public final class ServerHeartbeatService implements AutoCloseable {
         return t;
     });
 
-    public ServerHeartbeatService(ServerStateStore store, String instanceId) {
+    public ServerHeartbeatService(ClockService store, GameCoordinator instanceId) {
         this.store = store;
         this.instanceId = instanceId;
     }
