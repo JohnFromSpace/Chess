@@ -105,7 +105,6 @@ public class ClientConnection implements AutoCloseable {
             String json = MessageCodec.toJson(msg);
 
             out.write(json);
-            out.newLine();
             out.flush();
         } catch (IOException e) {
             pending.remove(corrId);
