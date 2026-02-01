@@ -10,6 +10,7 @@ import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
 import com.example.chess.server.core.move.MoveService;
 import com.example.chess.server.util.Log;
+import com.example.chess.server.security.RateLimiter;
 
 import java.io.*;
 import java.net.Socket;
@@ -18,11 +19,10 @@ import java.util.Map;
 public class ClientHandler implements Runnable {
 
     private final Socket socket;
-    private final AuthService auth;
-    private final GameCoordinator coordinator;
 
     private final ClientRequestRouter router;
     private final ClientNotifier notifier = new ClientNotifier();
+    private final RateLimiter inboundLimiter;
 
     private BufferedReader in;
     private BufferedWriter out;
@@ -31,9 +31,12 @@ public class ClientHandler implements Runnable {
 
     public ClientHandler(Socket socket, AuthService auth, GameCoordinator coordinator, MoveService moves) {
         this.socket = socket;
-        this.auth = auth;
-        this.coordinator = coordinator;
         this.router = new ClientRequestRouter(auth, coordinator, moves);
+
+        boolean rlEnabled = Boolean.parseBoolean(System.getProperty("chess.ratelimit.enabled", "true"));
+        long rlCapacity = Long.getLong("chess.ratelimit.capacity", 30L);
+        long rlRefillPerSec = Long.getLong("chess.ratelimit.refillPerSecond", 15L);
+        this.inboundLimiter = rlEnabled ? new RateLimiter((int) rlCapacity, rlRefillPerSec) : null;
     }
 
     public UserModels.User getCurrentUser() { return currentUser; }
@@ -44,6 +47,9 @@ public class ClientHandler implements Runnable {
         try (socket) {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+
+            int readTimeoutMs =  Integer.parseInt(System.getProperty("chess.socket.readTimeoutMs", "60000"));
+            if (readTimeoutMs > 0) socket.setSoTimeout(readTimeoutMs);
 
             String line;
             while ((line = in.readLine()) != null) {
@@ -66,12 +72,17 @@ public class ClientHandler implements Runnable {
         try {
             parsed = MessageCodec.fromJsonLine(line);
         } catch (Exception e) {
-            send(ResponseMessage.error(null, "Invalid message: " + e.getMessage()));
+            send(ResponseMessage.error(null, "Invalid message: " + e.getMessage(), "Too many requests. PLease, slow down."));
             return;
         }
 
         if (!(parsed instanceof RequestMessage req)) {
-            send(ResponseMessage.error(null, "Client must send request messages."));
+            send(ResponseMessage.error(null, "Client must send request messages.", "Too many requests. PLease, slow down."));
+            return;
+        }
+
+        if(inboundLimiter != null && !inboundLimiter.tryAcquire()) {
+            send(ResponseMessage.error(req.corrId, "rate_limited", "Too many requests. PLease, slow down."));
             return;
         }
 

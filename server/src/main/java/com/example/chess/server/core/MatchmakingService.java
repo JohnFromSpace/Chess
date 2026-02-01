@@ -72,5 +72,8 @@ public class MatchmakingService {
     public void onDisconnect(User u) {
         if (u == null || u.getUsername() == null) throw new IllegalArgumentException("There is no user.");
         queue.remove(u.getUsername());
+        String username = u.getUsername();
+        if(username == null || username.isBlank()) return;
+        queue.remove(username);
     }
 }

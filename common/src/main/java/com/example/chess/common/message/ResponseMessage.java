@@ -29,7 +29,7 @@ public class ResponseMessage extends Message {
         return new ResponseMessage(type, null, false, null, payload != null ? payload : new HashMap<>());
     }
 
-    public static ResponseMessage error(String corrId, String message) {
+    public static ResponseMessage error(String corrId, String message, String s) {
         return new ResponseMessage("error", corrId, true, message, new HashMap<>());
     }
 }
