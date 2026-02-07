@@ -20,9 +20,17 @@ public class StatsService {
     }
 
     public Game getGameForUser(String gameId, String username) {
+        if (gameId == null || gameId.isBlank()) throw new IllegalArgumentException("Missing gameId.");
+        if (username == null || username.isBlank()) throw new IllegalArgumentException("Missing username.");
+
         Game g = games.findGameById(gameId).orElse(null);
-        if (g == null) com.example.chess.server.util.Log.warn("There is no game for current user.", null);
-        if (!username.equals(g.getWhiteUser()) && !username.equals(g.getBlackUser())) com.example.chess.server.util.Log.warn("There is no game with that username.", null);
+        if (g == null) return null;
+
+        String white = g.getWhiteUser();
+        String black = g.getBlackUser();
+        if (white == null || black == null) return null;
+
+        if (!username.equals(white) && !username.equals(black)) return null;
         return g;
     }
 

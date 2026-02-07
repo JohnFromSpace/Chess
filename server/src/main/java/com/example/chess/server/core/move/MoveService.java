@@ -55,15 +55,17 @@ public class MoveService {
 
         for (GameContext ctx : games.snapshot()) {
             try {
-                if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING) continue;
+                synchronized (ctx) {
+                    if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING) continue;
 
-                boolean timeout = clocks.tick(ctx.game);
-                if (!timeout) continue;
+                    boolean timeout = clocks.tick(ctx.game);
+                    if (!timeout) continue;
 
-                if (ctx.game.getWhiteTimeMs() <= 0) {
-                    finisher.finishLocked(ctx, com.example.chess.common.model.Result.BLACK_WIN, "timeout.");
-                } else if (ctx.game.getBlackTimeMs() <= 0) {
-                    finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "timeout.");
+                    if (ctx.game.getWhiteTimeMs() <= 0) {
+                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.BLACK_WIN, "timeout.");
+                    } else if (ctx.game.getBlackTimeMs() <= 0) {
+                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "timeout.");
+                    }
                 }
             } catch (Exception e) {
                 com.example.chess.server.util.Log.warn("tickAllGames failed ", e);
@@ -85,21 +87,27 @@ public class MoveService {
         if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
         GameContext ctx = games.mustCtx(gameId);
 
-        moves.makeMoveLocked(ctx, u, uci);
+        synchronized (ctx) {
+            moves.makeMoveLocked(ctx, u, uci);
+        }
     }
 
     public void offerDraw(String gameId, User u) throws IOException {
         if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
         GameContext ctx = games.mustCtx(gameId);
 
-        draws.offerDrawLocked(ctx, u);
+        synchronized (ctx) {
+            draws.offerDrawLocked(ctx, u);
+        }
     }
 
     public void respondDraw(String gameId, User u, boolean accept) throws IOException {
         if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
         GameContext ctx = games.mustCtx(gameId);
 
-        draws.respondDrawLocked(ctx, u, accept);
+        synchronized (ctx) {
+            draws.respondDrawLocked(ctx, u, accept);
+        }
     }
 
     public void resign(String gameId, User u) throws IOException {

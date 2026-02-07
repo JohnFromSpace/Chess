@@ -148,29 +148,31 @@ final class ReconnectFlow {
 
         reconnects.scheduleDrop(k, () -> {
             try {
-                if (ctx.game.getResult() != Result.ONGOING) return;
+                synchronized (ctx) {
+                    if (ctx.game.getResult() != Result.ONGOING) return;
 
-                long off = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
-                if (off == 0L) return;
+                    long off = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
+                    if (off == 0L) return;
 
-                boolean noMoves = !ctx.game.hasAnyMoves();
-                boolean bothOffline = (ctx.whiteOfflineAtMs != 0L) && (ctx.blackOfflineAtMs != 0L);
+                    boolean noMoves = !ctx.game.hasAnyMoves();
+                    boolean bothOffline = (ctx.whiteOfflineAtMs != 0L) && (ctx.blackOfflineAtMs != 0L);
 
-                if (noMoves || bothOffline) {
+                    if (noMoves || bothOffline) {
+                        finisher.finishLocked(
+                                ctx,
+                                Result.ABORTED,
+                                bothOffline ? "Aborted (both disconnected)." : "Aborted (no moves).",
+                                false
+                        );
+                        return;
+                    }
+
                     finisher.finishLocked(
                             ctx,
-                            Result.ABORTED,
-                            bothOffline ? "Aborted (both disconnected)." : "Aborted (no moves).",
-                            false
+                            isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
+                            "Disconnected for more than 60 seconds."
                     );
-                    return;
                 }
-
-                finisher.finishLocked(
-                        ctx,
-                        isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
-                        "Disconnected for more than 60 seconds."
-                );
             } catch (Exception e) {
                 Log.warn("Reconnect drop task failed for game " + ctx.game.getId(), e);
             }
