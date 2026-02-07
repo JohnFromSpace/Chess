@@ -14,6 +14,7 @@ public class GameCoordinator {
     private final MoveService moves;
     private final StatsService stats;
     private final OnlineUserRegistry online;
+    private final Object userStateLock = new Object();
 
     public GameCoordinator(MatchmakingService matchmaking, MoveService moves, StatsService stats, OnlineUserRegistry online) {
         this.matchmaking = matchmaking;
@@ -23,18 +24,25 @@ public class GameCoordinator {
     }
 
     public void onUserOnline(ClientHandler h, User u) {
-        online.markOnline(u.getUsername(), h);
+        if (u == null) throw new IllegalArgumentException("Missing user.");
+        synchronized (userStateLock) {
+            online.markOnline(u.getUsername(), h);
+        }
     }
 
     public void onUserOffline(ClientHandler h, User u) {
-        if (u != null) online.markOffline(u.getUsername(), h);
-        matchmaking.onDisconnect(u);
-        moves.onDisconnect(u);
+        synchronized (userStateLock) {
+            if (u != null) online.markOffline(u.getUsername(), h);
+            matchmaking.onDisconnect(u);
+            moves.onDisconnect(u);
+        }
     }
 
     public void onUserLogout(ClientHandler h, User u) {
-        if (u != null) online.markOffline(u.getUsername(), h);
-        matchmaking.onDisconnect(u);
+        synchronized (userStateLock) {
+            if (u != null) online.markOffline(u.getUsername(), h);
+            matchmaking.onDisconnect(u);
+        }
     }
 
     public void requestGame(ClientHandler h, User u) throws IOException { matchmaking.enqueue(h, u); }

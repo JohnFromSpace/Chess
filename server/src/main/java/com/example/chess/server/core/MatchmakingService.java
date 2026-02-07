@@ -25,8 +25,6 @@ public class MatchmakingService {
     public void enqueue(ClientHandler h, User u) throws IOException {
         if (h == null || u == null || u.getUsername() == null) throw new IllegalArgumentException("Empty client handler.");
 
-        String u1;
-        ClientHandler h1;
         synchronized (queueLock) {
             if (queue.containsKey(u.getUsername())) {
                 h.sendInfo("Already waiting for opponent.");
@@ -43,11 +41,8 @@ public class MatchmakingService {
             var entry = it.next();
             it.remove();
 
-            u1 = entry.getKey();
-            h1 = entry.getValue();
+            startMatch(entry.getValue(), entry.getKey(), h, u);
         }
-
-        startMatch(h1, u1, h, u);
     }
 
     private void startMatch(ClientHandler h1, String u1, ClientHandler h2, User u2) throws IOException {
