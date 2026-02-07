@@ -13,6 +13,7 @@ import java.util.UUID;
 public class MatchmakingService {
 
     private final Map<String, ClientHandler> queue = new LinkedHashMap<>();
+    private final Object queueLock = new Object();
     private final MoveService moves;
     private final ClockService clocks;
 
@@ -24,23 +25,27 @@ public class MatchmakingService {
     public void enqueue(ClientHandler h, User u) throws IOException {
         if (h == null || u == null || u.getUsername() == null) throw new IllegalArgumentException("Empty client handler.");
 
-        if (queue.containsKey(u.getUsername())) {
-            h.sendInfo("Already waiting for opponent.");
-            return;
+        String u1;
+        ClientHandler h1;
+        synchronized (queueLock) {
+            if (queue.containsKey(u.getUsername())) {
+                h.sendInfo("Already waiting for opponent.");
+                return;
+            }
+
+            if (queue.isEmpty()) {
+                queue.put(u.getUsername(), h);
+                h.sendInfo("Waiting for opponent...");
+                return;
+            }
+
+            var it = queue.entrySet().iterator();
+            var entry = it.next();
+            it.remove();
+
+            u1 = entry.getKey();
+            h1 = entry.getValue();
         }
-
-        if (queue.isEmpty()) {
-            queue.put(u.getUsername(), h);
-            h.sendInfo("Waiting for opponent...");
-            return;
-        }
-
-        var it = queue.entrySet().iterator();
-        var entry = it.next();
-        it.remove();
-
-        String u1 = entry.getKey();
-        ClientHandler h1 = entry.getValue();
 
         startMatch(h1, u1, h, u);
     }
@@ -70,10 +75,10 @@ public class MatchmakingService {
     }
 
     public void onDisconnect(User u) {
-        if (u == null || u.getUsername() == null) throw new IllegalArgumentException("There is no user.");
-        queue.remove(u.getUsername());
+        if (u == null || u.getUsername() == null || u.getUsername().isBlank()) return;
         String username = u.getUsername();
-        if(username == null || username.isBlank()) return;
-        queue.remove(username);
+        synchronized (queueLock) {
+            queue.remove(username);
+        }
     }
 }
