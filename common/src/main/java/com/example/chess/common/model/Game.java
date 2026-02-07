@@ -74,9 +74,12 @@ public class Game {
     }
 
     public void ensureMoveHistory() {
-        if (moveHistory != null && !moveHistory.isEmpty()) throw new IllegalArgumentException("There is no move history.");
+        if (moveHistory != null && !moveHistory.isEmpty()) return;
+        if (moves == null || moves.isEmpty()) {
+            moveHistory = new ArrayList<>();
+            return;
+        }
         moveHistory = new ArrayList<>();
-        if (moves == null) throw new IllegalArgumentException("There are no moves.");
         for (String m : moves) moveHistory.add(new MoveEntry(null, m, 0L));
     }
 
