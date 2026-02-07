@@ -3,6 +3,7 @@ package com.example.chess.client.view;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +15,7 @@ public final class ConsoleInput implements AutoCloseable {
     private volatile boolean closed = false;
 
     public ConsoleInput(InputStream in) {
-        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
         reader = new Thread(() -> {
             try {
@@ -23,7 +24,7 @@ public final class ConsoleInput implements AutoCloseable {
                     lines.put(line);
                 }
             } catch (Exception ex) {
-                com.example.chess.server.util.Log.warn("Failed to read/write line from buffer: ", ex);
+                com.example.chess.client.util.Log.warn("Failed to read/write line from buffer: ", ex);
             } finally {
                 closed = true;
             }

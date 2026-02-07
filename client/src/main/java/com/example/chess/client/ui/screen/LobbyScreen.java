@@ -79,7 +79,7 @@ public class LobbyScreen implements Screen {
             conn.logout().join();
         }
         catch (Exception ex) {
-            com.example.chess.server.util.Log.warn("Failed to logout.", ex);
+            com.example.chess.client.util.Log.warn("Failed to logout.", ex);
         }
 
         state.setUser(null);

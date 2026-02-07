@@ -75,7 +75,7 @@ public final class GameReplayScreen implements Screen {
             return o == null ? 0L : Long.parseLong(String.valueOf(o));
         }
         catch (Exception ex) {
-            com.example.chess.server.util.Log.warn("Failed to parse string to long integer: ", ex);
+            com.example.chess.client.util.Log.warn("Failed to parse string to long integer: ", ex);
             return 0L;
         }
     }

@@ -9,14 +9,12 @@ import com.example.chess.client.security.Tls;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 
 public class ClientConnection implements AutoCloseable {
 
@@ -38,14 +36,14 @@ public class ClientConnection implements AutoCloseable {
     }
 
     public void start() throws Exception {
-        boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "false"));
+        boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "true"));
         socket = tls ? Tls.createClientSocket(host, port) : new Socket(host, port);
 
         socket.setTcpNoDelay(true);
         socket.setKeepAlive(true);
 
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
 
         readerThread = new Thread(this::readLoop, "client-reader");
         readerThread.setDaemon(true);
@@ -121,15 +119,15 @@ public class ClientConnection implements AutoCloseable {
         pending.clear();
 
         // close streams/socket
-        try { if (in != null) in.close(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to close input stream: ", e);}
-        try { if (out != null) out.close(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to close output stream: ", e);}
-        try { if (socket != null) socket.close(); } catch (Exception e) {com.example.chess.server.util.Log.warn("Failed to close current socket: ", e);}
+        try { if (in != null) in.close(); } catch (Exception e) {com.example.chess.client.util.Log.warn("Failed to close input stream: ", e);}
+        try { if (out != null) out.close(); } catch (Exception e) {com.example.chess.client.util.Log.warn("Failed to close output stream: ", e);}
+        try { if (socket != null) socket.close(); } catch (Exception e) {com.example.chess.client.util.Log.warn("Failed to close current socket: ", e);}
 
         // stop reader thread if needed
         try {
             if (readerThread != null) readerThread.interrupt();
         } catch (Exception e) {
-            com.example.chess.server.util.Log.warn("Failed to interrupt reader (thread): ", e);
+            com.example.chess.client.util.Log.warn("Failed to interrupt reader (thread): ", e);
         }
 
         try {

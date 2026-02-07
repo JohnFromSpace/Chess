@@ -144,7 +144,7 @@ public final class GameHistoryScreen implements Screen {
         try {
             return o == null ? 0L : Long.parseLong(String.valueOf(o));
         } catch (Exception e) {
-            com.example.chess.server.util.Log.warn("Failed: ", e);
+            com.example.chess.client.util.Log.warn("Failed: ", e);
             return 0L;
         }
     }

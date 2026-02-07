@@ -28,7 +28,7 @@ public class ClientController {
                 tryJoin(conn.logout());
             }
         } catch (Exception ex) {
-            com.example.chess.server.util.Log.warn("Failed to log out.", ex);
+            com.example.chess.client.util.Log.warn("Failed to log out.", ex);
         } finally {
             conn.close();
         }

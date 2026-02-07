@@ -19,7 +19,7 @@ public class ClientPushRouter {
 
     public void handle(ResponseMessage msg) {
         if (msg == null) {
-            com.example.chess.server.util.Log.warn("There's no message.", null);
+            com.example.chess.client.util.Log.warn("There's no message.", null);
         }
 
         Map<String, Object> p = msg.payload == null ? Map.of() : msg.payload;

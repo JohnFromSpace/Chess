@@ -4,7 +4,7 @@ import com.example.chess.client.controller.ClientController;
 import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.view.ConsoleInput;
 import com.example.chess.client.view.ConsoleView;
-import com.example.chess.server.util.Log;
+import com.example.chess.client.util.Log;
 
 import java.io.IOException;
 

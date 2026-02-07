@@ -166,7 +166,7 @@ public class InGameScreen implements Screen {
                 () -> !state.isInGame() || state.getUser() == null
         );
 
-        if (raw == null) com.example.chess.server.util.Log.warn("Game ended while typing.", null); // game ended while typing
+        if (raw == null) com.example.chess.client.util.Log.warn("Game ended while typing.", null); // game ended while typing
 
         String move;
         try {
