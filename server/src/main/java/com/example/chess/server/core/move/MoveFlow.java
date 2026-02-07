@@ -24,6 +24,7 @@ final class MoveFlow {
     }
 
     void makeMoveLocked(GameContext ctx, User u, String uci) throws IOException {
+        if (!Thread.holdsLock(ctx)) throw new IllegalStateException("Game context must be locked.");
         if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
