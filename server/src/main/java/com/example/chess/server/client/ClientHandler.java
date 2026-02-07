@@ -35,8 +35,8 @@ public class ClientHandler implements Runnable {
 
         boolean rlEnabled = Boolean.parseBoolean(System.getProperty("chess.ratelimit.enabled", "true"));
         long rlCapacity = Long.getLong("chess.ratelimit.capacity", 30L);
-        long rlRefillPerSec = Long.getLong("chess.ratelimit.refillPerSecond", 15L);
-        this.inboundLimiter = rlEnabled ? new RateLimiter((int) rlCapacity, rlRefillPerSec) : null;
+        long rlRefillSeconds = Long.getLong("chess.ratelimit.refillPerSecond", 15L);
+        this.inboundLimiter = rlEnabled ? new RateLimiter((int) rlCapacity, rlRefillSeconds) : null;
     }
 
     public UserModels.User getCurrentUser() { return currentUser; }
