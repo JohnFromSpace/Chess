@@ -43,7 +43,7 @@ public final class StatsAndRatingService implements GameEndHook {
             double sw;
             if (g.getResult() == Result.WHITE_WIN) {
                 w.stats.setWon(w.stats.getWon() + 1);
-                b.stats.setWon(b.stats.getWon() + 1);
+                b.stats.setLost(b.stats.getLost() + 1);
                 sw = 1.0;
             } else if (g.getResult() == Result.BLACK_WIN) {
                 b.stats.setWon(b.stats.getWon() + 1);
