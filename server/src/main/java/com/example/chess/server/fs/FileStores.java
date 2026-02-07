@@ -8,6 +8,7 @@ import com.google.gson.reflect.TypeToken;
 import com.example.chess.common.model.Game;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -40,34 +41,37 @@ public class FileStores implements GameRepository {
     public Map<String, User> loadAllUsers() {
         try {
             Files.createDirectories(root);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to ensure data directory: " + root, e);
+        }
 
-            if (!Files.exists(usersFile)) {
-                return new HashMap<>();
-            }
+        if (!Files.exists(usersFile)) {
+            return new HashMap<>();
+        }
 
-            String json = Files.readString(usersFile, StandardCharsets.UTF_8);
+        String json;
+        try {
+            json = Files.readString(usersFile, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read users file: " + usersFile, e);
+        }
+
+        if (json == null || json.isBlank()) {
+            return new HashMap<>();
+        }
+
+        try {
             Map<String, User> users = GSON.fromJson(json, USER_MAP_TYPE);
             return users != null ? users : new HashMap<>();
-        } catch (IOException e) {
-            com.example.chess.server.util.Log.warn("Failed to load all users.", e);
-            return new HashMap<>();
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Failed to parse users file: " + usersFile, e);
         }
     }
 
     public void writeAllUsers(Map<String, User> users) throws IOException {
-        try {
-            Files.createDirectories(root);
-            String json = GSON.toJson(users, USER_MAP_TYPE);
-            Files.writeString(
-                    usersFile,
-                    json,
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING
-            );
-        } catch (IOException e) {
-            com.example.chess.server.util.Log.warn("Failed to save all users.", e);
-        }
+        Files.createDirectories(root);
+        String json = GSON.toJson(users, USER_MAP_TYPE);
+        writeAtomically(usersFile, json);
     }
 
     private Path gameFile(String id) {
@@ -92,11 +96,14 @@ public class FileStores implements GameRepository {
         }
         try {
             String json = Files.readString(file, StandardCharsets.UTF_8);
+            if (json == null || json.isBlank()) return Optional.empty();
             Game game = GSON.fromJson(json, Game.class);
             sanitizeReason(game);
             return Optional.ofNullable(game);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read game file: " + file, e);
+            throw new UncheckedIOException("Failed to read game file: " + file, e);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Failed to parse game file: " + file, e);
         }
     }
 
@@ -148,22 +155,10 @@ public class FileStores implements GameRepository {
 
         Path file = gameFile(game.getId());
 
-        try {
-            Files.createDirectories(gamesDir);
-            sanitizeReason(game);
-            String json = GSON.toJson(game);
-
-            Files.writeString(
-                    file,
-                    json,
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE
-            );
-        } catch (IOException e) {
-            com.example.chess.server.util.Log.warn("Failed to save current game.", e);
-        }
+        Files.createDirectories(gamesDir);
+        sanitizeReason(game);
+        String json = GSON.toJson(game);
+        writeAtomically(file, json);
     }
 
     public java.util.List<Game> loadAllGames() {
@@ -186,5 +181,37 @@ public class FileStores implements GameRepository {
             com.example.chess.server.util.Log.warn("Failed to load all games.", ex);
         }
         return out;
+    }
+
+    private static void writeAtomically(Path target, String content) throws IOException {
+        Path dir = target.getParent();
+        if (dir != null) Files.createDirectories(dir);
+
+        Path tmp = Files.createTempFile(dir, target.getFileName().toString(), ".tmp");
+        boolean moved = false;
+        try {
+            Files.writeString(
+                    tmp,
+                    content,
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE
+            );
+            try {
+                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+            moved = true;
+        } finally {
+            if (!moved) {
+                try {
+                    Files.deleteIfExists(tmp);
+                } catch (IOException e) {
+                    com.example.chess.server.util.Log.warn("Failed to clean up temp file: " + tmp, e);
+                }
+            }
+        }
     }
 }

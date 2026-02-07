@@ -4,6 +4,7 @@ import com.example.chess.server.client.ClientHandler;
 import com.example.chess.server.core.*;
 import com.example.chess.server.core.move.MoveService;
 import com.example.chess.server.fs.FileStores;
+import com.example.chess.server.fs.ServerState;
 import com.example.chess.server.fs.ServerStateStore;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
@@ -29,7 +30,14 @@ public class ServerMain {
         FileStores stores = new FileStores(dataDir);
 
         ServerStateStore stateStore = new ServerStateStore(dataDir);
-        long lastDownAtMs = stateStore.estimateLastDownAtMs(stateStore.read());
+        ServerState prevState;
+        try {
+            prevState = stateStore.read();
+        } catch (RuntimeException e) {
+            Log.warn("Failed to read server state, starting fresh.", e);
+            prevState = null;
+        }
+        long lastDownAtMs = stateStore.estimateLastDownAtMs(prevState);
 
         UserRepository userRepo = new UserRepository(stores);
         GameRepository gameRepo = stores;
