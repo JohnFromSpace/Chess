@@ -10,24 +10,32 @@ import com.example.chess.common.model.Game;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Supplier;
 
 public class FileStores implements GameRepository {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private static final Type USER_MAP_TYPE =
             new TypeToken<Map<String, User>>() {}.getType();
 
     private final Path root;
     private final Path usersFile;
+    private final Path usersLockFile;
     private final Path gamesDir;
 
     public FileStores(Path root) {
         this.root = root;
         this.usersFile = root.resolve("users.json");
+        this.usersLockFile = root.resolve("users.json.lock");
         this.gamesDir = root.resolve("games");
 
         try {
@@ -39,39 +47,31 @@ public class FileStores implements GameRepository {
     }
 
     public Map<String, User> loadAllUsers() {
-        try {
-            Files.createDirectories(root);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to ensure data directory: " + root, e);
-        }
-
-        if (!Files.exists(usersFile)) {
-            return new HashMap<>();
-        }
-
-        String json;
-        try {
-            json = Files.readString(usersFile, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read users file: " + usersFile, e);
-        }
-
-        if (json == null || json.isBlank()) {
-            return new HashMap<>();
-        }
-
-        try {
-            Map<String, User> users = GSON.fromJson(json, USER_MAP_TYPE);
-            return users != null ? users : new HashMap<>();
-        } catch (RuntimeException e) {
-            throw new IllegalStateException("Failed to parse users file: " + usersFile, e);
-        }
+        return withUserLock(this::readUsersUnlocked);
     }
 
     public void writeAllUsers(Map<String, User> users) throws IOException {
-        Files.createDirectories(root);
-        String json = GSON.toJson(users, USER_MAP_TYPE);
-        writeAtomically(usersFile, json);
+        try {
+            withUserLock(() -> {
+                writeUsersUnlocked(users);
+                return null;
+            });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
+    }
+
+    public void updateUsers(java.util.function.Consumer<Map<String, User>> mutator) throws IOException {
+        try {
+            withUserLock(() -> {
+                Map<String, User> users = readUsersUnlocked();
+                mutator.accept(users);
+                writeUsersUnlocked(users);
+                return null;
+            });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
     }
 
     private Path gameFile(String id) {
@@ -94,17 +94,10 @@ public class FileStores implements GameRepository {
         if (!Files.exists(file)) {
             return Optional.empty();
         }
-        try {
-            String json = Files.readString(file, StandardCharsets.UTF_8);
-            if (json == null || json.isBlank()) return Optional.empty();
-            Game game = GSON.fromJson(json, Game.class);
-            sanitizeReason(game);
-            return Optional.ofNullable(game);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read game file: " + file, e);
-        } catch (RuntimeException e) {
-            throw new IllegalStateException("Failed to parse game file: " + file, e);
-        }
+        Game game = readGameFile(file);
+        if (game == null) return Optional.empty();
+        sanitizeReason(game);
+        return Optional.of(game);
     }
 
     @Override
@@ -118,27 +111,20 @@ public class FileStores implements GameRepository {
 
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
             for (Path file : stream) {
-                try {
-                    String json = Files.readString(file, StandardCharsets.UTF_8);
-                    Game game = GSON.fromJson(json, Game.class);
+                Game game = readGameFile(file);
+                if (game == null || game.getId() == null) continue;
 
-                    if (game == null || game.getId() == null) continue;
+                String w = game.getWhiteUser();
+                String b = game.getBlackUser();
 
-                    String w = game.getWhiteUser();
-                    String b = game.getBlackUser();
+                if (w == null || b == null || w.isBlank() || b.isBlank()) continue;
+                if (w.equals(b)) continue;
 
-                    if (w == null || b == null || w.isBlank() || b.isBlank()) continue;
-                    if (w.equals(b)) continue;
+                if (!validUsers.contains(w) || !validUsers.contains(b)) continue;
+                if (!username.equals(w) && !username.equals(b)) continue;
 
-                    if (!validUsers.contains(w) || !validUsers.contains(b)) continue;
-                    if (!username.equals(w) && !username.equals(b)) continue;
-
-                    sanitizeReason(game);
-                    result.put(game.getId(), game);
-
-                } catch (IOException e) {
-                    com.example.chess.server.util.Log.warn("Failed to read game file: " + file, e);
-                }
+                sanitizeReason(game);
+                result.put(game.getId(), game);
             }
         } catch (IOException e) {
             com.example.chess.server.util.Log.warn("Failed to list games directory: " + gamesDir, e);
@@ -168,19 +154,114 @@ public class FileStores implements GameRepository {
 
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
                 for (Path file : stream) {
-                    try {
-                        String json = Files.readString(file, StandardCharsets.UTF_8);
-                        Game g = GSON.fromJson(json, Game.class);
-                        if (g != null && g.getId() != null && !g.getId().isBlank()) out.add(g);
-                    } catch (Exception exception) {
-                        com.example.chess.server.util.Log.warn("Failed to read file.", exception);
-                    }
+                    Game g = readGameFile(file);
+                    if (g != null && g.getId() != null && !g.getId().isBlank()) out.add(g);
                 }
             }
         } catch (Exception ex) {
             com.example.chess.server.util.Log.warn("Failed to load all games.", ex);
         }
         return out;
+    }
+
+    private Map<String, User> readUsersUnlocked() {
+        try {
+            Files.createDirectories(root);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to ensure data directory: " + root, e);
+        }
+
+        if (!Files.exists(usersFile)) {
+            return new HashMap<>();
+        }
+
+        String json;
+        try {
+            json = Files.readString(usersFile, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read users file: " + usersFile, e);
+        }
+
+        if (json == null || json.isBlank()) {
+            quarantineFile(usersFile, "users");
+            return new HashMap<>();
+        }
+
+        try {
+            Map<String, User> users = GSON.fromJson(json, USER_MAP_TYPE);
+            if (users == null) {
+                quarantineFile(usersFile, "users");
+                return new HashMap<>();
+            }
+            return users;
+        } catch (RuntimeException e) {
+            quarantineFile(usersFile, "users");
+            com.example.chess.server.util.Log.warn("Failed to parse users file: " + usersFile, e);
+            return new HashMap<>();
+        }
+    }
+
+    private void writeUsersUnlocked(Map<String, User> users) {
+        try {
+            Files.createDirectories(root);
+            String json = GSON.toJson(users, USER_MAP_TYPE);
+            writeAtomically(usersFile, json);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to write users file: " + usersFile, e);
+        }
+    }
+
+    private <T> T withUserLock(Supplier<T> action) {
+        try {
+            Files.createDirectories(root);
+            try (FileChannel channel = FileChannel.open(usersLockFile,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE);
+                 FileLock lock = channel.lock()) {
+                return action.get();
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to lock users file: " + usersLockFile, e);
+        }
+    }
+
+    private Game readGameFile(Path file) {
+        String json;
+        try {
+            json = Files.readString(file, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            com.example.chess.server.util.Log.warn("Failed to read game file: " + file, e);
+            return null;
+        }
+
+        if (json == null || json.isBlank()) {
+            quarantineFile(file, "game");
+            return null;
+        }
+
+        try {
+            Game game = GSON.fromJson(json, Game.class);
+            if (game == null) {
+                quarantineFile(file, "game");
+            }
+            return game;
+        } catch (RuntimeException e) {
+            quarantineFile(file, "game");
+            com.example.chess.server.util.Log.warn("Failed to parse game file: " + file, e);
+            return null;
+        }
+    }
+
+    private void quarantineFile(Path file, String kind) {
+        try {
+            if (!Files.exists(file)) return;
+            String ts = LocalDateTime.now().format(TS_FMT);
+            Path backup = file.resolveSibling(file.getFileName().toString() + ".corrupt-" + ts);
+            Files.move(file, backup, StandardCopyOption.REPLACE_EXISTING);
+            com.example.chess.server.util.Log.warn("Quarantined corrupt " + kind + " file: " + file, null);
+        } catch (Exception e) {
+            com.example.chess.server.util.Log.warn("Failed to quarantine corrupt " + kind + " file: " + file, e);
+        }
     }
 
     private static void writeAtomically(Path target, String content) throws IOException {

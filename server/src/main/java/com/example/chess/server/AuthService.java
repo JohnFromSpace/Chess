@@ -4,7 +4,6 @@ import com.example.chess.common.UserModels.User;
 import com.example.chess.server.fs.repository.UserRepository;
 
 import java.io.IOException;
-import java.util.Optional;
 
 public class AuthService {
     private final UserRepository userRepository;
@@ -14,22 +13,12 @@ public class AuthService {
     }
 
     public synchronized User register(String username, String name, String password) {
-        Optional<User> existing = userRepository.findByUsername(username);
-        if (existing.isPresent()) {
-            throw new IllegalArgumentException("Username is already taken.");
-        }
-
-        User user = new User();
-        user.setUsername(username);
-        user.setName(name);
-        user.setPassHash(PasswordUtil.hash(password));
-
         try {
-            userRepository.saveUser(user);
+            return userRepository.createUser(username, name, PasswordUtil.hash(password));
         } catch (IOException e) {
             com.example.chess.server.util.Log.warn("Failed to save user.", e);
+            throw new RuntimeException("Failed to save user.", e);
         }
-        return user;
     }
 
     public synchronized User login(String username, String password) {
