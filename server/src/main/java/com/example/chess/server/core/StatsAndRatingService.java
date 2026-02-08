@@ -6,8 +6,6 @@ import com.example.chess.common.model.Result;
 import com.example.chess.server.core.move.GameEndHook;
 import com.example.chess.server.fs.repository.UserRepository;
 
-import java.util.Map;
-
 public final class StatsAndRatingService implements GameEndHook {
 
     private static final int DEFAULT_RATING = 1200;
@@ -30,10 +28,7 @@ public final class StatsAndRatingService implements GameEndHook {
 
         if (!g.isRated() || g.getResult() == Result.ABORTED) throw new IllegalArgumentException("The game is not rated because it was aborted.");
 
-        users.updateUsers(all -> {
-            UserModels.User w = mustUser(all, g.getWhiteUser());
-            UserModels.User b = mustUser(all, g.getBlackUser());
-
+        users.updateTwoUsers(g.getWhiteUser(), g.getBlackUser(), (w, b) -> {
             ensureStats(w);
             ensureStats(b);
 
@@ -67,12 +62,6 @@ public final class StatsAndRatingService implements GameEndHook {
             w.stats.setRating(Math.max(MIN_RATING, newRw));
             b.stats.setRating(Math.max(MIN_RATING, newRb));
         });
-    }
-
-    private static UserModels.User mustUser(Map<String, UserModels.User> all, String username) {
-        UserModels.User u = all.get(username);
-        if (u == null) throw new IllegalArgumentException("Missing user in store: " + username);
-        return u;
     }
 
     private static void ensureStats(UserModels.User u) {

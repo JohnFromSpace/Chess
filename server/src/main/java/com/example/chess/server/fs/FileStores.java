@@ -147,6 +147,7 @@ public class FileStores implements GameRepository {
         writeAtomically(file, json);
     }
 
+    @Override
     public java.util.List<Game> loadAllGames() {
         java.util.List<Game> out = new java.util.ArrayList<>();
         try {

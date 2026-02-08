@@ -3,6 +3,9 @@ package com.example.chess.server;
 import com.example.chess.server.client.ClientHandler;
 import com.example.chess.server.core.*;
 import com.example.chess.server.core.move.MoveService;
+import com.example.chess.server.db.Db;
+import com.example.chess.server.db.DbBootstrap;
+import com.example.chess.server.db.DbGameRepository;
 import com.example.chess.server.fs.FileStores;
 import com.example.chess.server.fs.ServerState;
 import com.example.chess.server.fs.ServerStateStore;
@@ -27,7 +30,15 @@ public class ServerMain {
         int port = 5000;
 
         Path dataDir = Path.of("data");
-        FileStores stores = new FileStores(dataDir);
+        FileStores backups = new FileStores(dataDir);
+
+        Db db = Db.fromSystemProperties();
+        db.migrate();
+
+        boolean importJson = Boolean.parseBoolean(System.getProperty("chess.db.importFromJson", "true"));
+        if (importJson) {
+            DbBootstrap.importJsonIfEmpty(db, backups);
+        }
 
         ServerStateStore stateStore = new ServerStateStore(dataDir);
         ServerState prevState;
@@ -39,8 +50,8 @@ public class ServerMain {
         }
         long lastDownAtMs = stateStore.estimateLastDownAtMs(prevState);
 
-        UserRepository userRepo = new UserRepository(stores);
-        GameRepository gameRepo = stores;
+        UserRepository userRepo = new UserRepository(db, backups);
+        GameRepository gameRepo = new DbGameRepository(db, backups);
 
         StatsService stats = new StatsService(gameRepo);
         ClockService clocks = new ClockService();
@@ -48,7 +59,7 @@ public class ServerMain {
         StatsAndRatingService statsAndElo = new StatsAndRatingService(userRepo);
         MoveService moves = new MoveService(gameRepo, clocks, statsAndElo);
 
-        moves.recoverOngoingGames(stores.loadAllGames(), lastDownAtMs);
+        moves.recoverOngoingGames(gameRepo.loadAllGames(), lastDownAtMs);
 
         MatchmakingService matchmaking = new MatchmakingService(moves, clocks);
         OnlineUserRegistry online = new OnlineUserRegistry();
