@@ -176,6 +176,8 @@ public class UserRepository {
                 if (e instanceof RuntimeException re) throw re;
                 throw new IOException("Failed to update users.", e);
             }
+        } catch (SQLException e) {
+            throw new IOException("Failed to update users.", e);
         }
 
         backupAllUsers();
