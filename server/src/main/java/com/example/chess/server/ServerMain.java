@@ -11,7 +11,6 @@ import com.example.chess.server.fs.ServerState;
 import com.example.chess.server.fs.ServerStateStore;
 import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
-import com.example.chess.server.security.RateLimiter;
 import com.example.chess.server.util.Log;
 import com.example.chess.server.security.Tls;
 

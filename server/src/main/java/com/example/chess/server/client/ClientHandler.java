@@ -25,7 +25,6 @@ public class ClientHandler implements Runnable {
     private final ClientNotifier notifier = new ClientNotifier();
     private final RateLimiter inboundLimiter;
 
-    private BufferedReader in;
     private BufferedWriter out;
 
     private volatile UserModels.User currentUser;
@@ -46,7 +45,7 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try (socket) {
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
 
             int readTimeoutMs =  Integer.parseInt(System.getProperty("chess.socket.readTimeoutMs", "60000"));
@@ -64,7 +63,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleLine(String line) throws IOException {
+    private void handleLine(String line) {
         if (line == null) return;
         line = line.trim();
         if (line.isEmpty()) return;
@@ -73,17 +72,17 @@ public class ClientHandler implements Runnable {
         try {
             parsed = MessageCodec.fromJsonLine(line);
         } catch (Exception e) {
-            send(ResponseMessage.error(null, "Invalid message: " + e.getMessage(), "Too many requests. PLease, slow down."));
+            send(ResponseMessage.error(null, "Invalid message: " + e.getMessage(), "Too many requests. Please, slow down."));
             return;
         }
 
         if (!(parsed instanceof RequestMessage req)) {
-            send(ResponseMessage.error(null, "Client must send request messages.", "Too many requests. PLease, slow down."));
+            send(ResponseMessage.error(null, "Client must send request messages.", "Too many requests. Please, slow down."));
             return;
         }
 
         if(inboundLimiter != null && !inboundLimiter.tryAcquire()) {
-            send(ResponseMessage.error(req.corrId, "rate_limited", "Too many requests. PLease, slow down."));
+            send(ResponseMessage.error(req.corrId, "rate_limited", "Too many requests. Please, slow down."));
             return;
         }
 
