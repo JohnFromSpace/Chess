@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Build artifacts
+        run: mvn -B -ntp -DskipTests package
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            client/target/chess-client.jar
+            server/target/chess-server.jar
