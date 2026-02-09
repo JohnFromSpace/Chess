@@ -9,21 +9,37 @@ import com.example.chess.common.message.ResponseMessage;
 import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
 import com.example.chess.server.core.move.MoveService;
-import com.example.chess.server.util.Log;
 import com.example.chess.server.security.RateLimiter;
+import com.example.chess.server.util.Log;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class ClientHandler implements Runnable {
+
+    private static final ConcurrentMap<String, IpLimiter> IP_LIMITERS = new ConcurrentHashMap<>();
+    private static final boolean IP_RATE_LIMIT_ENABLED =
+            Boolean.parseBoolean(System.getProperty("chess.ratelimit.ip.enabled", "true"));
+    private static final long IP_RATE_LIMIT_CAPACITY =
+            Long.getLong("chess.ratelimit.ip.capacity", 120L);
+    private static final long IP_RATE_LIMIT_REFILL_SECONDS =
+            Long.getLong("chess.ratelimit.ip.refillPerSecond", 15L);
+    private static final int IP_RATE_LIMIT_MAX_ENTRIES =
+            Integer.parseInt(System.getProperty("chess.ratelimit.ip.maxEntries", "10000"));
+    private static final long IP_RATE_LIMIT_IDLE_EVICT_MS =
+            Long.getLong("chess.ratelimit.ip.idleEvictMs", 900_000L);
 
     private final Socket socket;
 
     private final ClientRequestRouter router;
     private final ClientNotifier notifier = new ClientNotifier();
     private final RateLimiter inboundLimiter;
+    private final IpLimiter inboundIpLimiter;
     private final Object writeLock = new Object();
 
     private BufferedWriter out;
@@ -33,11 +49,13 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket, AuthService auth, GameCoordinator coordinator, MoveService moves) {
         this.socket = socket;
         this.router = new ClientRequestRouter(auth, coordinator, moves);
+        String clientIp = resolveClientIp(socket);
 
         boolean rlEnabled = Boolean.parseBoolean(System.getProperty("chess.ratelimit.enabled", "true"));
         long rlCapacity = Long.getLong("chess.ratelimit.capacity", 30L);
         long rlRefillSeconds = Long.getLong("chess.ratelimit.refillPerSecond", 15L);
         this.inboundLimiter = rlEnabled ? new RateLimiter((int) rlCapacity, rlRefillSeconds) : null;
+        this.inboundIpLimiter = ipLimiterFor(clientIp);
     }
 
     public UserModels.User getCurrentUser() { return currentUser; }
@@ -88,7 +106,11 @@ public class ClientHandler implements Runnable {
             return;
         }
 
-        if(inboundLimiter != null && !inboundLimiter.tryAcquire()) {
+        if (inboundLimiter != null && !inboundLimiter.tryAcquire()) {
+            send(ResponseMessage.error(req.corrId, "rate_limited"));
+            return;
+        }
+        if (inboundIpLimiter != null && !inboundIpLimiter.tryAcquire()) {
             send(ResponseMessage.error(req.corrId, "rate_limited"));
             return;
         }
@@ -165,6 +187,71 @@ public class ClientHandler implements Runnable {
     private static final class LineTooLongException extends IOException {
         private LineTooLongException(String message) {
             super(message);
+        }
+    }
+
+    private static String resolveClientIp(Socket socket) {
+        if (socket == null) return "unknown";
+        InetAddress addr = socket.getInetAddress();
+        if (addr == null) return "unknown";
+        String host = addr.getHostAddress();
+        return host == null || host.isBlank() ? "unknown" : host;
+    }
+
+    private static IpLimiter ipLimiterFor(String ip) {
+        if (!IP_RATE_LIMIT_ENABLED) return null;
+        if (ip == null || ip.isBlank()) return null;
+
+        long now = System.currentTimeMillis();
+        cleanupIpLimiters(now);
+
+        return IP_LIMITERS.compute(ip, (key, existing) -> {
+            boolean expired = IP_RATE_LIMIT_IDLE_EVICT_MS > 0
+                    && existing != null
+                    && existing.isIdle(now, IP_RATE_LIMIT_IDLE_EVICT_MS);
+            if (existing == null || expired) {
+                int cap = (int) Math.min(Integer.MAX_VALUE, Math.max(1L, IP_RATE_LIMIT_CAPACITY));
+                long refill = Math.max(1L, IP_RATE_LIMIT_REFILL_SECONDS);
+                return new IpLimiter(new RateLimiter(cap, refill), now);
+            }
+            existing.touch(now);
+            return existing;
+        });
+    }
+
+    private static void cleanupIpLimiters(long now) {
+        if (IP_RATE_LIMIT_MAX_ENTRIES <= 0) return;
+        if (IP_LIMITERS.size() <= IP_RATE_LIMIT_MAX_ENTRIES) return;
+        if (IP_RATE_LIMIT_IDLE_EVICT_MS <= 0) return;
+
+        for (Map.Entry<String, IpLimiter> entry : IP_LIMITERS.entrySet()) {
+            IpLimiter limiter = entry.getValue();
+            if (limiter != null && limiter.isIdle(now, IP_RATE_LIMIT_IDLE_EVICT_MS)) {
+                IP_LIMITERS.remove(entry.getKey(), limiter);
+            }
+        }
+    }
+
+    private static final class IpLimiter {
+        private final RateLimiter limiter;
+        private volatile long lastSeenMs;
+
+        private IpLimiter(RateLimiter limiter, long now) {
+            this.limiter = limiter;
+            this.lastSeenMs = now;
+        }
+
+        private void touch(long now) {
+            lastSeenMs = now;
+        }
+
+        private boolean isIdle(long now, long idleMs) {
+            return now - lastSeenMs >= idleMs;
+        }
+
+        private boolean tryAcquire() {
+            touch(System.currentTimeMillis());
+            return limiter.tryAcquire();
         }
     }
 }
