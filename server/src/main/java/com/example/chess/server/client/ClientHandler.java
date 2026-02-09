@@ -52,9 +52,15 @@ public class ClientHandler implements Runnable {
             int readTimeoutMs =  Integer.parseInt(System.getProperty("chess.socket.readTimeoutMs", "60000"));
             if (readTimeoutMs > 0) socket.setSoTimeout(readTimeoutMs);
 
+            int maxLineChars = Integer.parseInt(System.getProperty("chess.socket.maxLineChars", "16384"));
+
             String line;
-            while ((line = in.readLine()) != null) {
-                handleLine(line);
+            try {
+                while ((line = readLineLimited(in, maxLineChars)) != null) {
+                    handleLine(line);
+                }
+            } catch (LineTooLongException e) {
+                send(ResponseMessage.error(null, "Request too large."));
             }
         } catch (Exception e) {
             Log.warn("Client disconnected / handler error", e);
