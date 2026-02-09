@@ -1,11 +1,12 @@
 package com.example.chess.server.fs;
 
 import com.example.chess.common.UserModels.User;
+import com.example.chess.common.model.Game;
 import com.example.chess.server.fs.repository.GameRepository;
+import com.example.chess.server.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.example.chess.common.model.Game;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -13,10 +14,22 @@ import java.lang.reflect.Type;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryIteratorException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public class FileStores implements GameRepository {
@@ -114,7 +127,7 @@ public class FileStores implements GameRepository {
                 result.put(game.getId(), game);
             }
         } catch (IOException e) {
-            com.example.chess.server.util.Log.warn("Failed to list games directory: " + gamesDir, e);
+            Log.warn("Failed to list games directory: " + gamesDir, e);
         }
 
         return result;
@@ -135,8 +148,8 @@ public class FileStores implements GameRepository {
     }
 
     @Override
-    public java.util.List<Game> loadAllGames() {
-        java.util.List<Game> out = new java.util.ArrayList<>();
+    public List<Game> loadAllGames() {
+        List<Game> out = new ArrayList<>();
         try {
             if (!Files.exists(gamesDir)) return out;
 
@@ -146,8 +159,8 @@ public class FileStores implements GameRepository {
                     if (g != null && g.getId() != null && !g.getId().isBlank()) out.add(g);
                 }
             }
-        } catch (Exception ex) {
-            com.example.chess.server.util.Log.warn("Failed to load all games.", ex);
+        } catch (IOException | DirectoryIteratorException ex) {
+            Log.warn("Failed to load all games.", ex);
         }
         return out;
     }
@@ -170,7 +183,7 @@ public class FileStores implements GameRepository {
             throw new UncheckedIOException("Failed to read users file: " + usersFile, e);
         }
 
-        if (json == null || json.isBlank()) {
+        if (json.isBlank()) {
             quarantineFile(usersFile, "users");
             return new HashMap<>();
         }
@@ -184,7 +197,7 @@ public class FileStores implements GameRepository {
             return users;
         } catch (RuntimeException e) {
             quarantineFile(usersFile, "users");
-            com.example.chess.server.util.Log.warn("Failed to parse users file: " + usersFile, e);
+            Log.warn("Failed to parse users file: " + usersFile, e);
             return new HashMap<>();
         }
     }
@@ -206,6 +219,9 @@ public class FileStores implements GameRepository {
                     StandardOpenOption.CREATE,
                     StandardOpenOption.WRITE);
                  FileLock lock = channel.lock()) {
+                if (!lock.isValid()) {
+                    throw new IOException("Failed to acquire users file lock: " + usersLockFile);
+                }
                 return action.get();
             }
         } catch (IOException e) {
@@ -213,16 +229,16 @@ public class FileStores implements GameRepository {
         }
     }
 
-    private Game readGameFile(Path file) {
+    private static Game readGameFile(Path file) {
         String json;
         try {
             json = Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            com.example.chess.server.util.Log.warn("Failed to read game file: " + file, e);
+            Log.warn("Failed to read game file: " + file, e);
             return null;
         }
 
-        if (json == null || json.isBlank()) {
+        if (json.isBlank()) {
             quarantineFile(file, "game");
             return null;
         }
@@ -235,28 +251,29 @@ public class FileStores implements GameRepository {
             return game;
         } catch (RuntimeException e) {
             quarantineFile(file, "game");
-            com.example.chess.server.util.Log.warn("Failed to parse game file: " + file, e);
+            Log.warn("Failed to parse game file: " + file, e);
             return null;
         }
     }
 
-    private void quarantineFile(Path file, String kind) {
+    private static void quarantineFile(Path file, String kind) {
         try {
             if (!Files.exists(file)) return;
             String ts = LocalDateTime.now().format(TS_FMT);
             Path backup = file.resolveSibling(file.getFileName().toString() + ".corrupt-" + ts);
             Files.move(file, backup, StandardCopyOption.REPLACE_EXISTING);
-            com.example.chess.server.util.Log.warn("Quarantined corrupt " + kind + " file: " + file, null);
+            Log.warn("Quarantined corrupt " + kind + " file: " + file, null);
         } catch (Exception e) {
-            com.example.chess.server.util.Log.warn("Failed to quarantine corrupt " + kind + " file: " + file, e);
+            Log.warn("Failed to quarantine corrupt " + kind + " file: " + file, e);
         }
     }
 
     private static void writeAtomically(Path target, String content) throws IOException {
         Path dir = target.getParent();
         if (dir != null) Files.createDirectories(dir);
+        Path tmpDir = dir != null ? dir : Path.of(".");
 
-        Path tmp = Files.createTempFile(dir, target.getFileName().toString(), ".tmp");
+        Path tmp = Files.createTempFile(tmpDir, target.getFileName().toString(), ".tmp");
         boolean moved = false;
         try {
             Files.writeString(
@@ -278,7 +295,7 @@ public class FileStores implements GameRepository {
                 try {
                     Files.deleteIfExists(tmp);
                 } catch (IOException e) {
-                    com.example.chess.server.util.Log.warn("Failed to clean up temp file: " + tmp, e);
+                    Log.warn("Failed to clean up temp file: " + tmp, e);
                 }
             }
         }
