@@ -8,6 +8,7 @@ import com.example.chess.server.fs.ServerState;
 import com.example.chess.server.fs.ServerStateStore;
 import com.example.chess.server.fs.repository.UserRepository;
 import com.example.chess.server.util.Log;
+import com.example.chess.server.util.ServerMetrics;
 import com.example.chess.server.security.Tls;
 
 import java.io.IOException;
@@ -50,6 +51,7 @@ public class ServerMain {
 
             MatchmakingService matchmaking = new MatchmakingService(moves);
             OnlineUserRegistry online = new OnlineUserRegistry();
+            ServerMetrics metrics = new ServerMetrics(online::onlineCount, matchmaking::queueSize, moves::activeGameCount);
 
             GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
             AuthService auth = new AuthService(userRepo);
@@ -125,7 +127,7 @@ public class ServerMain {
                     clientSocket.setKeepAlive(true);
 
                     try {
-                        clientPool.execute(new ClientHandler(clientSocket, auth, coordinator, moves));
+                        clientPool.execute(new ClientHandler(clientSocket, auth, coordinator, moves, metrics));
                     } catch (RejectedExecutionException rex) {
                         try {
                             clientSocket.close();

@@ -74,4 +74,10 @@ public class MatchmakingService {
             queue.remove(username);
         }
     }
+
+    public int queueSize() {
+        synchronized (queueLock) {
+            return queue.size();
+        }
+    }
 }

@@ -165,4 +165,8 @@ public class MoveService implements AutoCloseable {
     public void close() {
         tickExec.shutdownNow();
     }
+
+    public int activeGameCount() {
+        return games.size();
+    }
 }

@@ -23,4 +23,8 @@ public final class OnlineUserRegistry {
         if (handler == null) throw new IllegalArgumentException("There is no client handler.");
         online.remove(username, handler);
     }
+
+    public int onlineCount() {
+        return online.size();
+    }
 }

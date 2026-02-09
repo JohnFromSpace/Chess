@@ -7,6 +7,7 @@ import com.example.chess.common.model.Game;
 import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
 import com.example.chess.server.core.move.MoveService;
+import com.example.chess.server.util.ServerMetrics;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -35,19 +36,23 @@ final class ClientRequestRouter {
     private final AuthService auth;
     private final GameCoordinator coordinator;
     private final MoveService moves;
+    private final ServerMetrics metrics;
 
-    ClientRequestRouter(AuthService auth, GameCoordinator coordinator, MoveService moves) {
+    ClientRequestRouter(AuthService auth, GameCoordinator coordinator, MoveService moves, ServerMetrics metrics) {
         this.auth = auth;
         this.coordinator = coordinator;
         this.moves = moves;
+        this.metrics = metrics;
     }
 
     void handle(RequestMessage req, ClientHandler h) {
         if (!isValidType(req.type)) {
+            if (metrics != null) metrics.onInvalidRequest();
             h.send(ResponseMessage.error(req.corrId, "Invalid message type."));
             return;
         }
         if (!isValidCorrId(req.corrId)) {
+            if (metrics != null) metrics.onInvalidRequest();
             h.send(ResponseMessage.error(null, "Invalid corrId."));
             return;
         }
@@ -58,6 +63,7 @@ final class ClientRequestRouter {
         try {
             switch (t) {
                 case "ping" -> h.send(ResponseMessage.ok("pong", corrId));
+                case "health" -> health(req, h);
 
                 case "register" -> register(req, h);
                 case "login" -> login(req, h);
@@ -74,11 +80,16 @@ final class ClientRequestRouter {
                 case "getGameDetails" -> getGameDetails(req, h);
                 case "getStats" -> getStats(req, h);
 
-                default -> h.send(ResponseMessage.error(corrId, "Unknown message type: " + t));
+                default -> {
+                    if (metrics != null) metrics.onError(req.type);
+                    h.send(ResponseMessage.error(corrId, "Unknown message type: " + t));
+                }
             }
         } catch (IllegalArgumentException ex) {
+            if (metrics != null) metrics.onError(req.type);
             h.send(ResponseMessage.error(corrId, ex.getMessage()));
         } catch (Exception ex) {
+            if (metrics != null) metrics.onError(req.type);
             h.send(ResponseMessage.error(corrId, "Internal server error."));
         }
     }
@@ -220,6 +231,12 @@ final class ClientRequestRouter {
         payload.put("user", userMap(fresh));
 
         h.send(ResponseMessage.ok("getStatsOk", req.corrId, payload));
+    }
+
+    private void health(RequestMessage req, ClientHandler h) {
+        Map<String, Object> payload = metrics == null ? new HashMap<>() : metrics.snapshot();
+        if (metrics == null) payload.put("status", "unknown");
+        h.send(ResponseMessage.ok("healthOk", req.corrId, payload));
     }
 
     private static UserModels.User mustLogin(ClientHandler h) {

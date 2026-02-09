@@ -11,6 +11,7 @@ import com.example.chess.server.core.GameCoordinator;
 import com.example.chess.server.core.move.MoveService;
 import com.example.chess.server.security.RateLimiter;
 import com.example.chess.server.util.Log;
+import com.example.chess.server.util.ServerMetrics;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -42,15 +43,21 @@ public class ClientHandler implements Runnable {
     private final IpLimiter inboundIpLimiter;
     private final Object writeLock = new Object();
     private final String clientIp;
+    private final ServerMetrics metrics;
 
     private BufferedWriter out;
 
     private volatile UserModels.User currentUser;
 
-    public ClientHandler(Socket socket, AuthService auth, GameCoordinator coordinator, MoveService moves) {
+    public ClientHandler(Socket socket,
+                         AuthService auth,
+                         GameCoordinator coordinator,
+                         MoveService moves,
+                         ServerMetrics metrics) {
         this.socket = socket;
-        this.router = new ClientRequestRouter(auth, coordinator, moves);
+        this.router = new ClientRequestRouter(auth, coordinator, moves, metrics);
         this.clientIp = resolveClientIp(socket);
+        this.metrics = metrics;
 
         boolean rlEnabled = Boolean.parseBoolean(System.getProperty("chess.ratelimit.enabled", "true"));
         long rlCapacity = Long.getLong("chess.ratelimit.capacity", 30L);
@@ -64,6 +71,7 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
+        if (metrics != null) metrics.onConnectionOpen();
         try (Log.ContextScope ignored = Log.withContext(null, clientIp, null);
              socket) {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
@@ -80,6 +88,7 @@ public class ClientHandler implements Runnable {
                     handleLine(line);
                 }
             } catch (LineTooLongException e) {
+                if (metrics != null) metrics.onInvalidRequest();
                 send(ResponseMessage.error(null, "Request too large."));
             }
         } catch (Exception e) {
@@ -87,6 +96,7 @@ public class ClientHandler implements Runnable {
         } finally {
             try { router.onDisconnect(this); }
             catch (Exception e) { Log.warn("onDisconnect failed", e); }
+            if (metrics != null) metrics.onConnectionClosed();
         }
     }
 
@@ -99,22 +109,27 @@ public class ClientHandler implements Runnable {
         try {
             parsed = MessageCodec.fromJsonLine(line);
         } catch (Exception e) {
+            if (metrics != null) metrics.onInvalidRequest();
             send(ResponseMessage.error(null, "Invalid message: " + e.getMessage()));
             return;
         }
 
         if (!(parsed instanceof RequestMessage req)) {
+            if (metrics != null) metrics.onInvalidRequest();
             send(ResponseMessage.error(null, "Client must send request messages."));
             return;
         }
 
         String username = currentUser != null ? currentUser.getUsername() : null;
         try (Log.ContextScope ignored = Log.withContext(req.corrId, clientIp, username)) {
+            if (metrics != null) metrics.onRequest(req.type);
             if (inboundLimiter != null && !inboundLimiter.tryAcquire()) {
+                if (metrics != null) metrics.onRateLimited();
                 send(ResponseMessage.error(req.corrId, "rate_limited"));
                 return;
             }
             if (inboundIpLimiter != null && !inboundIpLimiter.tryAcquire()) {
+                if (metrics != null) metrics.onRateLimited();
                 send(ResponseMessage.error(req.corrId, "rate_limited"));
                 return;
             }

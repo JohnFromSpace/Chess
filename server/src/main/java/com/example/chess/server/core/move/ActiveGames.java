@@ -47,4 +47,8 @@ final class ActiveGames {
     List<GameContext> snapshot() {
         return new ArrayList<>(active.values());
     }
+
+    int size() {
+        return active.size();
+    }
 }
