@@ -34,3 +34,20 @@ jobs:
           cache: maven
       - name: Format and lint
         run: mvn -B -ntp -Dspotless.ratchetFrom=origin/${{ github.event.repository.default_branch }} spotless:check checkstyle:check
+
+  dependency-submission:
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Submit dependency snapshot
+        uses: advanced-security/maven-dependency-submission-action@v4
