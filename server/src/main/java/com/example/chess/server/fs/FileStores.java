@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -47,6 +49,8 @@ public class FileStores implements GameRepository {
     private final Path usersFile;
     private final Path usersLockFile;
     private final Path gamesDir;
+    private final Object usersMutex = new Object();
+    private final ConcurrentMap<String, Object> gameMutexes = new ConcurrentHashMap<>();
 
     public FileStores(Path root) {
         this.root = root;
@@ -234,19 +238,21 @@ public class FileStores implements GameRepository {
     }
 
     private <T> T withUserLock(Supplier<T> action) {
-        try {
-            Files.createDirectories(root);
-            try (FileChannel channel = FileChannel.open(usersLockFile,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE);
-                 FileLock lock = channel.lock()) {
-                if (!lock.isValid()) {
-                    throw new IOException("Failed to acquire users file lock: " + usersLockFile);
+        synchronized (usersMutex) {
+            try {
+                Files.createDirectories(root);
+                try (FileChannel channel = FileChannel.open(usersLockFile,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.WRITE);
+                     FileLock lock = channel.lock()) {
+                    if (!lock.isValid()) {
+                        throw new IOException("Failed to acquire users file lock: " + usersLockFile);
+                    }
+                    return action.get();
                 }
-                return action.get();
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to lock users file: " + usersLockFile, e);
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to lock users file: " + usersLockFile, e);
         }
     }
 
@@ -286,20 +292,23 @@ public class FileStores implements GameRepository {
     }
 
     private <T> T withGameLock(Path gameFile, Supplier<T> action) {
-        try {
-            Files.createDirectories(gamesDir);
-            Path lockFile = gameLockFile(gameFile);
-            try (FileChannel channel = FileChannel.open(lockFile,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE);
-                 FileLock lock = channel.lock()) {
-                if (!lock.isValid()) {
-                    throw new IOException("Failed to acquire game lock: " + lockFile);
+        Object mutex = gameMutexes.computeIfAbsent(gameFile.getFileName().toString(), k -> new Object());
+        synchronized (mutex) {
+            try {
+                Files.createDirectories(gamesDir);
+                Path lockFile = gameLockFile(gameFile);
+                try (FileChannel channel = FileChannel.open(lockFile,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.WRITE);
+                     FileLock lock = channel.lock()) {
+                    if (!lock.isValid()) {
+                        throw new IOException("Failed to acquire game lock: " + lockFile);
+                    }
+                    return action.get();
                 }
-                return action.get();
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to lock game file: " + gameFile, e);
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to lock game file: " + gameFile, e);
         }
     }
 
