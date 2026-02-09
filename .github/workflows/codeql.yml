@@ -28,6 +28,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: java
+          build-mode: autobuild
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
       - name: Analyze
