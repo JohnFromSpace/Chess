@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class MoveService {
+public class MoveService implements AutoCloseable {
 
     private final ActiveGames games = new ActiveGames();
 
@@ -161,6 +161,7 @@ public class MoveService {
         }
     }
 
+    @Override
     public void close() {
         tickExec.shutdownNow();
     }

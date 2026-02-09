@@ -43,107 +43,103 @@ public class ServerMain {
         ClockService clocks = new ClockService();
 
         StatsAndRatingService statsAndElo = new StatsAndRatingService(userRepo);
-        MoveService moves = new MoveService(stores, clocks, statsAndElo);
+        try (MoveService moves = new MoveService(stores, clocks, statsAndElo)) {
 
-        moves.recoverOngoingGames(stores.loadAllGames(), lastDownAtMs);
+            moves.recoverOngoingGames(stores.loadAllGames(), lastDownAtMs);
 
-        MatchmakingService matchmaking = new MatchmakingService(moves);
-        OnlineUserRegistry online = new OnlineUserRegistry();
+            MatchmakingService matchmaking = new MatchmakingService(moves);
+            OnlineUserRegistry online = new OnlineUserRegistry();
 
-        GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
-        AuthService auth = new AuthService(userRepo);
+            GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
+            AuthService auth = new AuthService(userRepo);
 
-        boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "true"));
-        ServerSocket serverSocket;
-        if (tls) {
-            try {
-                serverSocket = Tls.createServerSocket(port);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to init TLS server socket", e);
-            }
-        } else {
-            serverSocket = new ServerSocket(port);
-        }
-        if(serverSocket instanceof SSLServerSocket ssl) {
-            ssl.setNeedClientAuth(false);
-        }
-
-        int core     = Integer.parseInt(System.getProperty("chess.server.threads.core", "8"));
-        int max      = Integer.parseInt(System.getProperty("chess.server.threads.max", "64"));
-        int queueCap = Integer.parseInt(System.getProperty("chess.server.queue.capacity", "256"));
-
-        ThreadPoolExecutor clientPool = new ThreadPoolExecutor(
-                core,
-                max,
-                60L, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(queueCap),
-                r -> {
-                    Thread t = new Thread(r, "client-handler");
-                    t.setDaemon(false);
-                    return t;
-                },
-                new ThreadPoolExecutor.AbortPolicy()
-        );
-
-        AtomicBoolean running = new AtomicBoolean(true);
-
-        String instanceId = java.util.UUID.randomUUID().toString();
-
-        ServerHeartbeatService heartBeat = new ServerHeartbeatService(stateStore, instanceId);
-        heartBeat.start();
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-           running.set(false);
-
-           try {
-               serverSocket.close();
-           } catch (IOException e) {
-               throw new RuntimeException("Failed to close server socket.", e);
-           }
-
-           clientPool.shutdown();
-           try {
-               moves.close();
-           } catch (RuntimeException e) {
-               Log.warn("Failed to stop move service.", e);
-           }
-           try {
-               heartBeat.markGracefulShutdown();
-           } catch (RuntimeException e) {
-               throw new RuntimeException("Failed to close heartbeat.", e);
-           }
-           try {
-               heartBeat.close();
-           } catch (RuntimeException e) {
-               Log.warn("Failed to stop heartbeat scheduler.", e);
-           }
-        }, "server.shutdown"));
-
-        System.out.println("Chess server starting on port: " + port + " ...");
-
-        while(running.get()) {
-            try {
-                Socket clientSocket = serverSocket.accept();
-                clientSocket.setTcpNoDelay(true);
-                clientSocket.setKeepAlive(true);
-
+            boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "true"));
+            ServerSocket serverSocket;
+            if (tls) {
                 try {
-                    clientPool.execute(new ClientHandler(clientSocket, auth, coordinator, moves));
-                } catch (RejectedExecutionException rex) {
+                    serverSocket = Tls.createServerSocket(port);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to init TLS server socket", e);
+                }
+            } else {
+                serverSocket = new ServerSocket(port);
+            }
+            if(serverSocket instanceof SSLServerSocket ssl) {
+                ssl.setNeedClientAuth(false);
+            }
+
+            int core     = Integer.parseInt(System.getProperty("chess.server.threads.core", "8"));
+            int max      = Integer.parseInt(System.getProperty("chess.server.threads.max", "64"));
+            int queueCap = Integer.parseInt(System.getProperty("chess.server.queue.capacity", "256"));
+
+            ThreadPoolExecutor clientPool = new ThreadPoolExecutor(
+                    core,
+                    max,
+                    60L, TimeUnit.SECONDS,
+                    new ArrayBlockingQueue<>(queueCap),
+                    r -> {
+                        Thread t = new Thread(r, "client-handler");
+                        t.setDaemon(false);
+                        return t;
+                    },
+                    new ThreadPoolExecutor.AbortPolicy()
+            );
+
+            AtomicBoolean running = new AtomicBoolean(true);
+
+            String instanceId = java.util.UUID.randomUUID().toString();
+
+            ServerHeartbeatService heartBeat = new ServerHeartbeatService(stateStore, instanceId);
+            heartBeat.start();
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+               running.set(false);
+
+               try {
+                   serverSocket.close();
+               } catch (IOException e) {
+                   throw new RuntimeException("Failed to close server socket.", e);
+               }
+
+               clientPool.shutdown();
+               try {
+                   heartBeat.markGracefulShutdown();
+               } catch (RuntimeException e) {
+                   throw new RuntimeException("Failed to close heartbeat.", e);
+               }
+               try {
+                   heartBeat.close();
+               } catch (RuntimeException e) {
+                   Log.warn("Failed to stop heartbeat scheduler.", e);
+               }
+            }, "server.shutdown"));
+
+            System.out.println("Chess server starting on port: " + port + " ...");
+
+            while(running.get()) {
+                try {
+                    Socket clientSocket = serverSocket.accept();
+                    clientSocket.setTcpNoDelay(true);
+                    clientSocket.setKeepAlive(true);
+
                     try {
-                        clientSocket.close();
-                    } catch (RuntimeException e) {
-                        throw new RuntimeException("Failed to close socket.", e);
+                        clientPool.execute(new ClientHandler(clientSocket, auth, coordinator, moves));
+                    } catch (RejectedExecutionException rex) {
+                        try {
+                            clientSocket.close();
+                        } catch (RuntimeException e) {
+                            throw new RuntimeException("Failed to close socket.", e);
+                        }
+                        Log.warn("Rejected client connection server overloaded.", rex);
                     }
-                    Log.warn("Rejected client connection server overloaded.", rex);
+                } catch (SocketException se) {
+                    if(running.get()) {
+                        Log.warn("Server socket error in accept().", se);
+                    }
+                    break;
+                } catch (IOException ioException) {
+                    Log.warn("I/O error in accept().", ioException);
                 }
-            } catch (SocketException se) {
-                if(running.get()) {
-                    Log.warn("Server socket error in accept().", se);
-                }
-                break;
-            } catch (IOException ioException) {
-                Log.warn("I/O error in accept().", ioException);
             }
         }
     }
