@@ -51,3 +51,5 @@ jobs:
           cache: maven
       - name: Submit dependency snapshot
         uses: advanced-security/maven-dependency-submission-action@fe8d4d650a4b66508612d0683ce4726d51dfe6ac # v4
+        with:
+          maven-executable: mvn
