@@ -94,6 +94,10 @@ public class FileStores implements GameRepository {
         return gamesDir.resolve(id + ".json");
     }
 
+    private Path gameLockFile(Path gameFile) {
+        return gameFile.resolveSibling(gameFile.getFileName().toString() + ".lock");
+    }
+
     private static void sanitizeReason(Game game) {
         if (game == null) return; // avoid throwing exceptions for an unstarted game
         String r = game.getResultReason();
@@ -160,7 +164,14 @@ public class FileStores implements GameRepository {
         Files.createDirectories(gamesDir);
         sanitizeReason(game);
         String json = GSON.toJson(game);
-        writeAtomically(file, json);
+        try {
+            withGameLock(file, () -> {
+                writeAtomically(file, json);
+                return null;
+            });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
     }
 
     @Override
@@ -245,30 +256,56 @@ public class FileStores implements GameRepository {
         }
     }
 
-    private static Game readGameFile(Path file) {
-        String json;
+    private Game readGameFile(Path file) {
+        if (!Files.exists(file)) return null;
         try {
-            json = Files.readString(file, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            Log.warn("Failed to read game file: " + file, e);
+            return withGameLock(file, () -> {
+                String json;
+                try {
+                    json = Files.readString(file, StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    Log.warn("Failed to read game file: " + file, e);
+                    return null;
+                }
+
+                if (json.isBlank()) {
+                    quarantineFile(file, "game");
+                    return null;
+                }
+
+                try {
+                    Game game = GSON.fromJson(json, Game.class);
+                    if (game == null) {
+                        quarantineFile(file, "game");
+                    }
+                    return game;
+                } catch (RuntimeException e) {
+                    quarantineFile(file, "game");
+                    Log.warn("Failed to parse game file: " + file, e);
+                    return null;
+                }
+            });
+        } catch (UncheckedIOException e) {
+            Log.warn("Failed to lock game file: " + file, e);
             return null;
         }
+    }
 
-        if (json.isBlank()) {
-            quarantineFile(file, "game");
-            return null;
-        }
-
+    private <T> T withGameLock(Path gameFile, Supplier<T> action) {
         try {
-            Game game = GSON.fromJson(json, Game.class);
-            if (game == null) {
-                quarantineFile(file, "game");
+            Files.createDirectories(gamesDir);
+            Path lockFile = gameLockFile(gameFile);
+            try (FileChannel channel = FileChannel.open(lockFile,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE);
+                 FileLock lock = channel.lock()) {
+                if (!lock.isValid()) {
+                    throw new IOException("Failed to acquire game lock: " + lockFile);
+                }
+                return action.get();
             }
-            return game;
-        } catch (RuntimeException e) {
-            quarantineFile(file, "game");
-            Log.warn("Failed to parse game file: " + file, e);
-            return null;
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to lock game file: " + gameFile, e);
         }
     }
 
