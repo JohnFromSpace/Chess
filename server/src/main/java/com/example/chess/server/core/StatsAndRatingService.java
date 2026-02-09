@@ -26,7 +26,7 @@ public final class StatsAndRatingService implements GameEndHook {
 
         if (g.getResult() == null || g.getResult() == Result.ONGOING) throw new IllegalArgumentException("There is no game result/ game is ongoing.");
 
-        if (!g.isRated() || g.getResult() == Result.ABORTED) throw new IllegalArgumentException("The game is not rated because it was aborted.");
+        if (!g.isRated() || g.getResult() == Result.ABORTED) return;
 
         users.updateTwoUsers(g.getWhiteUser(), g.getBlackUser(), (w, b) -> {
             ensureStats(w);
