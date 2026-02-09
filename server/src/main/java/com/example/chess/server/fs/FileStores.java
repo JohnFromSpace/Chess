@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class FileStores implements GameRepository {
@@ -68,6 +70,20 @@ public class FileStores implements GameRepository {
             withUserLock(() -> {
                 writeUsersUnlocked(users);
                 return null;
+            });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
+    }
+
+    public <T> T updateUsers(Function<Map<String, User>, T> updater) throws IOException {
+        if (updater == null) throw new IllegalArgumentException("Missing users updater.");
+        try {
+            return withUserLock(() -> {
+                Map<String, User> users = new TreeMap<>(readUsersUnlocked());
+                T result = updater.apply(users);
+                writeUsersUnlocked(users);
+                return result;
             });
         } catch (UncheckedIOException e) {
             throw e.getCause();

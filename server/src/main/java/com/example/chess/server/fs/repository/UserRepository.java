@@ -28,20 +28,20 @@ public class UserRepository {
             throw new IllegalArgumentException("Username is required.");
         }
 
-        Map<String, User> users = loadUsers();
-        if (users.containsKey(username)) {
-            throw new IllegalArgumentException("Username is already taken.");
-        }
+        return stores.updateUsers(users -> {
+            if (users.containsKey(username)) {
+                throw new IllegalArgumentException("Username is already taken.");
+            }
 
-        User created = new User();
-        created.setUsername(username);
-        created.setName(name == null ? "" : name);
-        created.setPassHash(passHash == null ? "" : passHash);
-        ensureStats(created);
+            User created = new User();
+            created.setUsername(username);
+            created.setName(name == null ? "" : name);
+            created.setPassHash(passHash == null ? "" : passHash);
+            ensureStats(created);
 
-        users.put(username, created);
-        stores.writeAllUsers(users);
-        return created;
+            users.put(username, created);
+            return created;
+        });
     }
 
     public synchronized void updateTwoUsers(String usernameA,
@@ -58,21 +58,21 @@ public class UserRepository {
         }
         if (mutator == null) throw new IllegalArgumentException("Missing user mutator.");
 
-        Map<String, User> users = loadUsers();
+        stores.updateUsers(users -> {
+            User a = users.get(usernameA);
+            User b = users.get(usernameB);
+            if (a == null || b == null) {
+                throw new IllegalArgumentException("Missing user in store.");
+            }
 
-        User a = users.get(usernameA);
-        User b = users.get(usernameB);
-        if (a == null || b == null) {
-            throw new IllegalArgumentException("Missing user in store.");
-        }
+            mutator.accept(a, b);
+            ensureStats(a);
+            ensureStats(b);
 
-        mutator.accept(a, b);
-        ensureStats(a);
-        ensureStats(b);
-
-        users.put(usernameA, a);
-        users.put(usernameB, b);
-        stores.writeAllUsers(users);
+            users.put(usernameA, a);
+            users.put(usernameB, b);
+            return null;
+        });
     }
 
     private Map<String, User> loadUsers() {
