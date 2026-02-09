@@ -22,6 +22,7 @@ import java.util.concurrent.*;
 
 public class ServerMain {
     public static void main(String[] args) throws IOException {
+        Log.init();
         int port = 5000;
 
         Path dataDir = Path.of("data");
@@ -112,9 +113,10 @@ public class ServerMain {
                } catch (RuntimeException e) {
                    Log.warn("Failed to stop heartbeat scheduler.", e);
                }
+               Log.shutdown();
             }, "server.shutdown"));
 
-            System.out.println("Chess server starting on port: " + port + " ...");
+            Log.info("Chess server starting on port: " + port + " ...");
 
             while(running.get()) {
                 try {

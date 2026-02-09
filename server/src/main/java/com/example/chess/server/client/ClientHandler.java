@@ -41,6 +41,7 @@ public class ClientHandler implements Runnable {
     private final RateLimiter inboundLimiter;
     private final IpLimiter inboundIpLimiter;
     private final Object writeLock = new Object();
+    private final String clientIp;
 
     private BufferedWriter out;
 
@@ -49,7 +50,7 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket, AuthService auth, GameCoordinator coordinator, MoveService moves) {
         this.socket = socket;
         this.router = new ClientRequestRouter(auth, coordinator, moves);
-        String clientIp = resolveClientIp(socket);
+        this.clientIp = resolveClientIp(socket);
 
         boolean rlEnabled = Boolean.parseBoolean(System.getProperty("chess.ratelimit.enabled", "true"));
         long rlCapacity = Long.getLong("chess.ratelimit.capacity", 30L);
@@ -63,7 +64,8 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        try (socket) {
+        try (Log.ContextScope ignored = Log.withContext(null, clientIp, null);
+             socket) {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
 
@@ -106,16 +108,19 @@ public class ClientHandler implements Runnable {
             return;
         }
 
-        if (inboundLimiter != null && !inboundLimiter.tryAcquire()) {
-            send(ResponseMessage.error(req.corrId, "rate_limited"));
-            return;
-        }
-        if (inboundIpLimiter != null && !inboundIpLimiter.tryAcquire()) {
-            send(ResponseMessage.error(req.corrId, "rate_limited"));
-            return;
-        }
+        String username = currentUser != null ? currentUser.getUsername() : null;
+        try (Log.ContextScope ignored = Log.withContext(req.corrId, clientIp, username)) {
+            if (inboundLimiter != null && !inboundLimiter.tryAcquire()) {
+                send(ResponseMessage.error(req.corrId, "rate_limited"));
+                return;
+            }
+            if (inboundIpLimiter != null && !inboundIpLimiter.tryAcquire()) {
+                send(ResponseMessage.error(req.corrId, "rate_limited"));
+                return;
+            }
 
-        router.handle(req, this);
+            router.handle(req, this);
+        }
     }
 
     public void send(ResponseMessage m) {
