@@ -67,6 +67,7 @@
                         </goals>
                         <configuration>
                             <finalName>chess-server</finalName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.example.chess.server.ServerMain</mainClass>
