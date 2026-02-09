@@ -99,8 +99,11 @@ public class ClientHandler implements Runnable {
     public void send(ResponseMessage m) {
         try {
             String line = MessageCodec.toJsonLine(m);
-            out.write(line);
-            out.flush();
+            synchronized (writeLock) {
+                if (out == null) return;
+                out.write(line);
+                out.flush();
+            }
         } catch (Exception e) {
             Log.warn("Failed to send response to client", e);
         }
@@ -128,5 +131,40 @@ public class ClientHandler implements Runnable {
 
     public void pushDrawDeclined(String gameId, String by) {
         notifier.drawDeclined(this, gameId, by);
+    }
+
+    private static String readLineLimited(BufferedReader in, int maxChars) throws IOException {
+        if (in == null) return null;
+        int limit = Math.max(1, maxChars);
+        StringBuilder sb = new StringBuilder();
+        while (true) {
+            int ch = in.read();
+            if (ch == -1) {
+                return sb.isEmpty() ? null : sb.toString();
+            }
+            if (ch == '\n') {
+                return sb.toString();
+            }
+            if (ch == '\r') {
+                if (in.markSupported()) {
+                    in.mark(1);
+                    int next = in.read();
+                    if (next != '\n' && next != -1) {
+                        in.reset();
+                    }
+                }
+                return sb.toString();
+            }
+            sb.append((char) ch);
+            if (sb.length() > limit) {
+                throw new LineTooLongException("Incoming line exceeds limit: " + limit);
+            }
+        }
+    }
+
+    private static final class LineTooLongException extends IOException {
+        private LineTooLongException(String message) {
+            super(message);
+        }
     }
 }
