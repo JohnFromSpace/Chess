@@ -48,12 +48,12 @@ final class ClientRequestRouter {
                 case "getGameDetails" -> getGameDetails(req, h);
                 case "getStats" -> getStats(req, h);
 
-                default -> h.send(ResponseMessage.error(corrId, "Unknown message type: " + t, "Too many requests. PLease, slow down."));
+                default -> h.send(ResponseMessage.error(corrId, "Unknown message type: " + t));
             }
         } catch (IllegalArgumentException ex) {
-            h.send(ResponseMessage.error(corrId, ex.getMessage(), "Too many requests. PLease, slow down."));
+            h.send(ResponseMessage.error(corrId, ex.getMessage()));
         } catch (Exception ex) {
-            h.send(ResponseMessage.error(corrId, "Internal server error.", "Too many requests. PLease, slow down."));
+            h.send(ResponseMessage.error(corrId, "Internal server error."));
         }
     }
 

@@ -136,10 +136,10 @@ public class Board {
 
     private static String pieceUnicode(char c) {
         return switch (c) {
-            case 'K' -> "\u2654"; case 'Q' -> "\u2655"; case 'R' -> "\u2656";
-            case 'B' -> "\u2657"; case 'N' -> "\u2658"; case 'P' -> "\u2659";
-            case 'k' -> "\u265A"; case 'q' -> "\u265B"; case 'r' -> "\u265C";
-            case 'b' -> "\u265D"; case 'n' -> "\u265E"; case 'p' -> "\u265F";
+            case 'K' -> "♔"; case 'Q' -> "♕"; case 'R' -> "♖";
+            case 'B' -> "♗"; case 'N' -> "♘"; case 'P' -> "♙";
+            case 'k' -> "♚"; case 'q' -> "♛"; case 'r' -> "♜";
+            case 'b' -> "♝"; case 'n' -> "♞"; case 'p' -> "♟";
             default  -> String.valueOf(c);
         };
     }
@@ -176,8 +176,6 @@ public class Board {
         if (cp >= 0xAC00 && cp <= 0xD7A3) return true;
         if (cp >= 0xF900 && cp <= 0xFAFF) return true;
         if (cp >= 0xFE10 && cp <= 0xFE6F) return true;
-        if (cp >= 0xFF00 && cp <= 0xFF60) return true;
-
-        return false;
+        return cp >= 0xFF00 && cp <= 0xFF60;
     }
 }

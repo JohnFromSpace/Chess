@@ -1,15 +1,13 @@
 package com.example.chess.server.fs;
 
 public final class ServerState {
-    private String instanceId;
     private long lastHeartbeatAtMs;
     private long lastShutdownAtMs;
     private boolean graceful;
 
     public ServerState() {}
 
-    public void setInstanceId(String instanceId) {
-        this.instanceId = instanceId;
+    public void setInstanceId() {
     }
 
     public void setLastHeartbeatAtMs(long lastHeartbeatAtMs) {
@@ -22,10 +20,6 @@ public final class ServerState {
 
     public void setGraceful(boolean graceful) {
         this.graceful = graceful;
-    }
-
-    public String getInstanceId() {
-        return instanceId;
     }
 
     public long getLastHeartbeatAtMs() {

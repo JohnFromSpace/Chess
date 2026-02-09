@@ -1,20 +1,19 @@
 package com.example.chess.client.controller;
 
 import com.example.chess.client.SessionState;
-import com.example.chess.client.net.ClientConnection;
 import com.example.chess.client.view.ConsoleView;
 import com.example.chess.common.message.ResponseMessage;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class ClientPushRouter {
-    private final ClientConnection conn;
     private final ConsoleView view;
     private final SessionState state;
     private final GameUIOrchestrator gameUI;
 
-    public ClientPushRouter(ClientConnection c, ConsoleView v, SessionState s, GameUIOrchestrator g) {
-        conn = c; view = v; state = s; gameUI = g;
+    public ClientPushRouter(ConsoleView v, SessionState s, GameUIOrchestrator g) {
+        view = v; state = s; gameUI = g;
     }
 
     public void handle(ResponseMessage msg) {
@@ -22,7 +21,7 @@ public class ClientPushRouter {
             com.example.chess.client.util.Log.warn("There's no message.", null);
         }
 
-        Map<String, Object> p = msg.payload == null ? Map.of() : msg.payload;
+        Map<String, Object> p = Objects.requireNonNull(msg).payload == null ? Map.of() : msg.payload;
 
         state.postUi(() -> {
             switch (msg.type) {

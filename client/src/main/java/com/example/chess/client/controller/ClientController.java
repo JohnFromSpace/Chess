@@ -13,13 +13,12 @@ public class ClientController {
     private final ClientConnection conn;
     private final ConsoleView view;
     private final SessionState state = new SessionState();
-    private final GameUIOrchestrator gameUI;
 
     public ClientController(ClientConnection conn, ConsoleView view) {
         this.conn = conn;
         this.view = view;
-        this.gameUI = new GameUIOrchestrator(conn, view, state);
-        this.conn.setPushHandler(new ClientPushRouter(conn, view, state, gameUI)::handle);
+        GameUIOrchestrator gameUI = new GameUIOrchestrator(conn, view, state);
+        this.conn.setPushHandler(new ClientPushRouter(view, state, gameUI)::handle);
     }
 
     public void shutdownGracefully() {

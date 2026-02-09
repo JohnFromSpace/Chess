@@ -3,13 +3,9 @@ package com.example.chess.server;
 import com.example.chess.server.client.ClientHandler;
 import com.example.chess.server.core.*;
 import com.example.chess.server.core.move.MoveService;
-import com.example.chess.server.db.Db;
-import com.example.chess.server.db.DbBootstrap;
-import com.example.chess.server.db.DbGameRepository;
 import com.example.chess.server.fs.FileStores;
 import com.example.chess.server.fs.ServerState;
 import com.example.chess.server.fs.ServerStateStore;
-import com.example.chess.server.fs.repository.GameRepository;
 import com.example.chess.server.fs.repository.UserRepository;
 import com.example.chess.server.util.Log;
 import com.example.chess.server.security.Tls;
@@ -29,15 +25,7 @@ public class ServerMain {
         int port = 5000;
 
         Path dataDir = Path.of("data");
-        FileStores backups = new FileStores(dataDir);
-
-        Db db = Db.fromSystemProperties();
-        db.migrate();
-
-        boolean importJson = Boolean.parseBoolean(System.getProperty("chess.db.importFromJson", "true"));
-        if (importJson) {
-            DbBootstrap.importJsonIfEmpty(db, backups);
-        }
+        FileStores stores = new FileStores(dataDir);
 
         ServerStateStore stateStore = new ServerStateStore(dataDir);
         ServerState prevState;
@@ -49,18 +37,17 @@ public class ServerMain {
         }
         long lastDownAtMs = stateStore.estimateLastDownAtMs(prevState);
 
-        UserRepository userRepo = new UserRepository(db, backups);
-        GameRepository gameRepo = new DbGameRepository(db, backups);
+        UserRepository userRepo = new UserRepository(stores);
 
-        StatsService stats = new StatsService(gameRepo);
+        StatsService stats = new StatsService(stores);
         ClockService clocks = new ClockService();
 
         StatsAndRatingService statsAndElo = new StatsAndRatingService(userRepo);
-        MoveService moves = new MoveService(gameRepo, clocks, statsAndElo);
+        MoveService moves = new MoveService(stores, clocks, statsAndElo);
 
-        moves.recoverOngoingGames(gameRepo.loadAllGames(), lastDownAtMs);
+        moves.recoverOngoingGames(stores.loadAllGames(), lastDownAtMs);
 
-        MatchmakingService matchmaking = new MatchmakingService(moves, clocks);
+        MatchmakingService matchmaking = new MatchmakingService(moves);
         OnlineUserRegistry online = new OnlineUserRegistry();
 
         GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);

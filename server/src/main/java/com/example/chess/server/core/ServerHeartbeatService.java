@@ -25,7 +25,7 @@ public final class ServerHeartbeatService implements AutoCloseable {
     public void start() {
         exec.scheduleAtFixedRate(() -> {
             ServerState s = new ServerState();
-            s.setInstanceId(instanceId);
+            s.setInstanceId();
             s.setLastHeartbeatAtMs(System.currentTimeMillis());
             s.setLastShutdownAtMs(0L);
             s.setGraceful(false);
@@ -35,7 +35,7 @@ public final class ServerHeartbeatService implements AutoCloseable {
 
     public void markGracefulShutdown() {
         ServerState s = new ServerState();
-        s.setInstanceId(instanceId);
+        s.setInstanceId();
         long now = System.currentTimeMillis();
         s.setLastHeartbeatAtMs(now);
         s.setLastShutdownAtMs(now);

@@ -48,9 +48,9 @@ public class Game {
     private List<String> capturedByBlack = new ArrayList<>();
 
     public static class MoveEntry {
-        private String by;
-        private String move;
-        private long atMs;
+        private final String by;
+        private final String move;
+        private final long atMs;
 
         public MoveEntry(String by, String move, long atMs) {
             this.by = by;

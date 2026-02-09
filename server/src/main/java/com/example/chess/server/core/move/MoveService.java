@@ -16,9 +16,7 @@ public class MoveService {
 
     private final ActiveGames games = new ActiveGames();
 
-    private final ReconnectService reconnects = new ReconnectService(60_000L);
     private final ClockService clocks;
-    private final RulesEngine rules = new RulesEngine();
 
     private final GameStore store;
     private final GameFinisher finisher;
@@ -30,23 +28,23 @@ public class MoveService {
 
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
-    private final ScheduledExecutorService tickExec =
-            Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread t = new Thread(r, "clock-ticker");
-                t.setDaemon(true);
-                return t;
-            });
-
     public MoveService(GameRepository gameRepo, ClockService clocks, GameEndHook endHook) {
         this.clocks = clocks;
         this.store = new RepositoryGameStore(gameRepo);
         this.finisher = new GameFinisher(store, clocks, games, endHook);
 
         this.registration = new GameRegistrationService(games, clocks, store);
+        RulesEngine rules = new RulesEngine();
         this.moves = new MoveFlow(rules, clocks, store, finisher);
         this.draws = new DrawFlow(store, finisher);
+        ReconnectService reconnects = new ReconnectService(60_000L);
         this.reconnectFlow = new ReconnectFlow(games, reconnects, finisher, store);
 
+        ScheduledExecutorService tickExec = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "clock-ticker");
+            t.setDaemon(true);
+            return t;
+        });
         tickExec.scheduleAtFixedRate(this::tickAllGames, 200, 200, TimeUnit.MILLISECONDS);
     }
 
@@ -115,7 +113,7 @@ public class MoveService {
         GameContext ctx = games.mustCtx(gameId);
 
         synchronized (ctx) {
-            if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
+            if (ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
             if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING)
                 throw new IllegalArgumentException("Game is already finished.");
 
@@ -152,9 +150,7 @@ public class MoveService {
                 }
 
                 GameContext ctx = registration.rehydrateGame(g);
-                if (ctx != null) {
-                    reconnectFlow.recoverAfterRestart(ctx);
-                }
+                reconnectFlow.recoverAfterRestart(ctx);
             }
         } catch (Exception e) {
             com.example.chess.server.util.Log.warn("recoverOngoingGames failed", e);

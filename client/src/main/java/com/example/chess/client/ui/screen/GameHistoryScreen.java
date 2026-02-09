@@ -39,7 +39,7 @@ public final class GameHistoryScreen implements Screen {
         String resultText() {
             String res = (result == null || result.isBlank()) ? "?" : result;
             String rr = normalizeReason(reason);
-            if (rr == null || rr.isBlank()) return res;
+            if (rr.isBlank()) return res;
             return res + " (" + rr + ")";
         }
 

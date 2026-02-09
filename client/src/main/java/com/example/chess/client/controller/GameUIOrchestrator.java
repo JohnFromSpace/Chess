@@ -2,7 +2,6 @@ package com.example.chess.client.controller;
 
 import com.example.chess.client.SessionState;
 import com.example.chess.client.net.ClientConnection;
-import com.example.chess.client.ui.screen.InGameScreen;
 import com.example.chess.client.ui.screen.ProfileScreenUserMapper;
 import com.example.chess.client.view.ConsoleView;
 
@@ -20,12 +19,6 @@ public class GameUIOrchestrator {
         conn = c;
         view = v;
         state = s;
-    }
-
-    public void runGameLoop() throws InterruptedException {
-        running.set(true);
-        new InGameScreen(conn, view, state).show();
-        running.set(false);
     }
 
     public void onGameStarted(Map<String, Object> p) {
@@ -87,7 +80,7 @@ public class GameUIOrchestrator {
         conn.getStats().thenAccept(status -> {
            if (status != null && !status.isError()) {
                var updated = ProfileScreenUserMapper.userFromPayload(status.payload);
-               if(updated != null) state.postUi(() -> state.setUser(updated));
+               state.postUi(() -> state.setUser(updated));
            }
         });
 
@@ -119,19 +112,6 @@ public class GameUIOrchestrator {
                 w / 60000, (w / 1000) % 60,
                 b / 60000, (b / 1000) % 60,
                 wtm ? "WHITE to move" : "BLACK to move"));
-    }
-
-    public static String orient(String b, boolean isWhite) {
-        if (b == null || b.isBlank() || isWhite) return b;
-
-        String[] lines = b.split("\n", -1);
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = lines.length - 1; i >= 0; i--) {
-            sb.append(lines[i]);
-            if (i != 0) sb.append("\n");
-        }
-        return sb.toString();
     }
 
     private static String str(Object o) { return o == null ? "" : String.valueOf(o); }

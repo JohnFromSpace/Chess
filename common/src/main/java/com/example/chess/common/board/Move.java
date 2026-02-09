@@ -1,50 +1,30 @@
 package com.example.chess.common.board;
 
 public class Move {
-    private int fromRow;
-    private int fromCol;
-    private int toRow;
-    private int toCol;
-    private Character promotion;
+    private final int fromRow;
+    private final int fromCol;
+    private final int toRow;
+    private final int toCol;
+    private final Character promotion;
 
     public int getFromRow() {
         return fromRow;
-    }
-
-    public void setFromRow(int fromRow) {
-        this.fromRow = fromRow;
     }
 
     public int getFromCol() {
         return fromCol;
     }
 
-    public void setFromCol(int fromCol) {
-        this.fromCol = fromCol;
-    }
-
     public int getToRow() {
         return toRow;
-    }
-
-    public void setToRow(int toRow) {
-        this.toRow = toRow;
     }
 
     public int getToCol() {
         return toCol;
     }
 
-    public void setToCol(int toCol) {
-        this.toCol = toCol;
-    }
-
     public Character getPromotion() {
         return promotion;
-    }
-
-    public void setPromotion(Character promotion) {
-        this.promotion = promotion;
     }
 
     public Move(int fr, int fc, int tr, int tc, Character promotion) {

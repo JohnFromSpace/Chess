@@ -24,10 +24,6 @@ public final class ReconnectService {
         return graceMs;
     }
 
-    public void scheduleDrop(String key, Runnable task) {
-        scheduleDrop(key, task, graceMs);
-    }
-
     public void scheduleDrop(String key, Runnable task, long delayMs) {
         cancel(key);
         long d = Math.max(0L, delayMs);

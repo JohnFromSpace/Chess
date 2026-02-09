@@ -6,8 +6,6 @@ import com.example.chess.client.view.ConsoleInput;
 import com.example.chess.client.view.ConsoleView;
 import com.example.chess.client.util.Log;
 
-import java.io.IOException;
-
 public class ClientMain {
     public static void main(String[] args) {
         String host = args.length > 0 ? args[0] : "localhost";
@@ -26,14 +24,13 @@ public class ClientMain {
             controller = new ClientController(connection, view);
 
             ClientController finalController = controller;
-            ConsoleInput finalInput = input;
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
                     finalController.shutdownGracefully();
                 }
                 finally {
                     try {
-                        finalInput.close();
+                        input.close();
                     }
                     catch (Exception ex) {
                         Log.warn("Failed to close stream.", ex);

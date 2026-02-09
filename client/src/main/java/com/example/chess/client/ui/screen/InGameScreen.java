@@ -6,6 +6,8 @@ import com.example.chess.client.ui.menu.Menu;
 import com.example.chess.client.ui.menu.MenuItem;
 import com.example.chess.client.view.ConsoleView;
 
+import java.util.Objects;
+
 public class InGameScreen implements Screen {
 
     private final ClientConnection conn;
@@ -31,9 +33,30 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Back to lobby", this::backToLobby));
         menu.add(new MenuItem("Exit program", state::requestExit));
 
+        Runnable pump = getRunnable();
+
+        while (state.getUser() != null && state.isInGame() && !state.isExitReqeuested()) {
+            pump.run();
+
+            menu.render(view);
+            view.showMessage(renderClocksLine());
+            view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
+
+            menu.readAndExecuteResponsive(
+                    view,
+                    120,
+                    pump,
+                    () -> !state.isInGame() || state.getUser() == null || state.isExitReqeuested()
+            );
+
+            pump.run();
+        }
+    }
+
+    private Runnable getRunnable() {
         final boolean[] requestedFinalStateOnce = {false};
 
-        Runnable pump = () -> {
+        return () -> {
             state.drainUi();
 
             state.tickClocks();
@@ -60,23 +83,6 @@ public class InGameScreen implements Screen {
                 }
             }
         };
-
-        while (state.getUser() != null && state.isInGame() && !state.isExitReqeuested()) {
-            pump.run();
-
-            menu.render(view);
-            view.showMessage(renderClocksLine());
-            view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
-
-            menu.readAndExecuteResponsive(
-                    view,
-                    120,
-                    pump,
-                    () -> !state.isInGame() || state.getUser() == null || state.isExitReqeuested()
-            );
-
-            pump.run();
-        }
     }
 
     private void offerDraw() {
@@ -170,7 +176,7 @@ public class InGameScreen implements Screen {
 
         String move;
         try {
-            move = sanitizeMove(raw);
+            move = sanitizeMove(Objects.requireNonNull(raw));
         } catch (IllegalArgumentException ex) {
             view.showError(ex.getMessage());
             return;

@@ -72,17 +72,17 @@ public class ClientHandler implements Runnable {
         try {
             parsed = MessageCodec.fromJsonLine(line);
         } catch (Exception e) {
-            send(ResponseMessage.error(null, "Invalid message: " + e.getMessage(), "Too many requests. Please, slow down."));
+            send(ResponseMessage.error(null, "Invalid message: " + e.getMessage()));
             return;
         }
 
         if (!(parsed instanceof RequestMessage req)) {
-            send(ResponseMessage.error(null, "Client must send request messages.", "Too many requests. Please, slow down."));
+            send(ResponseMessage.error(null, "Client must send request messages."));
             return;
         }
 
         if(inboundLimiter != null && !inboundLimiter.tryAcquire()) {
-            send(ResponseMessage.error(req.corrId, "rate_limited", "Too many requests. Please, slow down."));
+            send(ResponseMessage.error(req.corrId, "rate_limited"));
             return;
         }
 

@@ -23,7 +23,7 @@ final class GameContext {
     }
 
     boolean isParticipant(String username) {
-        return username != null && (username.equals(game.getWhiteUser()) || username.equals(game.getBlackUser()));
+        return username == null || (!username.equals(game.getWhiteUser()) && !username.equals(game.getBlackUser()));
     }
 
     ClientHandler handlerOf(String username) {

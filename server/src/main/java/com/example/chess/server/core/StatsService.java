@@ -15,7 +15,7 @@ public class StatsService {
     public List<Game> listGamesForUser(String username) {
         Map<String, Game> m = games.findGamesForUser(username);
         List<Game> out = new ArrayList<>(m.values());
-        out.sort(Comparator.comparingLong((Game g) -> g.getLastUpdate()).reversed());
+        out.sort(Comparator.comparingLong(Game::getLastUpdate).reversed());
         return out;
     }
 

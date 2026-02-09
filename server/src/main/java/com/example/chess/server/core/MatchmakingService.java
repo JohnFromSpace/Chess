@@ -15,11 +15,9 @@ public class MatchmakingService {
     private final Map<String, ClientHandler> queue = new LinkedHashMap<>();
     private final Object queueLock = new Object();
     private final MoveService moves;
-    private final ClockService clocks;
 
-    public MatchmakingService(MoveService moves, ClockService clocks) {
+    public MatchmakingService(MoveService moves) {
         this.moves = moves;
-        this.clocks = clocks;
     }
 
     public void enqueue(ClientHandler h, User u) throws IOException {

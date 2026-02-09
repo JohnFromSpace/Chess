@@ -32,7 +32,7 @@ public final class ServerStateStore {
 
         try {
             String json = Files.readString(file, StandardCharsets.UTF_8);
-            if (json == null || json.isBlank()) return null;
+            if (json.isBlank()) return null;
             return GSON.fromJson(json, ServerState.class);
         } catch (Exception e) {
             backupCorruptState();
@@ -76,6 +76,7 @@ public final class ServerStateStore {
         Path dir = target.getParent();
         if (dir != null) Files.createDirectories(dir);
 
+        assert dir != null;
         Path tmp = Files.createTempFile(dir, target.getFileName().toString(), ".tmp");
         boolean moved = false;
         try {

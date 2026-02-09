@@ -57,7 +57,7 @@ final class GameRegistrationService {
         if (blackH != null) blackH.pushGameStarted(game, false);
     }
 
-    GameContext rehydrateGame(Game game) throws IOException {
+    GameContext rehydrateGame(Game game) {
         if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("There is no current game.");
 
         if (game.getBoard() == null) game.setBoard(com.example.chess.common.board.Board.initial());

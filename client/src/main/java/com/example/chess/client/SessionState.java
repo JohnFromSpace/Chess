@@ -15,9 +15,8 @@ public class SessionState {
 
     private boolean waitingForMatch;
     private boolean autoShowBoard = true;
-    private String lastSentMove;
 
-    private long timeControlMs = 5 * 60_000L;
+    private final long timeControlMs = 5 * 60_000L;
     private long whiteTimeMs = timeControlMs;
     private long blackTimeMs = timeControlMs;
     private boolean whiteToMove = true;
@@ -89,7 +88,6 @@ public class SessionState {
         this.isWhite = false;
         this.lastBoard = null;
         this.waitingForMatch = false;
-        this.lastSentMove = null;
 
         this.whiteTimeMs = timeControlMs;
         this.blackTimeMs = timeControlMs;
