@@ -24,6 +24,7 @@ public class ClientHandler implements Runnable {
     private final ClientRequestRouter router;
     private final ClientNotifier notifier = new ClientNotifier();
     private final RateLimiter inboundLimiter;
+    private final Object writeLock = new Object();
 
     private BufferedWriter out;
 

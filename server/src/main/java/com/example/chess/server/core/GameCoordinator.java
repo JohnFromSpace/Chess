@@ -42,6 +42,7 @@ public class GameCoordinator {
         synchronized (userStateLock) {
             if (u != null) online.markOffline(u.getUsername(), h);
             matchmaking.onDisconnect(u);
+            moves.onDisconnect(u);
         }
     }
 
