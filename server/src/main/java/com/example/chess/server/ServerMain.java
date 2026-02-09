@@ -103,9 +103,19 @@ public class ServerMain {
 
            clientPool.shutdown();
            try {
+               moves.close();
+           } catch (RuntimeException e) {
+               Log.warn("Failed to stop move service.", e);
+           }
+           try {
                heartBeat.markGracefulShutdown();
            } catch (RuntimeException e) {
                throw new RuntimeException("Failed to close heartbeat.", e);
+           }
+           try {
+               heartBeat.close();
+           } catch (RuntimeException e) {
+               Log.warn("Failed to stop heartbeat scheduler.", e);
            }
         }, "server.shutdown"));
 

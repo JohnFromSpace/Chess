@@ -26,6 +26,8 @@ public class MoveService {
     private final DrawFlow draws;
     private final ReconnectFlow reconnectFlow;
 
+    private final ScheduledExecutorService tickExec;
+
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
     public MoveService(GameRepository gameRepo, ClockService clocks, GameEndHook endHook) {
@@ -40,7 +42,7 @@ public class MoveService {
         ReconnectService reconnects = new ReconnectService(60_000L);
         this.reconnectFlow = new ReconnectFlow(games, reconnects, finisher, store);
 
-        ScheduledExecutorService tickExec = Executors.newSingleThreadScheduledExecutor(r -> {
+        this.tickExec = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "clock-ticker");
             t.setDaemon(true);
             return t;
@@ -157,5 +159,9 @@ public class MoveService {
         } finally {
             ready.set(true);
         }
+    }
+
+    public void close() {
+        tickExec.shutdownNow();
     }
 }
