@@ -24,9 +24,9 @@ import java.util.concurrent.*;
 public class ServerMain {
     public static void main(String[] args) throws IOException {
         Log.init();
-        int port = 5000;
+        int port = parseInt("chess.server.port", 5000);
 
-        Path dataDir = Path.of("data");
+        Path dataDir = Path.of(System.getProperty("chess.data.dir", "data"));
         FileStores stores = new FileStores(dataDir);
 
         ServerStateStore stateStore = new ServerStateStore(dataDir);
@@ -56,7 +56,7 @@ public class ServerMain {
             GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
             AuthService auth = new AuthService(userRepo);
 
-            boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "true"));
+            boolean tls = parseBoolean("chess.tls.enabled", true);
             ServerSocket serverSocket;
             if (tls) {
                 try {
@@ -68,13 +68,15 @@ public class ServerMain {
                 serverSocket = new ServerSocket(port);
             }
             if(serverSocket instanceof SSLServerSocket ssl) {
-                boolean needClientAuth = Boolean.parseBoolean(System.getProperty("chess.tls.clientAuth", "false"));
+                boolean needClientAuth = parseBoolean("chess.tls.clientAuth", false);
                 ssl.setNeedClientAuth(needClientAuth);
             }
 
-            int core     = Integer.parseInt(System.getProperty("chess.server.threads.core", "8"));
-            int max      = Integer.parseInt(System.getProperty("chess.server.threads.max", "64"));
-            int queueCap = Integer.parseInt(System.getProperty("chess.server.queue.capacity", "256"));
+            int core     = parseInt("chess.server.threads.core", 8);
+            int max      = parseInt("chess.server.threads.max", 64);
+            int queueCap = parseInt("chess.server.queue.capacity", 256);
+            int maxLineChars = parseInt("chess.socket.maxLineChars", 16384);
+            int readTimeoutMs = parseInt("chess.socket.readTimeoutMs", 60000);
 
             ThreadPoolExecutor clientPool = new ThreadPoolExecutor(
                     core,
@@ -120,6 +122,7 @@ public class ServerMain {
             }, "server.shutdown"));
 
             Log.info("Chess server starting on port: " + port + " ...");
+            logConfigSummary(dataDir, port, tls, core, max, queueCap, maxLineChars, readTimeoutMs);
 
             while(running.get()) {
                 try {
@@ -147,5 +150,42 @@ public class ServerMain {
                 }
             }
         }
+    }
+
+    private static int parseInt(String key, int defaultValue) {
+        String raw = System.getProperty(key);
+        if (raw == null || raw.isBlank()) return defaultValue;
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            Log.warn("Invalid integer for " + key + ": " + raw + " (using default " + defaultValue + ")", e);
+            return defaultValue;
+        }
+    }
+
+    private static boolean parseBoolean(String key, boolean defaultValue) {
+        String raw = System.getProperty(key);
+        if (raw == null || raw.isBlank()) return defaultValue;
+        return Boolean.parseBoolean(raw.trim());
+    }
+
+    private static void logConfigSummary(Path dataDir,
+                                         int port,
+                                         boolean tls,
+                                         int core,
+                                         int max,
+                                         int queueCap,
+                                         int maxLineChars,
+                                         int readTimeoutMs) {
+        StringBuilder sb = new StringBuilder(256);
+        sb.append("Config summary: ");
+        sb.append("dataDir=").append(dataDir.toAbsolutePath());
+        sb.append(", port=").append(port);
+        sb.append(", tls=").append(tls);
+        sb.append(", threads=").append(core).append("/").append(max);
+        sb.append(", queueCap=").append(queueCap);
+        sb.append(", socket.maxLineChars=").append(maxLineChars);
+        sb.append(", socket.readTimeoutMs=").append(readTimeoutMs);
+        Log.info(sb.toString());
     }
 }
