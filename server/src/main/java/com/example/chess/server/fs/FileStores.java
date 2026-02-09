@@ -11,6 +11,7 @@ import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
@@ -322,20 +323,24 @@ public class FileStores implements GameRepository {
         Path tmp = Files.createTempFile(tmpDir, target.getFileName().toString(), ".tmp");
         boolean moved = false;
         try {
-            Files.writeString(
-                    tmp,
-                    content,
-                    StandardCharsets.UTF_8,
+            byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+            try (FileChannel channel = FileChannel.open(tmp,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE
-            );
+                    StandardOpenOption.WRITE)) {
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
+                channel.force(true);
+            }
             try {
                 Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException e) {
                 Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
             }
             moved = true;
+            forceDirectory(tmpDir);
         } finally {
             if (!moved) {
                 try {
@@ -344,6 +349,15 @@ public class FileStores implements GameRepository {
                     Log.warn("Failed to clean up temp file: " + tmp, e);
                 }
             }
+        }
+    }
+
+    private static void forceDirectory(Path dir) {
+        if (dir == null) return;
+        try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
+            channel.force(true);
+        } catch (IOException ignored) {
+            // Directory fsync is best-effort and not supported on all platforms.
         }
     }
 }
