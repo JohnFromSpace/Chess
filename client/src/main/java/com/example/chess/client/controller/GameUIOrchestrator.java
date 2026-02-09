@@ -121,17 +121,6 @@ public class GameUIOrchestrator {
                 wtm ? "WHITE to move" : "BLACK to move"));
     }
 
-    private void renderCheckLine(Map<String, Object> p) {
-        boolean wChk = bool(p.get("whiteInCheck"));
-        boolean bChk = bool(p.get("blackInCheck"));
-
-        if (state.isWhite() && wChk) view.showMessage("!!! CHECK: You are in check !!!");
-        if (!state.isWhite() && bChk) view.showMessage("!!! CHECK: You are in check !!!");
-
-        if (state.isWhite() && bChk) view.showMessage("You put BLACK in check.");
-        if (!state.isWhite() && wChk) view.showMessage("You put WHITE in check.");
-    }
-
     public static String orient(String b, boolean isWhite) {
         if (b == null || b.isBlank() || isWhite) return b;
 

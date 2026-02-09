@@ -61,19 +61,6 @@ public class FileStores implements GameRepository {
         }
     }
 
-    public void updateUsers(java.util.function.Consumer<Map<String, User>> mutator) throws IOException {
-        try {
-            withUserLock(() -> {
-                Map<String, User> users = readUsersUnlocked();
-                mutator.accept(users);
-                writeUsersUnlocked(users);
-                return null;
-            });
-        } catch (UncheckedIOException e) {
-            throw e.getCause();
-        }
-    }
-
     private Path gameFile(String id) {
         return gamesDir.resolve(id + ".json");
     }
