@@ -65,17 +65,6 @@ public class FileStores implements GameRepository {
         return withUserLock(this::readUsersUnlocked);
     }
 
-    public void writeAllUsers(Map<String, User> users) throws IOException {
-        try {
-            withUserLock(() -> {
-                writeUsersUnlocked(users);
-                return null;
-            });
-        } catch (UncheckedIOException e) {
-            throw e.getCause();
-        }
-    }
-
     public <T> T updateUsers(Function<Map<String, User>, T> updater) throws IOException {
         if (updater == null) throw new IllegalArgumentException("Missing users updater.");
         try {
@@ -166,7 +155,11 @@ public class FileStores implements GameRepository {
         String json = GSON.toJson(game);
         try {
             withGameLock(file, () -> {
-                writeAtomically(file, json);
+                try {
+                    writeAtomically(file, json);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 return null;
             });
         } catch (UncheckedIOException e) {
