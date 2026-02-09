@@ -68,7 +68,8 @@ public class ServerMain {
                 serverSocket = new ServerSocket(port);
             }
             if(serverSocket instanceof SSLServerSocket ssl) {
-                ssl.setNeedClientAuth(false);
+                boolean needClientAuth = Boolean.parseBoolean(System.getProperty("chess.tls.clientAuth", "false"));
+                ssl.setNeedClientAuth(needClientAuth);
             }
 
             int core     = Integer.parseInt(System.getProperty("chess.server.threads.core", "8"));
