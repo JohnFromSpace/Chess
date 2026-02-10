@@ -66,3 +66,16 @@ Client properties:
 
 Hostname verification is enabled by default, so the certificate must include the host
 you connect to (the SAN above covers localhost and 127.0.0.1).
+
+## Metrics (knobs)
+The server logs periodic metrics and can emit warnings when thresholds are exceeded.
+Configure via system properties:
+
+- `chess.metrics.log.enabled` (default: `true`)
+- `chess.metrics.log.intervalMs` (default: `60000`)
+- `chess.metrics.alert.enabled` (default: `true`)
+- `chess.metrics.alert.connections.current` (disabled if <= 0)
+- `chess.metrics.alert.matchmaking.queue` (disabled if <= 0)
+- `chess.metrics.alert.active.games` (disabled if <= 0)
+- `chess.metrics.alert.heap.used.pct` (disabled if <= 0)
+- `chess.metrics.alert.error.rate.pct` (default: `5.0`)
