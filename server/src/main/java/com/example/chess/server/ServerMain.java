@@ -56,7 +56,7 @@ public class ServerMain {
             GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
             AuthService auth = new AuthService(userRepo);
 
-            boolean tls = parseBoolean("chess.tls.enabled", true);
+            boolean tls = parseBoolean("chess.tls.enabled", false);
             ServerSocket serverSocket;
             if (tls) {
                 try {

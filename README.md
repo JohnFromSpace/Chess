@@ -38,3 +38,31 @@ other user) or surrender.
 the client within one minute before getting dropped from the game. In case the
 client (console app) is restarted and there is an ongoing game – the user should
 directly enter the game.
+
+## TLS (optional)
+TLS is disabled by default for local development. To enable TLS, create a keystore
+and pass the system properties for both server and client.
+
+Create a local self-signed keystore (PKCS12):
+```
+keytool -genkeypair -alias chess-server -keyalg RSA -keysize 2048 -validity 365 -storetype PKCS12 -keystore C:\path\to\chess-server.p12 -storepass changeit -dname "CN=localhost, OU=Dev, O=Chess, L=Local, ST=NA, C=US" -ext "SAN=DNS:localhost,IP:127.0.0.1"
+```
+
+Server properties:
+```
+-Dchess.tls.enabled=true
+-Dchess.tls.keystore=C:\path\to\chess-server.p12
+-Dchess.tls.keystore.password=changeit
+-Dchess.tls.keystore.type=PKCS12
+```
+
+Client properties:
+```
+-Dchess.tls.enabled=true
+-Dchess.tls.truststore=C:\path\to\chess-server.p12
+-Dchess.tls.truststore.password=changeit
+-Dchess.tls.truststore.type=PKCS12
+```
+
+Hostname verification is enabled by default, so the certificate must include the host
+you connect to (the SAN above covers localhost and 127.0.0.1).
