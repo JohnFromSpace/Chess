@@ -82,3 +82,9 @@ Configure via system properties:
 - `chess.metrics.export.enabled` (default: `false`)
 - `chess.metrics.export.path` (default: `logs/metrics.json`)
 - `chess.metrics.export.format` (default: `json`, also supports `ndjson`)
+
+Prometheus exporter (HTTP scrape endpoint):
+- `chess.metrics.prometheus.enabled` (default: `false`)
+- `chess.metrics.prometheus.host` (default: `0.0.0.0`)
+- `chess.metrics.prometheus.port` (default: `9102`)
+- `chess.metrics.prometheus.path` (default: `/metrics`)

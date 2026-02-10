@@ -10,6 +10,7 @@ import com.example.chess.server.fs.repository.UserRepository;
 import com.example.chess.server.util.Log;
 import com.example.chess.server.util.ServerMetrics;
 import com.example.chess.server.util.ServerMetricsReporter;
+import com.example.chess.server.util.PrometheusMetricsServer;
 import com.example.chess.server.security.Tls;
 
 import java.io.IOException;
@@ -55,6 +56,8 @@ public class ServerMain {
             ServerMetrics metrics = new ServerMetrics(online::onlineCount, matchmaking::queueSize, moves::activeGameCount);
             ServerMetricsReporter metricsReporter = new ServerMetricsReporter(metrics);
             metricsReporter.start();
+            PrometheusMetricsServer prometheus = new PrometheusMetricsServer(metrics);
+            prometheus.start();
 
             GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
             AuthService auth = new AuthService(userRepo);
@@ -125,6 +128,11 @@ public class ServerMain {
                    metricsReporter.close();
                } catch (RuntimeException e) {
                    Log.warn("Failed to stop metrics reporter.", e);
+               }
+               try {
+                   prometheus.close();
+               } catch (RuntimeException e) {
+                   Log.warn("Failed to stop Prometheus metrics server.", e);
                }
                Log.shutdown();
             }, "server.shutdown"));
