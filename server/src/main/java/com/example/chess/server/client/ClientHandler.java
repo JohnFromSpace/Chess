@@ -7,7 +7,6 @@ import com.example.chess.common.message.Message;
 import com.example.chess.common.message.RequestMessage;
 import com.example.chess.common.message.ResponseMessage;
 import com.example.chess.server.AuthService;
-import com.example.chess.server.core.GameCoordinator;
 import com.example.chess.server.core.move.MoveService;
 import com.example.chess.server.security.RateLimiter;
 import com.example.chess.server.util.Log;
@@ -51,7 +50,7 @@ public class ClientHandler implements Runnable {
 
     public ClientHandler(Socket socket,
                          AuthService auth,
-                         GameCoordinator coordinator,
+                         MoveService coordinator,
                          MoveService moves,
                          ServerMetrics metrics) {
         this.socket = socket;

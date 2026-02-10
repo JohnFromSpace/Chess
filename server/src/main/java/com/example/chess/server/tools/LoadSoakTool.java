@@ -217,7 +217,7 @@ public final class LoadSoakTool {
                     case "--games" -> cfg.games = intArg(args, ++i, "games");
                     case "--moves" -> cfg.moves = intArg(args, ++i, "moves");
                     case "--threads" -> cfg.threads = intArg(args, ++i, "threads");
-                    case "--durationMs" -> cfg.durationMs = longArg(args, ++i, "durationMs");
+                    case "--durationMs" -> cfg.durationMs = longArg(args, ++i);
                     case "--dataDir" -> cfg.dataDir = strArg(args, ++i, "dataDir");
                     case "--reconnectEvery" -> cfg.reconnectEvery = intArg(args, ++i, "reconnectEvery");
                     case "--help", "-h" -> {
@@ -239,12 +239,12 @@ public final class LoadSoakTool {
             }
         }
 
-        private static long longArg(String[] args, int i, String name) {
-            String raw = strArg(args, i, name);
+        private static long longArg(String[] args, int i) {
+            String raw = strArg(args, i, "durationMs");
             try {
                 return Long.parseLong(raw);
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Bad " + name + ": " + raw);
+                throw new IllegalArgumentException("Bad " + "durationMs" + ": " + raw);
             }
         }
 
