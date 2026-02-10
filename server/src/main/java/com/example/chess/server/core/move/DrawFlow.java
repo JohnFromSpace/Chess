@@ -17,7 +17,7 @@ final class DrawFlow {
     }
 
     void offerDrawLocked(GameContext ctx, User u) throws IOException {
-        if (ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
+        if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
         ctx.game.setDrawOfferedBy(u.getUsername());
@@ -29,7 +29,7 @@ final class DrawFlow {
     }
 
     void respondDrawLocked(GameContext ctx, User u, boolean accept) throws IOException {
-        if (ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
+        if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
         String by = ctx.game.getDrawOfferedBy();

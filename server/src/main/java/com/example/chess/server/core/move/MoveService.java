@@ -115,7 +115,7 @@ public class MoveService implements AutoCloseable {
         GameContext ctx = games.mustCtx(gameId);
 
         synchronized (ctx) {
-            if (ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
+            if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
             if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING)
                 throw new IllegalArgumentException("Game is already finished.");
 

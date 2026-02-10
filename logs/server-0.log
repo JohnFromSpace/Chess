@@ -4,3 +4,5 @@
 {"ts":"2026-02-10T00:07:10.149Z","level":"INFO","logger":"ChessServer","thread":"main","message":"Config summary: dataDir=D:\\BL\\Chess\\Chess\\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000"}
 {"ts":"2026-02-10T00:07:44.201Z","level":"INFO","logger":"ChessServer","thread":"main","message":"Chess server starting on port: 5000 ..."}
 {"ts":"2026-02-10T00:07:44.203Z","level":"INFO","logger":"ChessServer","thread":"main","message":"Config summary: dataDir=D:\\BL\\Chess\\Chess\\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000"}
+2026-02-10T00:12:40.198Z INFO ChessServer [main] Chess server starting on port: 5000 ...
+2026-02-10T00:12:40.200Z INFO ChessServer [main] Config summary: dataDir=D:\BL\Chess\Chess\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000
