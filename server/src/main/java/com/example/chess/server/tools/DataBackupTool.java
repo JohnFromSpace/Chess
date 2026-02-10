@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -32,6 +33,9 @@ public final class DataBackupTool {
     private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final String DEFAULT_DATA_DIR = "data";
     private static final String DEFAULT_BACKUP_PREFIX = "chess-data-";
+    private static final boolean WINDOWS =
+            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+    private static final AtomicBoolean DIR_FSYNC_WARNED = new AtomicBoolean(false);
 
     private DataBackupTool() {}
 
@@ -289,6 +293,12 @@ public final class DataBackupTool {
 
     private static void forceDirectory(Path dir) {
         if (dir == null) return;
+        if (WINDOWS) {
+            if (DIR_FSYNC_WARNED.compareAndSet(false, true)) {
+                System.err.println("Warning: directory fsync skipped on Windows (not supported): " + dir);
+            }
+            return;
+        }
         try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
             channel.force(true);
         } catch (IOException e) {

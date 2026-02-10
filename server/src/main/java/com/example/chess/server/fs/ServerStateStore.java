@@ -13,11 +13,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 public final class ServerStateStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final boolean WINDOWS =
+            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+    private static final AtomicBoolean DIR_FSYNC_WARNED = new AtomicBoolean(false);
 
     private final Path file;
     private final Path lockFile;
@@ -154,6 +159,12 @@ public final class ServerStateStore {
 
     private static void forceDirectory(Path dir) {
         if (dir == null) return;
+        if (WINDOWS) {
+            if (DIR_FSYNC_WARNED.compareAndSet(false, true)) {
+                Log.warn("Directory fsync skipped on Windows (not supported): " + dir, null);
+            }
+            return;
+        }
         try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
             channel.force(true);
         } catch (IOException e) {

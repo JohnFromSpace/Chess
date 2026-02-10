@@ -13,6 +13,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,9 @@ public final class ServerMetricsReporter implements AutoCloseable {
     private static final String PROP_EXPORT_FORMAT = "chess.metrics.export.format";
 
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+    private static final boolean WINDOWS =
+            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+    private static final AtomicBoolean DIR_FSYNC_WARNED = new AtomicBoolean(false);
 
     private final ServerMetrics metrics;
     private final ScheduledExecutorService exec;
@@ -253,6 +257,12 @@ public final class ServerMetricsReporter implements AutoCloseable {
 
     private static void forceDirectory(Path dir) {
         if (dir == null) return;
+        if (WINDOWS) {
+            if (DIR_FSYNC_WARNED.compareAndSet(false, true)) {
+                Log.warn("Directory fsync skipped on Windows (not supported): " + dir, null);
+            }
+            return;
+        }
         try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
             channel.force(true);
         } catch (Exception e) {

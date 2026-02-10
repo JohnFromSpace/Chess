@@ -34,13 +34,18 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.Locale;
 
 public class FileStores implements GameRepository {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final boolean WINDOWS =
+            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+    private static final AtomicBoolean DIR_FSYNC_WARNED = new AtomicBoolean(false);
 
     private static final Type USER_MAP_TYPE =
             new TypeToken<Map<String, User>>() {}.getType();
@@ -363,6 +368,12 @@ public class FileStores implements GameRepository {
 
     private static void forceDirectory(Path dir) {
         if (dir == null) return;
+        if (WINDOWS) {
+            if (DIR_FSYNC_WARNED.compareAndSet(false, true)) {
+                Log.warn("Directory fsync skipped on Windows (not supported): " + dir, null);
+            }
+            return;
+        }
         try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
             channel.force(true);
         } catch (IOException e) {
