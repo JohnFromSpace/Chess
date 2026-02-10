@@ -68,8 +68,8 @@ public class ClientConnection implements AutoCloseable {
                 Message msg = MessageCodec.fromJson(line);
 
                 if (msg instanceof ResponseMessage resp) {
-                    if (resp.corrId != null) {
-                        CompletableFuture<StatusMessage> fut = pending.remove(resp.corrId);
+                    if (resp.getCorrId() != null) {
+                        CompletableFuture<StatusMessage> fut = pending.remove(resp.getCorrId());
                         if (fut != null) {
                             fut.complete(StatusMessage.from(resp));
                             continue;
@@ -81,6 +81,7 @@ public class ClientConnection implements AutoCloseable {
                 }
             }
         } catch (IOException e) {
+            com.example.chess.client.util.Log.warn("Client read loop stopped.", e);
             pending.values().forEach(f -> f.completeExceptionally(e));
             pending.clear();
         } finally {
@@ -89,10 +90,10 @@ public class ClientConnection implements AutoCloseable {
     }
 
     public CompletableFuture<StatusMessage> sendAndWait(RequestMessage msg) {
-        String corrId = msg.corrId;
+        String corrId = msg.getCorrId();
         if (corrId == null || corrId.isBlank()) {
             corrId = UUID.randomUUID().toString();
-            msg = new RequestMessage(msg.type, corrId, msg.payload);
+            msg = new RequestMessage(msg.getType(), corrId, msg.getPayload());
         }
 
         CompletableFuture<StatusMessage> fut = new CompletableFuture<>();
@@ -107,6 +108,7 @@ public class ClientConnection implements AutoCloseable {
         } catch (IOException e) {
             pending.remove(corrId);
             fut.completeExceptionally(e);
+            com.example.chess.client.util.Log.warn("Failed to send request " + corrId, e);
         }
         return fut;
     }
