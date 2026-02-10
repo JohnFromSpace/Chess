@@ -79,3 +79,6 @@ Configure via system properties:
 - `chess.metrics.alert.active.games` (disabled if <= 0)
 - `chess.metrics.alert.heap.used.pct` (disabled if <= 0)
 - `chess.metrics.alert.error.rate.pct` (default: `5.0`)
+- `chess.metrics.export.enabled` (default: `false`)
+- `chess.metrics.export.path` (default: `logs/metrics.json`)
+- `chess.metrics.export.format` (default: `json`, also supports `ndjson`)

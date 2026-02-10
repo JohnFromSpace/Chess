@@ -117,4 +117,29 @@ public class FileStoresTest {
         }
         assertTrue(quarantined);
     }
+
+    @Test
+    public void quarantinesCorruptUsersFile() throws Exception {
+        Path root = temp.newFolder("data").toPath();
+        FileStores stores = new FileStores(root);
+
+        Path usersFile = root.resolve("users.json");
+        Files.writeString(usersFile, "not-json", StandardCharsets.UTF_8);
+
+        Map<String, User> users = stores.loadAllUsers();
+        assertTrue(users.isEmpty());
+        assertFalse(Files.exists(usersFile));
+
+        boolean quarantined = false;
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) {
+            for (Path file : stream) {
+                String name = file.getFileName().toString();
+                if (name.startsWith("users.json.corrupt-")) {
+                    quarantined = true;
+                    break;
+                }
+            }
+        }
+        assertTrue(quarantined);
+    }
 }

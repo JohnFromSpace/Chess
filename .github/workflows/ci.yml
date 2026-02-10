@@ -35,6 +35,22 @@ jobs:
       - name: Format and lint
         run: mvn -B -ntp -Dspotless.ratchetFrom=origin/${{ github.event.repository.default_branch }} spotless:check checkstyle:check
 
+  soak:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Build server jar
+        run: mvn -B -ntp -pl server -am -DskipTests package
+      - name: Run load/soak (small)
+        run: java -cp server/target/chess-server.jar com.example.chess.server.tools.LoadSoakTool --games 6 --moves 12 --threads 2 --durationMs 3000
+
   dependency-submission:
     if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     permissions:
