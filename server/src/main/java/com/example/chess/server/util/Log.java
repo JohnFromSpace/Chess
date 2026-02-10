@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -30,7 +29,7 @@ public final class Log {
         L.setLevel(level);
         L.setUseParentHandlers(false);
 
-        Formatter formatter = new JsonFormatter();
+        Formatter formatter = new PlainFormatter();
 
         if (Boolean.parseBoolean(System.getProperty("chess.log.console", "true"))) {
             ConsoleHandler console = new ConsoleHandler();
@@ -132,36 +131,36 @@ public final class Log {
         }
     }
 
-    private static final class JsonFormatter extends Formatter {
+    private static final class PlainFormatter extends Formatter {
         private static final DateTimeFormatter TS = DateTimeFormatter.ISO_INSTANT;
 
         @Override
         public String format(LogRecord record) {
             StringBuilder sb = new StringBuilder(256);
-            sb.append('{');
-            boolean first = true;
-
-            first = appendField(sb, "ts", TS.format(Instant.ofEpochMilli(record.getMillis())), first);
-            first = appendField(sb, "level", record.getLevel().getName(), first);
-            first = appendField(sb, "logger", record.getLoggerName(), first);
-            first = appendField(sb, "thread", Thread.currentThread().getName(), first);
-            first = appendField(sb, "message", formatMessage(record), first);
+            sb.append(TS.format(Instant.ofEpochMilli(record.getMillis())));
+            sb.append(' ');
+            sb.append(record.getLevel().getName());
+            sb.append(' ');
+            sb.append(record.getLoggerName());
+            sb.append(" [");
+            sb.append(Thread.currentThread().getName());
+            sb.append("] ");
+            sb.append(formatMessage(record));
 
             Context ctx = currentContext();
             if (ctx != null) {
-                first = appendField(sb, "corrId", ctx.corrId, first);
-                first = appendField(sb, "clientIp", ctx.clientIp, first);
-                first = appendField(sb, "user", ctx.username, first);
+                appendField(sb, "corrId", ctx.corrId);
+                appendField(sb, "clientIp", ctx.clientIp);
+                appendField(sb, "user", ctx.username);
             }
+
+            sb.append('\n');
 
             Throwable thrown = record.getThrown();
             if (thrown != null) {
-                first = appendField(sb, "exception", thrown.getClass().getName(), first);
-                first = appendField(sb, "exceptionMessage", thrown.getMessage(), first);
-                first = appendField(sb, "stacktrace", stackTrace(thrown), first);
+                sb.append(stackTrace(thrown));
             }
 
-            sb.append("}\n");
             return sb.toString();
         }
 
@@ -173,35 +172,12 @@ public final class Log {
             return sw.toString();
         }
 
-        private static boolean appendField(StringBuilder sb, String key, String value, boolean first) {
-            if (value == null) return first;
-            if (!first) sb.append(',');
-            sb.append('"');
-            escape(sb, key);
-            sb.append("\":\"");
-            escape(sb, value);
-            sb.append('"');
-            return false;
-        }
-
-        private static void escape(StringBuilder sb, String value) {
-            Objects.requireNonNull(sb);
-            for (int i = 0; i < value.length(); i++) {
-                char c = value.charAt(i);
-                switch (c) {
-                    case '"', '\\' -> sb.append('\\').append(c);
-                    case '\n' -> sb.append("\\n");
-                    case '\r' -> sb.append("\\r");
-                    case '\t' -> sb.append("\\t");
-                    default -> {
-                        if (c < 0x20) {
-                            sb.append(String.format("\\u%04x", (int) c));
-                        } else {
-                            sb.append(c);
-                        }
-                    }
-                }
-            }
+        private static void appendField(StringBuilder sb, String key, String value) {
+            if (value == null) return;
+            sb.append(' ');
+            sb.append(key);
+            sb.append('=');
+            sb.append(value);
         }
     }
 }
