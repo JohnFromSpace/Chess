@@ -36,7 +36,7 @@ final class AuthRequestHandler {
         Map<String, Object> payload = new HashMap<>();
         payload.put("user", u);
 
-        h.send(ResponseMessage.ok("registerOk", req.corrId, payload));
+        h.send(ResponseMessage.ok("registerOk", req.getCorrId(), payload));
     }
 
     void login(RequestMessage req, ClientHandler h) {
@@ -51,7 +51,7 @@ final class AuthRequestHandler {
         Map<String, Object> payload = new HashMap<>();
         payload.put("user", userMap(user));
 
-        h.send(ResponseMessage.ok("loginOk", req.corrId, payload));
+        h.send(ResponseMessage.ok("loginOk", req.getCorrId(), payload));
 
         try {
             moves.tryReconnect(user, h);
@@ -66,7 +66,7 @@ final class AuthRequestHandler {
         UserModels.User u = h.getCurrentUser();
         if (u != null) coordinator.onUserLogout(h, u);
         h.setCurrentUser(null);
-        h.send(ResponseMessage.ok("logoutOk", req.corrId));
+        h.send(ResponseMessage.ok("logoutOk", req.getCorrId()));
     }
 
     void getStats(RequestMessage req, ClientHandler h) {
@@ -78,7 +78,7 @@ final class AuthRequestHandler {
         Map<String, Object> payload = new HashMap<>();
         payload.put("user", userMap(fresh));
 
-        h.send(ResponseMessage.ok("getStatsOk", req.corrId, payload));
+        h.send(ResponseMessage.ok("getStatsOk", req.getCorrId(), payload));
     }
 
     private static UserModels.User requireUser(ClientHandler h) {

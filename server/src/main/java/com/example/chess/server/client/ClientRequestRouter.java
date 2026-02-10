@@ -6,6 +6,7 @@ import com.example.chess.common.message.ResponseMessage;
 import com.example.chess.server.AuthService;
 import com.example.chess.server.core.GameCoordinator;
 import com.example.chess.server.core.move.MoveService;
+import com.example.chess.server.util.Log;
 import com.example.chess.server.util.ServerMetrics;
 
 import java.util.HashMap;
@@ -26,19 +27,19 @@ final class ClientRequestRouter {
     }
 
     void handle(RequestMessage req, ClientHandler h) {
-        if (!RequestValidator.isValidType(req.type)) {
+        if (!RequestValidator.isValidType(req.getType())) {
             if (metrics != null) metrics.onInvalidRequest();
-            h.send(ResponseMessage.error(req.corrId, "Invalid message type."));
+            h.send(ResponseMessage.error(req.getCorrId(), "Invalid message type."));
             return;
         }
-        if (!RequestValidator.isValidCorrId(req.corrId)) {
+        if (!RequestValidator.isValidCorrId(req.getCorrId())) {
             if (metrics != null) metrics.onInvalidRequest();
             h.send(ResponseMessage.error(null, "Invalid corrId."));
             return;
         }
 
-        String t = req.type;
-        String corrId = req.corrId;
+        String t = req.getType();
+        String corrId = req.getCorrId();
 
         try {
             switch (t) {
@@ -61,15 +62,16 @@ final class ClientRequestRouter {
                 case "getStats" -> authHandler.getStats(req, h);
 
                 default -> {
-                    if (metrics != null) metrics.onError(req.type);
+                    if (metrics != null) metrics.onError(req.getType());
                     h.send(ResponseMessage.error(corrId, "Unknown message type: " + t));
                 }
             }
         } catch (IllegalArgumentException ex) {
-            if (metrics != null) metrics.onError(req.type);
+            if (metrics != null) metrics.onError(req.getType());
             h.send(ResponseMessage.error(corrId, ex.getMessage()));
         } catch (Exception ex) {
-            if (metrics != null) metrics.onError(req.type);
+            if (metrics != null) metrics.onError(req.getType());
+            Log.warn("Unhandled request failure type=" + t + " corrId=" + corrId, ex);
             h.send(ResponseMessage.error(corrId, "Internal server error."));
         }
     }
@@ -83,6 +85,6 @@ final class ClientRequestRouter {
     private void health(RequestMessage req, ClientHandler h) {
         Map<String, Object> payload = metrics == null ? new HashMap<>() : metrics.snapshot();
         if (metrics == null) payload.put("status", "unknown");
-        h.send(ResponseMessage.ok("healthOk", req.corrId, payload));
+        h.send(ResponseMessage.ok("healthOk", req.getCorrId(), payload));
     }
 }

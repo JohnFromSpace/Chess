@@ -1,6 +1,7 @@
 package com.example.chess.server;
 
 import org.jetbrains.annotations.NotNull;
+import com.example.chess.server.util.Log;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -38,6 +39,7 @@ public final class PasswordUtil {
             byte[] actual = pbkdf2(password.toCharArray(), salt, it);
             return MessageDigest.isEqual(expected, actual);
         } catch (Exception e) {
+            Log.warn("Password verification failed (invalid hash format?).", e);
             return false;
         }
     }

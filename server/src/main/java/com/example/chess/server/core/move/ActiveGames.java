@@ -11,7 +11,7 @@ final class ActiveGames {
     private final Map<String, String> userToGame = new ConcurrentHashMap<>();
 
     void put(GameContext ctx) {
-        active.put(ctx.game.getId(), ctx);
+        active.put(ctx.getGame().getId(), ctx);
         indexUsers(ctx);
     }
 
@@ -30,20 +30,20 @@ final class ActiveGames {
     }
 
     void remove(GameContext ctx) {
-        if (ctx == null || ctx.game == null || ctx.game.getId() == null) {
+        if (ctx == null || ctx.getGame() == null || ctx.getGame().getId() == null) {
             throw new IllegalArgumentException("Missing game context to remove.");
         }
 
-        String gid = ctx.game.getId();
+        String gid = ctx.getGame().getId();
         active.remove(gid);
 
-        if (ctx.game.getWhiteUser() != null) userToGame.remove(ctx.game.getWhiteUser(), gid);
-        if (ctx.game.getBlackUser() != null) userToGame.remove(ctx.game.getBlackUser(), gid);
+        if (ctx.getGame().getWhiteUser() != null) userToGame.remove(ctx.getGame().getWhiteUser(), gid);
+        if (ctx.getGame().getBlackUser() != null) userToGame.remove(ctx.getGame().getBlackUser(), gid);
     }
 
     private void indexUsers(GameContext ctx) {
-        if (ctx.game.getWhiteUser() != null) userToGame.put(ctx.game.getWhiteUser(), ctx.game.getId());
-        if (ctx.game.getBlackUser() != null) userToGame.put(ctx.game.getBlackUser(), ctx.game.getId());
+        if (ctx.getGame().getWhiteUser() != null) userToGame.put(ctx.getGame().getWhiteUser(), ctx.getGame().getId());
+        if (ctx.getGame().getBlackUser() != null) userToGame.put(ctx.getGame().getBlackUser(), ctx.getGame().getId());
     }
 
     List<GameContext> snapshot() {

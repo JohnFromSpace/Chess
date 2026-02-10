@@ -6,7 +6,7 @@ import com.example.chess.common.pieces.PieceFactory;
 import java.util.Arrays;
 
 public class Board {
-    public final char[][] squares = new char[8][8];
+    private final char[][] squares = new char[8][8];
 
     public Board() {
         for (int r = 0; r < 8; r++) Arrays.fill(squares[r], '.');
@@ -34,7 +34,7 @@ public class Board {
     }
 
     public Piece getPieceAt(Square sq) {
-        return getPieceAt(sq.row, sq.col);
+        return getPieceAt(sq.getRow(), sq.getCol());
     }
 
     public void setPieceAt(int row, int col, Piece piece) {

@@ -21,7 +21,7 @@ final class GameRequestHandler {
     void requestGame(RequestMessage req, ClientHandler h) throws IOException {
         UserModels.User u = mustLogin(h);
         coordinator.requestGame(h, u);
-        h.send(ResponseMessage.ok("requestGameOk", req.corrId));
+        h.send(ResponseMessage.ok("requestGameOk", req.getCorrId()));
     }
 
     void makeMove(RequestMessage req, ClientHandler h) throws IOException {
@@ -29,28 +29,28 @@ final class GameRequestHandler {
         String gameId = RequestValidator.requireGameId(req);
         String move = RequestValidator.requireMove(req);
         coordinator.makeMove(gameId, u, move);
-        h.send(ResponseMessage.ok("makeMoveOk", req.corrId));
+        h.send(ResponseMessage.ok("makeMoveOk", req.getCorrId()));
     }
 
     void offerDraw(RequestMessage req, ClientHandler h) throws IOException {
         UserModels.User u = mustLogin(h);
         String gameId = RequestValidator.requireGameId(req);
         coordinator.offerDraw(gameId, u);
-        h.send(ResponseMessage.ok("offerDrawOk", req.corrId));
+        h.send(ResponseMessage.ok("offerDrawOk", req.getCorrId()));
     }
 
     void respondDraw(RequestMessage req, ClientHandler h, boolean accept) throws IOException {
         UserModels.User u = mustLogin(h);
         String gameId = RequestValidator.requireGameId(req);
         coordinator.respondDraw(gameId, u, accept);
-        h.send(ResponseMessage.ok(accept ? "acceptDrawOk" : "declineDrawOk", req.corrId));
+        h.send(ResponseMessage.ok(accept ? "acceptDrawOk" : "declineDrawOk", req.getCorrId()));
     }
 
     void resign(RequestMessage req, ClientHandler h) throws IOException {
         UserModels.User u = mustLogin(h);
         String gameId = RequestValidator.requireGameId(req);
         coordinator.resign(gameId, u);
-        h.send(ResponseMessage.ok("resignOk", req.corrId));
+        h.send(ResponseMessage.ok("resignOk", req.getCorrId()));
     }
 
     void listGames(RequestMessage req, ClientHandler h) {
@@ -79,7 +79,7 @@ final class GameRequestHandler {
         Map<String, Object> payload = new HashMap<>();
         payload.put("games", out);
 
-        h.send(ResponseMessage.ok("listGamesOk", req.corrId, payload));
+        h.send(ResponseMessage.ok("listGamesOk", req.getCorrId(), payload));
     }
 
     void getGameDetails(RequestMessage req, ClientHandler h) {
@@ -90,7 +90,7 @@ final class GameRequestHandler {
         if (g == null) throw new IllegalArgumentException("No such game (or you are not a participant).");
 
         Map<String, Object> payload = coordinator.toGameDetailsPayload(g);
-        h.send(ResponseMessage.ok("getGameDetailsOk", req.corrId, payload));
+        h.send(ResponseMessage.ok("getGameDetailsOk", req.getCorrId(), payload));
     }
 
     private static UserModels.User mustLogin(ClientHandler h) {
