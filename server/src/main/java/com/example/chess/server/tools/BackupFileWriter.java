@@ -62,7 +62,7 @@ final class BackupFileWriter {
         if (dir == null) return;
         if (WINDOWS) {
             if (DIR_FSYNC_WARNED.compareAndSet(false, true)) {
-                System.err.println("Warning: directory fsync skipped on Windows (not supported): " + dir);
+                System.out.println("Info: directory fsync skipped on Windows (not supported): " + dir);
             }
             return;
         }

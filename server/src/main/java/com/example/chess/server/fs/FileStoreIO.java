@@ -77,7 +77,7 @@ final class FileStoreIO {
         if (dir == null) return;
         if (WINDOWS) {
             if (DIR_FSYNC_WARNED.compareAndSet(false, true)) {
-                Log.warn("Directory fsync skipped on Windows (not supported): " + dir, null);
+                Log.info("Directory fsync skipped on Windows (not supported): " + dir);
             }
             return;
         }
