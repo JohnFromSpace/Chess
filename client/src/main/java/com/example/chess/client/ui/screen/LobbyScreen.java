@@ -24,7 +24,7 @@ public class LobbyScreen implements Screen {
         menu.add(new MenuItem("Request game", this::requestGame));
         menu.add(new MenuItem("Profile", this::openProfile));
         menu.add(new MenuItem("Logout", this::logout));
-        menu.add(new MenuItem("Exit", state::requestExit));
+        menu.add(new MenuItem("Exit", this::exitProgram));
 
         Runnable pump = state::drainUi;
         boolean waitingHintShown = false;
@@ -48,10 +48,16 @@ public class LobbyScreen implements Screen {
                     pump,
                     () -> state.isInGame() || state.getUser() == null || state.isExitReqeuested()
             );
+            if (state.isExitReqeuested()) return;
 
             pump.run();
             if (state.isInGame()) break;
         }
+    }
+
+    private void exitProgram() {
+        state.requestExit();
+        view.showMessage("Exiting...");
     }
 
     private void requestGame() {

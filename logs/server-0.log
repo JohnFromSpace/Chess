@@ -1239,3 +1239,18 @@ java.nio.file.AccessDeniedException: data
 2026-02-10T22:58:07.444Z INFO ChessServer [main] Chess server starting on port: 5000 ...
 2026-02-10T22:58:07.447Z INFO ChessServer [main] Config summary: dataDir=D:\BL\Chess\Chess\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000
 2026-02-10T22:58:07.454Z INFO ChessServer [server-heartbeat] Directory fsync skipped on Windows (not supported): data
+2026-02-10T23:03:16.250Z INFO ChessServer [main] Chess server starting on port: 5000 ...
+2026-02-10T23:03:16.256Z INFO ChessServer [main] Config summary: dataDir=D:\BL\Chess\Chess\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000
+2026-02-10T23:03:16.263Z INFO ChessServer [server-heartbeat] Directory fsync skipped on Windows (not supported): data
+2026-02-10T23:03:44.221Z WARNING ChessServer [client-handler] Reconnect attempt failed for user borko corrId=6d50dab2-8c35-48ae-a148-695ad13b1bb5 clientIp=127.0.0.1
+java.lang.IllegalArgumentException: Missing game context for user.
+	at com.example.chess.server.core.move.ReconnectFlow.tryReconnect(ReconnectFlow.java:69)
+	at com.example.chess.server.core.move.MoveService.tryReconnect(MoveService.java:144)
+	at com.example.chess.server.client.AuthRequestHandler.login(AuthRequestHandler.java:57)
+	at com.example.chess.server.client.ClientRequestRouter.handle(ClientRequestRouter.java:50)
+	at com.example.chess.server.client.ClientHandler.handleLine(ClientHandler.java:123)
+	at com.example.chess.server.client.ClientHandler.run(ClientHandler.java:74)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+2026-02-10T23:04:16.137Z INFO ChessServer [metrics-reporter] Metrics: conn=1 req=3 err=0 rl=0 inv=0 online=0 queue=0 games=0 heapUsedPct=0,15 errRatePct=0,00

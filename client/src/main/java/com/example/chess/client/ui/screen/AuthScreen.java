@@ -26,12 +26,18 @@ public class AuthScreen implements Screen {
         Menu menu = new Menu("Auth");
         menu.add(new MenuItem("Login", this::login));
         menu.add(new MenuItem("Register", this::register));
-        menu.add(new MenuItem("Exit", state::requestExit));
+        menu.add(new MenuItem("Exit", this::exitProgram));
 
         while (state.getUser() == null && !state.isExitReqeuested()) {
             menu.render(view);
             menu.readAndExecute(view);
+            if (state.isExitReqeuested()) return;
         }
+    }
+
+    private void exitProgram() {
+        state.requestExit();
+        view.showMessage("Exiting...");
     }
 
     private void login() throws InterruptedException {

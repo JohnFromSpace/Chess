@@ -29,6 +29,7 @@ public class InGameScreen implements Screen {
             pump.run();
             renderMenu(menu);
             menu.readAndExecuteResponsive(view, 120, pump, this::shouldStopMenu);
+            if (state.isExitReqeuested()) return;
             pump.run();
         }
     }
@@ -43,7 +44,7 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Print board", this::printBoard));
         menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
         menu.add(new MenuItem("Back to lobby", this::backToLobby));
-        menu.add(new MenuItem("Exit program", state::requestExit));
+        menu.add(new MenuItem("Exit program", this::exitProgram));
         return menu;
     }
 
@@ -59,6 +60,11 @@ public class InGameScreen implements Screen {
 
     private boolean shouldStopMenu() {
         return !state.isInGame() || state.getUser() == null || state.isExitReqeuested();
+    }
+
+    private void exitProgram() {
+        state.requestExit();
+        view.showMessage("Exiting...");
     }
 
     private Runnable createPump() {
