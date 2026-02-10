@@ -86,7 +86,7 @@ public class MoveService implements AutoCloseable {
     }
 
     public void makeMove(String gameId, User u, String uci) throws IOException {
-        if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
+        requireUser(u);
         GameContext ctx = games.mustCtx(gameId);
 
         Runnable notify;
@@ -97,7 +97,7 @@ public class MoveService implements AutoCloseable {
     }
 
     public void offerDraw(String gameId, User u) throws IOException {
-        if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
+        requireUser(u);
         GameContext ctx = games.mustCtx(gameId);
 
         Runnable notify;
@@ -108,7 +108,7 @@ public class MoveService implements AutoCloseable {
     }
 
     public void respondDraw(String gameId, User u, boolean accept) throws IOException {
-        if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
+        requireUser(u);
         GameContext ctx = games.mustCtx(gameId);
 
         Runnable notify;
@@ -119,7 +119,7 @@ public class MoveService implements AutoCloseable {
     }
 
     public void resign(String gameId, User u) throws IOException {
-        if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
+        requireUser(u);
         GameContext ctx = games.mustCtx(gameId);
 
         Runnable notify;
@@ -178,5 +178,11 @@ public class MoveService implements AutoCloseable {
 
     public int activeGameCount() {
         return games.size();
+    }
+
+    private static void requireUser(User u) {
+        if (u == null || u.getUsername() == null) {
+            throw new IllegalArgumentException("Not logged in.");
+        }
     }
 }

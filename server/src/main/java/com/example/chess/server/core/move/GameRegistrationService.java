@@ -27,7 +27,7 @@ final class GameRegistrationService {
                       ClientHandler h2,
                       boolean h1IsWhite) throws IOException {
 
-        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("There is no current game.");
+        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("Missing game.");
 
         if (game.getWhiteUser() == null || game.getWhiteUser().isBlank()) game.setWhiteUser(whiteUser);
         if (game.getBlackUser() == null || game.getBlackUser().isBlank()) game.setBlackUser(blackUser);
@@ -39,7 +39,7 @@ final class GameRegistrationService {
     }
 
     void registerGame(Game game, ClientHandler whiteH, ClientHandler blackH) throws IOException {
-        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("There is no game/id.");
+        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("Missing game ID.");
 
         long now = System.currentTimeMillis();
         if (game.getCreatedAt() == 0L) game.setCreatedAt(now);
@@ -67,7 +67,7 @@ final class GameRegistrationService {
     }
 
     GameContext rehydrateGame(Game game) {
-        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("There is no current game.");
+        if (game == null || game.getId() == null || game.getId().isBlank()) throw new IllegalArgumentException("Missing game.");
 
         if (game.getBoard() == null) game.setBoard(com.example.chess.common.board.Board.initial());
 

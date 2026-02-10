@@ -60,7 +60,7 @@ public final class ServerStateStore {
 
     public void write(ServerState s) {
         try {
-            if (s == null) throw new IllegalArgumentException("There is no current state for the server.");
+            if (s == null) throw new IllegalArgumentException("Missing server state.");
             String json = GSON.toJson(s);
             withLock(() -> {
                 writeAtomically(file, json);

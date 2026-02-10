@@ -20,11 +20,13 @@ public final class StatsAndRatingService implements GameEndHook {
 
     @Override
     public void onGameFinished(Game g) throws Exception {
-        if (g == null) throw new IllegalArgumentException("There is no game.");
-        if (g.getId() == null || g.getId().isBlank()) throw new IllegalArgumentException("This game has no ID.");
-        if (g.getWhiteUser() == null || g.getBlackUser() == null) throw new IllegalArgumentException("There is no white/black player.");
+        if (g == null) throw new IllegalArgumentException("Missing game.");
+        if (g.getId() == null || g.getId().isBlank()) throw new IllegalArgumentException("Missing game ID.");
+        if (g.getWhiteUser() == null || g.getBlackUser() == null) throw new IllegalArgumentException("Missing players.");
 
-        if (g.getResult() == null || g.getResult() == Result.ONGOING) throw new IllegalArgumentException("There is no game result/ game is ongoing.");
+        if (g.getResult() == null || g.getResult() == Result.ONGOING) {
+            throw new IllegalArgumentException("Game is ongoing or missing result.");
+        }
 
         if (!g.isRated() || g.getResult() == Result.ABORTED) return;
 

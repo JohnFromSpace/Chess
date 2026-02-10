@@ -21,7 +21,9 @@ public class MatchmakingService {
     }
 
     public void enqueue(ClientHandler h, User u) throws IOException {
-        if (h == null || u == null || u.getUsername() == null) throw new IllegalArgumentException("Empty client handler.");
+        if (h == null || u == null || u.getUsername() == null) {
+            throw new IllegalArgumentException("Missing handler or user.");
+        }
 
         synchronized (queueLock) {
             if (queue.containsKey(u.getUsername())) {

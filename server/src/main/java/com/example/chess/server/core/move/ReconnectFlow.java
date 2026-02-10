@@ -63,10 +63,10 @@ final class ReconnectFlow {
     void tryReconnect(User u, ClientHandler newHandler) {
         if (u == null) throw new IllegalArgumentException("Missing user.");
         if (newHandler == null) throw new IllegalArgumentException("Missing handler.");
-        if (u.getUsername() == null || u.getUsername().isBlank()) throw new IllegalArgumentException("Missing username");
+        if (u.getUsername() == null || u.getUsername().isBlank()) throw new IllegalArgumentException("Missing username.");
 
         GameContext ctx = games.findCtxByUser(u.getUsername());
-        if (ctx == null) throw new IllegalArgumentException("There is no game context for current user.");
+        if (ctx == null) throw new IllegalArgumentException("Missing game context for user.");
 
         boolean isWhite = true;
         boolean pushGameOver = false;
@@ -123,7 +123,7 @@ final class ReconnectFlow {
     }
 
     void recoverAfterRestart(GameContext ctx) {
-        if (ctx == null || ctx.game == null) throw new IllegalArgumentException("There is no game context.");
+        if (ctx == null || ctx.game == null) throw new IllegalArgumentException("Missing game context.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is no longer ongoing.");
 
         long now = System.currentTimeMillis();

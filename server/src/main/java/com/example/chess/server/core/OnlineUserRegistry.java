@@ -9,8 +9,8 @@ public final class OnlineUserRegistry {
     private final ConcurrentMap<String, ClientHandler> online = new ConcurrentHashMap<>();
 
     public void markOnline(String username, ClientHandler handler) {
-        if (username == null || username.isBlank()) throw new IllegalArgumentException("Empty username.");
-        if (handler == null) throw new IllegalArgumentException("There is no client handler.");
+        if (username == null || username.isBlank()) throw new IllegalArgumentException("Missing username.");
+        if (handler == null) throw new IllegalArgumentException("Missing client handler.");
 
         ClientHandler prev = online.putIfAbsent(username, handler);
         if (prev != null && prev != handler) {
@@ -19,8 +19,8 @@ public final class OnlineUserRegistry {
     }
 
     public void markOffline(String username, ClientHandler handler) {
-        if (username == null || username.isBlank()) throw new IllegalArgumentException("Empty username.");
-        if (handler == null) throw new IllegalArgumentException("There is no client handler.");
+        if (username == null || username.isBlank()) throw new IllegalArgumentException("Missing username.");
+        if (handler == null) throw new IllegalArgumentException("Missing client handler.");
         online.remove(username, handler);
     }
 

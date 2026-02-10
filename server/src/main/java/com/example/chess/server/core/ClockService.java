@@ -18,7 +18,7 @@ public class ClockService {
     private final ConcurrentMap<String, State> clocks = new ConcurrentHashMap<>();
 
     public void register(Game g) {
-        if (g == null || g.getId() == null) throw new IllegalArgumentException("There is no game.");
+        if (g == null || g.getId() == null) throw new IllegalArgumentException("Missing game.");
 
         State s = new State();
         s.whiteMs = g.getWhiteTimeMs();
@@ -35,9 +35,9 @@ public class ClockService {
     }
 
     public void onMoveApplied(Game g) {
-        if (g == null || g.getId() == null) throw new IllegalArgumentException("There is no game.");
+        if (g == null || g.getId() == null) throw new IllegalArgumentException("Missing game.");
         State s = clocks.get(g.getId());
-        if (s == null) throw new IllegalArgumentException("Empty state.");
+        if (s == null) throw new IllegalArgumentException("Missing clock state.");
         synchronized (s) {
             long now = System.currentTimeMillis();
             long elapsed = Math.max(0, now - s.lastTickMs);
