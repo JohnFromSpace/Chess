@@ -27,6 +27,23 @@ Use the process manager / OS signal:
 2. Start the server with the same `chess.data.dir`.
 3. Verify logs show: `Chess server starting...`
 
+### Backup and retention
+Use the backup script to create a timestamped zip and enforce retention:
+```
+.\scripts\backup-rotate.ps1 -DataDir data -BackupDir backups -Retain 7 -Build
+```
+Retention policy: keep the most recent 7 backups in `backups/` and delete older ones.
+Store backups off the host if you need disaster recovery.
+
+### Restore drill
+1. Stop the server.
+2. Restore from a known-good backup:
+   ```
+   .\scripts\restore.ps1 -BackupZip backups\chess-data-<timestamp>.zip -DataDir data -Force
+   ```
+3. Start the server.
+4. Verify login + `listGames` and check logs for quarantine warnings.
+
 ### Recovery
 If the server fails to start or you suspect corrupted data:
 1. Make a backup of `data/` first.
