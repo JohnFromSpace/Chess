@@ -3,381 +3,51 @@ package com.example.chess.server.fs;
 import com.example.chess.common.UserModels.User;
 import com.example.chess.common.model.Game;
 import com.example.chess.server.fs.repository.GameRepository;
-import com.example.chess.server.util.Log;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.lang.reflect.Type;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.DirectoryIteratorException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.Locale;
 
 public class FileStores implements GameRepository {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-    private static final boolean WINDOWS =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
-    private static final AtomicBoolean DIR_FSYNC_WARNED = new AtomicBoolean(false);
-
-    private static final Type USER_MAP_TYPE =
-            new TypeToken<Map<String, User>>() {}.getType();
-
-    private final Path root;
-    private final Path usersFile;
-    private final Path usersLockFile;
-    private final Path gamesDir;
-    private final Object usersMutex = new Object();
-    private final ConcurrentMap<String, Object> gameMutexes = new ConcurrentHashMap<>();
+    private final UserFileStore userStore;
+    private final GameFileStore gameStore;
 
     public FileStores(Path root) {
-        this.root = root;
-        this.usersFile = root.resolve("users.json");
-        this.usersLockFile = root.resolve("users.json.lock");
-        this.gamesDir = root.resolve("games");
-
-        try {
-            Files.createDirectories(root);
-            Files.createDirectories(gamesDir);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to initialize file store", e);
-        }
+        if (root == null) throw new IllegalArgumentException("Missing data directory.");
+        this.userStore = new UserFileStore(root);
+        this.gameStore = new GameFileStore(root.resolve("games"), () -> userStore.loadAllUsers().keySet());
     }
 
     public Map<String, User> loadAllUsers() {
-        return withUserLock(this::readUsersUnlocked);
+        return userStore.loadAllUsers();
     }
 
     public <T> T updateUsers(Function<Map<String, User>, T> updater) throws IOException {
-        if (updater == null) throw new IllegalArgumentException("Missing users updater.");
-        try {
-            return withUserLock(() -> {
-                Map<String, User> users = new TreeMap<>(readUsersUnlocked());
-                T result = updater.apply(users);
-                writeUsersUnlocked(users);
-                return result;
-            });
-        } catch (UncheckedIOException e) {
-            throw e.getCause();
-        }
-    }
-
-    private Path gameFile(String id) {
-        return gamesDir.resolve(id + ".json");
-    }
-
-    private Path gameLockFile(Path gameFile) {
-        return gameFile.resolveSibling(gameFile.getFileName().toString() + ".lock");
-    }
-
-    private static void sanitizeReason(Game game) {
-        if (game == null) return; // avoid throwing exceptions for an unstarted game
-        String r = game.getResultReason();
-        if (r == null) return; // allow ongoing games
-        r = r.trim();
-        if (r.equalsIgnoreCase("Time.") || r.equalsIgnoreCase("Time")) {
-            game.setResultReason("timeout");
-        }
+        return userStore.updateUsers(updater);
     }
 
     @Override
     public Optional<Game> findGameById(String id) {
-        Path file = gameFile(id);
-        if (!Files.exists(file)) {
-            return Optional.empty();
-        }
-        Game game = readGameFile(file);
-        if (game == null) return Optional.empty();
-        sanitizeReason(game);
-        return Optional.of(game);
+        return gameStore.findGameById(id);
     }
 
     @Override
     public Map<String, Game> findGamesForUser(String username) {
-        Map<String, Game> result = new HashMap<>();
-        if (!Files.exists(gamesDir)) {
-            return result;
-        }
-
-        Set<String> validUsers = new HashSet<>(loadAllUsers().keySet());
-
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
-            for (Path file : stream) {
-                Game game = readGameFile(file);
-                if (game == null || game.getId() == null) continue;
-
-                String w = game.getWhiteUser();
-                String b = game.getBlackUser();
-
-                if (w == null || b == null || w.isBlank() || b.isBlank()) continue;
-                if (w.equals(b)) continue;
-
-                if (!validUsers.contains(w) || !validUsers.contains(b)) continue;
-                if (!username.equals(w) && !username.equals(b)) continue;
-
-                sanitizeReason(game);
-                result.put(game.getId(), game);
-            }
-        } catch (IOException e) {
-            Log.warn("Failed to list games directory: " + gamesDir, e);
-        }
-
-        return result;
+        return gameStore.findGamesForUser(username);
     }
 
     @Override
     public void saveGame(Game game) throws IOException {
-        if (game == null || game.getId() == null || game.getId().isBlank()) {
-            throw new IllegalArgumentException("Game or game.id is null/blank");
-        }
-
-        Path file = gameFile(game.getId());
-
-        Files.createDirectories(gamesDir);
-        sanitizeReason(game);
-        String json = GSON.toJson(game);
-        try {
-            withGameLock(file, () -> {
-                try {
-                    writeAtomically(file, json);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                return null;
-            });
-        } catch (UncheckedIOException e) {
-            throw e.getCause();
-        }
+        gameStore.saveGame(game);
     }
 
     @Override
     public List<Game> loadAllGames() {
-        List<Game> out = new ArrayList<>();
-        try {
-            if (!Files.exists(gamesDir)) return out;
-
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(gamesDir, "*.json")) {
-                for (Path file : stream) {
-                    Game g = readGameFile(file);
-                    if (g != null && g.getId() != null && !g.getId().isBlank()) out.add(g);
-                }
-            }
-        } catch (IOException | DirectoryIteratorException ex) {
-            Log.warn("Failed to load all games.", ex);
-        }
-        return out;
+        return gameStore.loadAllGames();
     }
 
-    private Map<String, User> readUsersUnlocked() {
-        try {
-            Files.createDirectories(root);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to ensure data directory: " + root, e);
-        }
-
-        if (!Files.exists(usersFile)) {
-            return new HashMap<>();
-        }
-
-        String json;
-        try {
-            json = Files.readString(usersFile, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read users file: " + usersFile, e);
-        }
-
-        if (json.isBlank()) {
-            quarantineFile(usersFile, "users");
-            return new HashMap<>();
-        }
-
-        try {
-            Map<String, User> users = GSON.fromJson(json, USER_MAP_TYPE);
-            if (users == null) {
-                quarantineFile(usersFile, "users");
-                return new HashMap<>();
-            }
-            return users;
-        } catch (RuntimeException e) {
-            quarantineFile(usersFile, "users");
-            Log.warn("Failed to parse users file: " + usersFile, e);
-            return new HashMap<>();
-        }
-    }
-
-    private void writeUsersUnlocked(Map<String, User> users) {
-        try {
-            Files.createDirectories(root);
-            String json = GSON.toJson(users, USER_MAP_TYPE);
-            writeAtomically(usersFile, json);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to write users file: " + usersFile, e);
-        }
-    }
-
-    private <T> T withUserLock(Supplier<T> action) {
-        synchronized (usersMutex) {
-            try {
-                Files.createDirectories(root);
-                try (FileChannel channel = FileChannel.open(usersLockFile,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE);
-                     FileLock lock = channel.lock()) {
-                    if (!lock.isValid()) {
-                        throw new IOException("Failed to acquire users file lock: " + usersLockFile);
-                    }
-                    return action.get();
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException("Failed to lock users file: " + usersLockFile, e);
-            }
-        }
-    }
-
-    private Game readGameFile(Path file) {
-        if (!Files.exists(file)) return null;
-        try {
-            return withGameLock(file, () -> {
-                String json;
-                try {
-                    json = Files.readString(file, StandardCharsets.UTF_8);
-                } catch (IOException e) {
-                    Log.warn("Failed to read game file: " + file, e);
-                    return null;
-                }
-
-                if (json.isBlank()) {
-                    quarantineFile(file, "game");
-                    return null;
-                }
-
-                try {
-                    Game game = GSON.fromJson(json, Game.class);
-                    if (game == null) {
-                        quarantineFile(file, "game");
-                    }
-                    return game;
-                } catch (RuntimeException e) {
-                    quarantineFile(file, "game");
-                    Log.warn("Failed to parse game file: " + file, e);
-                    return null;
-                }
-            });
-        } catch (UncheckedIOException e) {
-            Log.warn("Failed to lock game file: " + file, e);
-            return null;
-        }
-    }
-
-    private <T> T withGameLock(Path gameFile, Supplier<T> action) {
-        Object mutex = gameMutexes.computeIfAbsent(gameFile.getFileName().toString(), k -> new Object());
-        synchronized (mutex) {
-            try {
-                Files.createDirectories(gamesDir);
-                Path lockFile = gameLockFile(gameFile);
-                try (FileChannel channel = FileChannel.open(lockFile,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE);
-                     FileLock lock = channel.lock()) {
-                    if (!lock.isValid()) {
-                        throw new IOException("Failed to acquire game lock: " + lockFile);
-                    }
-                    return action.get();
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException("Failed to lock game file: " + gameFile, e);
-            }
-        }
-    }
-
-    private static void quarantineFile(Path file, String kind) {
-        try {
-            if (!Files.exists(file)) return;
-            String ts = LocalDateTime.now().format(TS_FMT);
-            Path backup = file.resolveSibling(file.getFileName().toString() + ".corrupt-" + ts);
-            Files.move(file, backup, StandardCopyOption.REPLACE_EXISTING);
-            Log.warn("Quarantined corrupt " + kind + " file: " + file, null);
-        } catch (Exception e) {
-            Log.warn("Failed to quarantine corrupt " + kind + " file: " + file, e);
-        }
-    }
-
-    private static void writeAtomically(Path target, String content) throws IOException {
-        Path dir = target.getParent();
-        if (dir != null) Files.createDirectories(dir);
-        Path tmpDir = dir != null ? dir : Path.of(".");
-
-        Path tmp = Files.createTempFile(tmpDir, target.getFileName().toString(), ".tmp");
-        boolean moved = false;
-        try {
-            byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
-            try (FileChannel channel = FileChannel.open(tmp,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE)) {
-                ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                while (buffer.hasRemaining()) {
-                    channel.write(buffer);
-                }
-                channel.force(true);
-            }
-            try {
-                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-            moved = true;
-            forceDirectory(tmpDir);
-        } finally {
-            if (!moved) {
-                try {
-                    Files.deleteIfExists(tmp);
-                } catch (IOException e) {
-                    Log.warn("Failed to clean up temp file: " + tmp, e);
-                }
-            }
-        }
-    }
-
-    private static void forceDirectory(Path dir) {
-        if (dir == null) return;
-        if (WINDOWS) {
-            if (DIR_FSYNC_WARNED.compareAndSet(false, true)) {
-                Log.warn("Directory fsync skipped on Windows (not supported): " + dir, null);
-            }
-            return;
-        }
-        try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
-            channel.force(true);
-        } catch (IOException e) {
-            Log.warn("Directory fsync failed for: " + dir, e);
-        }
-    }
 }

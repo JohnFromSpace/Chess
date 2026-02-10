@@ -1,41 +1,13 @@
 package com.example.chess.server.tools;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.FileVisitOption;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.zip.Deflater;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
 public final class DataBackupTool {
-    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final String DEFAULT_DATA_DIR = "data";
-    private static final String DEFAULT_BACKUP_PREFIX = "chess-data-";
-    private static final boolean WINDOWS =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
-    private static final AtomicBoolean DIR_FSYNC_WARNED = new AtomicBoolean(false);
 
     private DataBackupTool() {}
 
@@ -68,8 +40,8 @@ public final class DataBackupTool {
         switch (cmd) {
             case "backup" -> {
                 Path dataDir = !params.isEmpty() ? Path.of(params.get(0)) : Path.of(DEFAULT_DATA_DIR);
-                Path outZip = params.size() > 1 ? Path.of(params.get(1)) : defaultBackupPath();
-                backup(dataDir, outZip, includeCorrupt);
+                Path outZip = params.size() > 1 ? Path.of(params.get(1)) : DataBackupService.defaultBackupPath();
+                DataBackupService.backup(dataDir, outZip, includeCorrupt);
             }
             case "restore" -> {
                 if (params.isEmpty()) {
@@ -79,7 +51,7 @@ public final class DataBackupTool {
                 Path dataDir = params.size() > 1 ? Path.of(params.get(1)) : Path.of(DEFAULT_DATA_DIR);
                 boolean force = flags.contains("--force");
                 boolean purge = flags.contains("--purge");
-                restore(zip, dataDir, force, purge, includeCorrupt);
+                DataBackupService.restore(zip, dataDir, force, purge, includeCorrupt);
             }
             case "help", "-h", "--help" -> usage();
             default -> throw new IllegalArgumentException("Unknown command: " + cmd);
@@ -94,216 +66,5 @@ public final class DataBackupTool {
         System.out.println("Examples:");
         System.out.println("  backup data backups/chess-data.zip");
         System.out.println("  restore backups/chess-data.zip data --force");
-    }
-
-    private static Path defaultBackupPath() {
-        String ts = LocalDateTime.now().format(TS_FMT);
-        return Path.of(DEFAULT_BACKUP_PREFIX + ts + ".zip");
-    }
-
-    private static void backup(Path dataDir, Path outZip, boolean includeCorrupt) throws IOException {
-        if (dataDir == null || !Files.exists(dataDir) || !Files.isDirectory(dataDir)) {
-            throw new IllegalArgumentException("Data directory not found: " + dataDir);
-        }
-        if (outZip == null) throw new IllegalArgumentException("Missing output zip path.");
-
-        Path parent = outZip.getParent();
-        if (parent != null) Files.createDirectories(parent);
-
-        try (ZipOutputStream zos = new ZipOutputStream(
-                Files.newOutputStream(outZip, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
-            zos.setLevel(Deflater.BEST_COMPRESSION);
-            Files.walkFileTree(dataDir, EnumSet.noneOf(FileVisitOption.class), Integer.MAX_VALUE, new FileVisitor<>() {
-                @Override
-                public @NotNull FileVisitResult preVisitDirectory(Path dir, @NotNull BasicFileAttributes attrs) {
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public @NotNull FileVisitResult visitFile(Path file, @NotNull BasicFileAttributes attrs) throws IOException {
-                    if (!attrs.isRegularFile()) return FileVisitResult.CONTINUE;
-                    Path rel = dataDir.relativize(file);
-                    if (!shouldInclude(rel, includeCorrupt)) return FileVisitResult.CONTINUE;
-
-                    String entryName = rel.toString().replace('\\', '/');
-                    ZipEntry entry = new ZipEntry(entryName);
-                    entry.setTime(attrs.lastModifiedTime().toMillis());
-                    zos.putNextEntry(entry);
-                    Files.copy(file, zos);
-                    zos.closeEntry();
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public @NotNull FileVisitResult visitFileFailed(Path file, @NotNull IOException exc) throws IOException {
-                    throw exc;
-                }
-
-                @Override
-                public @NotNull FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    if (exc != null) throw exc;
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        }
-
-        System.out.println("Backup created: " + outZip.toAbsolutePath());
-    }
-
-    private static void restore(Path zip, Path dataDir, boolean force, boolean purge, boolean includeCorrupt)
-            throws IOException {
-        if (zip == null || !Files.exists(zip) || !Files.isRegularFile(zip)) {
-            throw new IllegalArgumentException("Backup zip not found: " + zip);
-        }
-        if (dataDir == null) throw new IllegalArgumentException("Missing data dir.");
-
-        Files.createDirectories(dataDir);
-
-        if (purge) {
-            if (!force) {
-                throw new IllegalArgumentException("--purge requires --force.");
-            }
-            purgeDataDir(dataDir);
-        }
-
-        Path normalizedRoot = dataDir.toAbsolutePath().normalize();
-        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zip, StandardOpenOption.READ))) {
-            ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
-                if (entry.isDirectory()) continue;
-                String name = entry.getName();
-                if (!isSafeEntry(name)) {
-                    throw new IllegalArgumentException("Unsafe entry in zip: " + name);
-                }
-                if (!shouldRestore(name, includeCorrupt)) {
-                    continue;
-                }
-
-                Path target = normalizedRoot.resolve(name).normalize();
-                if (!target.startsWith(normalizedRoot)) {
-                    throw new IllegalArgumentException("Zip entry escapes target directory: " + name);
-                }
-                if (!force && Files.exists(target)) {
-                    throw new IllegalStateException("Target already exists: " + target);
-                }
-
-                writeEntryAtomically(zis, target, force);
-                zis.closeEntry();
-            }
-        }
-
-        System.out.println("Restore completed into: " + normalizedRoot);
-    }
-
-    private static void writeEntryAtomically(InputStream in, Path target, boolean force) throws IOException {
-        Objects.requireNonNull(in, "input");
-        Objects.requireNonNull(target, "target");
-        Path dir = target.getParent();
-        if (dir != null) Files.createDirectories(dir);
-        Path tmpDir = dir != null ? dir : Path.of(".");
-        Path tmp = Files.createTempFile(tmpDir, target.getFileName().toString(), ".tmp");
-        boolean moved = false;
-        try (FileChannel out = FileChannel.open(tmp,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.TRUNCATE_EXISTING);
-             ReadableByteChannel src = Channels.newChannel(in)) {
-            ByteBuffer buffer = ByteBuffer.allocate(8192);
-            while (src.read(buffer) != -1) {
-                buffer.flip();
-                while (buffer.hasRemaining()) {
-                    out.write(buffer);
-                }
-                buffer.clear();
-            }
-            out.force(true);
-            try {
-                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (IOException e) {
-                if (force) {
-                    Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
-                } else {
-                    throw e;
-                }
-            }
-            moved = true;
-            forceDirectory(tmpDir);
-        } finally {
-            if (!moved) Files.deleteIfExists(tmp);
-        }
-    }
-
-    private static boolean shouldInclude(Path relative, boolean includeCorrupt) {
-        if (relative == null) return false;
-        String rel = relative.toString().replace('\\', '/');
-        if (rel.isBlank()) return false;
-
-        String name = relative.getFileName() != null ? relative.getFileName().toString() : rel;
-
-        if (name.endsWith(".lock") || name.endsWith(".tmp")) return false;
-        if (name.contains(".corrupt-")) return includeCorrupt;
-
-        if (rel.equals("users.json")) return true;
-        if (rel.equals("server-state.json")) return true;
-        return rel.startsWith("games/") && name.endsWith(".json");
-    }
-
-    private static boolean shouldRestore(String entryName, boolean includeCorrupt) {
-        String name = entryName.replace('\\', '/');
-        if (name.startsWith("/")) return false;
-        if (name.contains("..")) return false;
-
-        String base = name.substring(name.lastIndexOf('/') + 1);
-        if (base.endsWith(".lock") || base.endsWith(".tmp")) return false;
-        if (base.contains(".corrupt-")) return includeCorrupt;
-
-        if (name.equals("users.json")) return true;
-        if (name.equals("server-state.json")) return true;
-        return name.startsWith("games/") && base.endsWith(".json");
-    }
-
-    private static boolean isSafeEntry(String name) {
-        if (name == null) return false;
-        String n = name.replace('\\', '/');
-        if (n.startsWith("/") || n.startsWith("\\")) return false;
-        return !n.contains("..");
-    }
-
-    private static void purgeDataDir(Path dataDir) throws IOException {
-        Path users = dataDir.resolve("users.json");
-        Path usersLock = dataDir.resolve("users.json.lock");
-        Path serverState = dataDir.resolve("server-state.json");
-
-        deleteIfExists(users);
-        deleteIfExists(usersLock);
-        deleteIfExists(serverState);
-
-        Path games = dataDir.resolve("games");
-        if (!Files.exists(games)) return;
-        try (var stream = Files.newDirectoryStream(games)) {
-            for (Path p : stream) {
-                if (Files.isDirectory(p)) continue;
-                deleteIfExists(p);
-            }
-        }
-    }
-
-    private static void deleteIfExists(Path p) throws IOException {
-        if (p != null && Files.exists(p)) Files.delete(p);
-    }
-
-    private static void forceDirectory(Path dir) {
-        if (dir == null) return;
-        if (WINDOWS) {
-            if (DIR_FSYNC_WARNED.compareAndSet(false, true)) {
-                System.err.println("Warning: directory fsync skipped on Windows (not supported): " + dir);
-            }
-            return;
-        }
-        try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
-            channel.force(true);
-        } catch (IOException e) {
-            System.err.println("Warning: directory fsync failed for " + dir + ": " + e.getMessage());
-            e.printStackTrace(System.err);
-        }
     }
 }

@@ -22,6 +22,18 @@ public class InGameScreen implements Screen {
 
     @Override
     public void show() throws InterruptedException {
+        Menu menu = buildMenu();
+        Runnable pump = createPump();
+
+        while (isActiveSession()) {
+            pump.run();
+            renderMenu(menu);
+            menu.readAndExecuteResponsive(view, 120, pump, this::shouldStopMenu);
+            pump.run();
+        }
+    }
+
+    private Menu buildMenu() {
         Menu menu = new Menu("Game");
         menu.add(new MenuItem("Move", this::move));
         menu.add(new MenuItem("Offer draw", this::offerDraw));
@@ -32,65 +44,59 @@ public class InGameScreen implements Screen {
         menu.add(new MenuItem("Toggle auto-board", this::toggleAutoBoard));
         menu.add(new MenuItem("Back to lobby", this::backToLobby));
         menu.add(new MenuItem("Exit program", state::requestExit));
-
-        Runnable pump = getRunnable();
-
-        while (state.getUser() != null && state.isInGame() && !state.isExitReqeuested()) {
-            pump.run();
-
-            menu.render(view);
-            view.showMessage(renderClocksLine());
-            view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
-
-            menu.readAndExecuteResponsive(
-                    view,
-                    120,
-                    pump,
-                    () -> !state.isInGame() || state.getUser() == null || state.isExitReqeuested()
-            );
-
-            pump.run();
-        }
+        return menu;
     }
 
-    private Runnable getRunnable() {
+    private void renderMenu(Menu menu) {
+        menu.render(view);
+        view.showMessage(renderClocksLine());
+        view.showMessage("(Auto-board: " + (state.isAutoShowBoard() ? "ON" : "OFF") + ")");
+    }
+
+    private boolean isActiveSession() {
+        return state.getUser() != null && state.isInGame() && !state.isExitReqeuested();
+    }
+
+    private boolean shouldStopMenu() {
+        return !state.isInGame() || state.getUser() == null || state.isExitReqeuested();
+    }
+
+    private Runnable createPump() {
         final boolean[] requestedFinalStateOnce = {false};
 
         return () -> {
             state.drainUi();
-
             state.tickClocks();
-            if (state.isInGame()) {
-                boolean flagFell = (state.getWhiteTimeMs() <= 0) || (state.getBlackTimeMs() <= 0);
-                if (flagFell && !requestedFinalStateOnce[0]) {
-                    requestedFinalStateOnce[0] = true;
-
-                    String gid = state.getActiveGameId();
-                    if (gid != null && !gid.isBlank()) {
-                        conn.getGameDetails(gid).thenAccept(status -> {
-                            if (status == null || status.isError()) return;
-                            Object gameObj = status.payload == null ? null : status.payload.get("game");
-                            if (gameObj instanceof java.util.Map<?, ?> g) {
-                                Object res = g.get("result");
-                                Object reason = g.get("reason");
-                                if (res != null && !"ONGOING".equalsIgnoreCase(String.valueOf(res))) {
-                                    state.postUi(() -> view.showGameOver(String.valueOf(res), String.valueOf(reason)));
-                                    state.postUi(state::clearGame);
-                                }
-                            }
-                        });
-                    }
-                }
-            }
+            maybeRequestFinalState(requestedFinalStateOnce);
         };
     }
 
+    private void maybeRequestFinalState(boolean[] requestedFinalStateOnce) {
+        if (!state.isInGame()) return;
+        boolean flagFell = (state.getWhiteTimeMs() <= 0) || (state.getBlackTimeMs() <= 0);
+        if (!flagFell || requestedFinalStateOnce[0]) return;
+
+        requestedFinalStateOnce[0] = true;
+        String gid = state.getActiveGameId();
+        if (gid == null || gid.isBlank()) return;
+
+        conn.getGameDetails(gid).thenAccept(status -> {
+            if (status == null || status.isError()) return;
+            Object gameObj = status.payload == null ? null : status.payload.get("game");
+            if (gameObj instanceof java.util.Map<?, ?> g) {
+                Object res = g.get("result");
+                Object reason = g.get("reason");
+                if (res != null && !"ONGOING".equalsIgnoreCase(String.valueOf(res))) {
+                    state.postUi(() -> view.showGameOver(String.valueOf(res), String.valueOf(reason)));
+                    state.postUi(state::clearGame);
+                }
+            }
+        });
+    }
+
     private void offerDraw() {
-        String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) {
-            view.showError("No active game.");
-            return;
-        }
+        String gameId = requireActiveGameId();
+        if (gameId == null) return;
 
         var status = conn.offerDraw(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
@@ -98,11 +104,8 @@ public class InGameScreen implements Screen {
     }
 
     private void resign() {
-        String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) {
-            view.showError("No active game.");
-            return;
-        }
+        String gameId = requireActiveGameId();
+        if (gameId == null) return;
 
         var status = conn.resign(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
@@ -154,11 +157,8 @@ public class InGameScreen implements Screen {
     }
 
     private void move() throws InterruptedException {
-        String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) {
-            view.showError("No active game.");
-            return;
-        }
+        String gameId = requireActiveGameId();
+        if (gameId == null) return;
 
         Runnable pump = () -> {
             state.drainUi();
@@ -212,18 +212,27 @@ public class InGameScreen implements Screen {
     }
 
     private void acceptDraw() {
-        String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); }
+        String gameId = requireActiveGameId();
+        if (gameId == null) return;
         var status = conn.acceptDraw(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Draw accepted.");
     }
 
     private void declineDraw() {
-        String gameId = state.getActiveGameId();
-        if (gameId == null || gameId.isBlank()) { view.showError("No active game."); }
+        String gameId = requireActiveGameId();
+        if (gameId == null) return;
         var status = conn.declineDraw(gameId).join();
         if (status.isError()) view.showError(status.getMessage());
         else view.showMessage("Draw declined.");
+    }
+
+    private String requireActiveGameId() {
+        String gameId = state.getActiveGameId();
+        if (gameId == null || gameId.isBlank()) {
+            view.showError("No active game.");
+            return null;
+        }
+        return gameId;
     }
 }
