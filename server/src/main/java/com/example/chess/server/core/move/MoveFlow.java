@@ -52,6 +52,15 @@ final class MoveFlow {
 
         clocks.onMoveApplied(ctx.getGame());
 
+        String pendingDrawBy = ctx.getGame().getDrawOfferedBy();
+        ClientHandler drawOfferer = null;
+        if (pendingDrawBy != null && !pendingDrawBy.isBlank()) {
+            ctx.getGame().setDrawOfferedBy(null); // any move clears a pending offer
+            if (!pendingDrawBy.equals(by)) {
+                drawOfferer = ctx.handlerOf(pendingDrawBy);
+            }
+        }
+
         boolean wChk = rules.isKingInCheck(board, true);
         boolean bChk = rules.isKingInCheck(board, false);
 
@@ -79,7 +88,7 @@ final class MoveFlow {
         ClientHandler white = ctx.getWhiteHandler();
         ClientHandler black = ctx.getBlackHandler();
         Game game = ctx.getGame();
-        return moveNotification(game, white, black, by, moveStr, wChk, bChk);
+        return moveNotification(game, white, black, by, moveStr, wChk, bChk, drawOfferer);
     }
 
     private static Runnable moveNotification(Game game,
@@ -88,11 +97,13 @@ final class MoveFlow {
                                              String by,
                                              String move,
                                              boolean wChk,
-                                             boolean bChk) {
-        if (white == null && black == null) return null;
+                                             boolean bChk,
+                                             ClientHandler drawOfferer) {
+        if (white == null && black == null && drawOfferer == null) return null;
         return () -> {
             if (white != null) white.pushMove(game, by, move, wChk, bChk);
             if (black != null) black.pushMove(game, by, move, wChk, bChk);
+            if (drawOfferer != null) drawOfferer.pushDrawDeclined(game.getId(), by);
         };
     }
 }

@@ -1398,3 +1398,67 @@ java.net.SocketException: Socket closed
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
 	at java.base/java.lang.Thread.run(Thread.java:840)
+2026-02-10T23:23:54.053Z INFO ChessServer [main] Chess server starting on port: 5000 ...
+2026-02-10T23:23:54.056Z INFO ChessServer [main] Config summary: dataDir=D:\BL\Chess\Chess\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000
+2026-02-10T23:23:54.065Z INFO ChessServer [server-heartbeat] Directory fsync skipped on Windows (not supported): data
+2026-02-10T23:24:33.129Z INFO ChessServer [client-handler] Directory fsync skipped on Windows (not supported): data\games corrId=602f30aa-8fe1-4d98-b37d-831bff9e03aa clientIp=127.0.0.1 user=borko
+2026-02-10T23:24:55.858Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=5 err=0 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,34 errRatePct=0,00
+2026-02-10T23:25:41.518Z WARNING ChessServer [client-handler] Client disconnected / handler error
+java.net.SocketTimeoutException: Read timed out
+	at java.base/sun.nio.ch.NioSocketImpl.timedRead(NioSocketImpl.java:288)
+	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:314)
+	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:355)
+	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:808)
+	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:966)
+	at java.base/sun.nio.cs.StreamDecoder.readBytes(StreamDecoder.java:287)
+	at java.base/sun.nio.cs.StreamDecoder.implRead(StreamDecoder.java:330)
+	at java.base/sun.nio.cs.StreamDecoder.read(StreamDecoder.java:190)
+	at java.base/java.io.InputStreamReader.read(InputStreamReader.java:177)
+	at java.base/java.io.BufferedReader.fill(BufferedReader.java:162)
+	at java.base/java.io.BufferedReader.read(BufferedReader.java:183)
+	at com.example.chess.server.client.LineReader.readLineLimited(LineReader.java:14)
+	at com.example.chess.server.client.ClientHandler.run(ClientHandler.java:73)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+2026-02-10T23:25:41.749Z WARNING ChessServer [client-handler] Failed to send response to client corrId=45992f60-f326-4b31-9e64-37cad24f8eef clientIp=127.0.0.1 user=admin
+java.net.SocketException: Socket closed
+	at java.base/sun.nio.ch.NioSocketImpl.ensureOpenAndConnected(NioSocketImpl.java:165)
+	at java.base/sun.nio.ch.NioSocketImpl.beginWrite(NioSocketImpl.java:371)
+	at java.base/sun.nio.ch.NioSocketImpl.implWrite(NioSocketImpl.java:416)
+	at java.base/sun.nio.ch.NioSocketImpl.write(NioSocketImpl.java:445)
+	at java.base/sun.nio.ch.NioSocketImpl$2.write(NioSocketImpl.java:831)
+	at java.base/java.net.Socket$SocketOutputStream.write(Socket.java:1035)
+	at java.base/sun.nio.cs.StreamEncoder.writeBytes(StreamEncoder.java:234)
+	at java.base/sun.nio.cs.StreamEncoder.implFlushBuffer(StreamEncoder.java:313)
+	at java.base/sun.nio.cs.StreamEncoder.implFlush(StreamEncoder.java:318)
+	at java.base/sun.nio.cs.StreamEncoder.flush(StreamEncoder.java:160)
+	at java.base/java.io.OutputStreamWriter.flush(OutputStreamWriter.java:248)
+	at java.base/java.io.BufferedWriter.flush(BufferedWriter.java:257)
+	at com.example.chess.server.client.ClientHandler.send(ClientHandler.java:133)
+	at com.example.chess.server.client.ClientNotifier.gameOver(ClientNotifier.java:56)
+	at com.example.chess.server.client.ClientHandler.pushGameOver(ClientHandler.java:153)
+	at com.example.chess.server.core.move.GameFinisher.lambda$gameOverNotification$0(GameFinisher.java:78)
+	at com.example.chess.server.core.move.MoveService.resign(MoveService.java:136)
+	at com.example.chess.server.core.GameCoordinator.resign(GameCoordinator.java:53)
+	at com.example.chess.server.client.GameRequestHandler.resign(GameRequestHandler.java:52)
+	at com.example.chess.server.client.ClientRequestRouter.handle(ClientRequestRouter.java:58)
+	at com.example.chess.server.client.ClientHandler.handleLine(ClientHandler.java:123)
+	at com.example.chess.server.client.ClientHandler.run(ClientHandler.java:74)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+2026-02-10T23:25:53.842Z INFO ChessServer [metrics-reporter] Metrics: conn=1 req=9 err=0 rl=0 inv=0 online=0 queue=0 games=0 heapUsedPct=0,47 errRatePct=0,00
+2026-02-10T23:30:15.319Z INFO ChessServer [main] Chess server starting on port: 5000 ...
+2026-02-10T23:30:15.323Z INFO ChessServer [main] Config summary: dataDir=D:\BL\Chess\Chess\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000
+2026-02-10T23:30:15.385Z INFO ChessServer [server-heartbeat] Directory fsync skipped on Windows (not supported): data
+2026-02-10T23:30:45.254Z INFO ChessServer [client-handler] Directory fsync skipped on Windows (not supported): data\games corrId=04e05746-af73-4757-8baa-c26b4db9662e clientIp=127.0.0.1 user=admin
+2026-02-10T23:31:15.200Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=5 err=0 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,35 errRatePct=0,00
+2026-02-10T23:32:15.146Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=6 err=1 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,41 errRatePct=100,00
+2026-02-10T23:32:15.150Z WARNING ChessServer [metrics-reporter] Metric alert: errorRatePct=100,00 threshold=5,00
+2026-02-10T23:33:15.150Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=14 err=2 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,53 errRatePct=12,50
+2026-02-10T23:33:15.151Z WARNING ChessServer [metrics-reporter] Metric alert: errorRatePct=12,50 threshold=5,00
+2026-02-10T23:34:15.157Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=16 err=4 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,55 errRatePct=100,00
+2026-02-10T23:34:15.157Z WARNING ChessServer [metrics-reporter] Metric alert: errorRatePct=100,00 threshold=5,00
+2026-02-10T23:35:15.147Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=18 err=4 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,58 errRatePct=0,00
+2026-02-10T23:36:15.151Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=19 err=4 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,62 errRatePct=0,00

@@ -1,0 +1,126 @@
+{
+  "id": "1fa01e7b-1622-4e78-853c-fa40e78f8cd6",
+  "whiteUser": "admin",
+  "blackUser": "borko",
+  "whiteMove": true,
+  "createdAt": 1770766390885,
+  "lastUpdate": 1770766575752,
+  "timeControlMs": 300000,
+  "incrementMs": 3000,
+  "whiteTimeMs": 200977,
+  "blackTimeMs": 220306,
+  "whiteOfflineSince": 0,
+  "blackOfflineSince": 0,
+  "result": "DRAW",
+  "resultReason": "Draw agreed.",
+  "rated": true,
+  "drawOfferedBy": "borko",
+  "board": {
+    "squares": [
+      [
+        "r",
+        "n",
+        "b",
+        "q",
+        "k",
+        "b",
+        "n",
+        "r"
+      ],
+      [
+        "p",
+        "p",
+        "p",
+        "p",
+        "p",
+        ".",
+        "p",
+        "p"
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "p",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        "P",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        "."
+      ],
+      [
+        "P",
+        "P",
+        "P",
+        "P",
+        ".",
+        "P",
+        "P",
+        "P"
+      ],
+      [
+        "R",
+        "N",
+        "B",
+        "Q",
+        "K",
+        "B",
+        "N",
+        "R"
+      ]
+    ]
+  },
+  "moves": [
+    "e2e4",
+    "f7f6"
+  ],
+  "moveHistory": [
+    {
+      "by": "admin",
+      "move": "e2e4",
+      "atMs": 1770766485138
+    },
+    {
+      "by": "borko",
+      "move": "f7f6",
+      "atMs": 1770766567832
+    }
+  ],
+  "wK": true,
+  "wQ": true,
+  "bK": true,
+  "bQ": true,
+  "enPassantRow": -1,
+  "enPassantCol": -1,
+  "capturedByWhite": [],
+  "capturedByBlack": []
+}

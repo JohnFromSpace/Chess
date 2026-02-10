@@ -16,6 +16,7 @@ import com.example.chess.server.util.ServerMetrics;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
@@ -70,7 +71,13 @@ public class ClientHandler implements Runnable {
 
             String line;
             try {
-                while ((line = LineReader.readLineLimited(in, maxLineChars)) != null) {
+                while (true) {
+                    try {
+                        line = LineReader.readLineLimited(in, maxLineChars);
+                    } catch (SocketTimeoutException e) {
+                        continue; // idle socket, keep connection open
+                    }
+                    if (line == null) break;
                     handleLine(line);
                 }
             } catch (LineReader.LineTooLongException e) {

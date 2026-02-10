@@ -76,6 +76,28 @@ public class MoveServiceFlowTest {
     }
 
     @Test
+    public void moveClearsPendingDrawOffer() throws Exception {
+        InMemoryRepo repo = new InMemoryRepo();
+        try (MoveService service = new MoveService(repo, new ClockService(), g -> {})) {
+            Game game = new Game();
+            game.setId("g1");
+            game.setWhiteMove(false); // black to move
+
+            service.registerGame(game, "white", "black", null, null, true);
+            game.setDrawOfferedBy("white");
+
+            User black = new User();
+            black.setUsername("black");
+
+            service.makeMove("g1", black, "e7e5");
+
+            Game stored = repo.findGameById("g1").orElse(null);
+            assertNotNull(stored);
+            assertNull(stored.getDrawOfferedBy());
+        }
+    }
+
+    @Test
     public void timeoutEndsGame() throws Exception {
         InMemoryRepo repo = new InMemoryRepo();
         try (MoveService service = new MoveService(repo, new ClockService(), g -> {})) {
