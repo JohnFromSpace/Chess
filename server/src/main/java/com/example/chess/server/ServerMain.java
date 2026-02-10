@@ -9,6 +9,7 @@ import com.example.chess.server.fs.ServerStateStore;
 import com.example.chess.server.fs.repository.UserRepository;
 import com.example.chess.server.util.Log;
 import com.example.chess.server.util.ServerMetrics;
+import com.example.chess.server.util.ServerMetricsReporter;
 import com.example.chess.server.security.Tls;
 
 import java.io.IOException;
@@ -52,6 +53,8 @@ public class ServerMain {
             MatchmakingService matchmaking = new MatchmakingService(moves);
             OnlineUserRegistry online = new OnlineUserRegistry();
             ServerMetrics metrics = new ServerMetrics(online::onlineCount, matchmaking::queueSize, moves::activeGameCount);
+            ServerMetricsReporter metricsReporter = new ServerMetricsReporter(metrics);
+            metricsReporter.start();
 
             GameCoordinator coordinator = new GameCoordinator(matchmaking, moves, stats, online);
             AuthService auth = new AuthService(userRepo);
@@ -117,6 +120,11 @@ public class ServerMain {
                    heartBeat.close();
                } catch (RuntimeException e) {
                    Log.warn("Failed to stop heartbeat scheduler.", e);
+               }
+               try {
+                   metricsReporter.close();
+               } catch (RuntimeException e) {
+                   Log.warn("Failed to stop metrics reporter.", e);
                }
                Log.shutdown();
             }, "server.shutdown"));
