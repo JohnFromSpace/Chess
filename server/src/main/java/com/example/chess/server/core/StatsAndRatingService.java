@@ -32,21 +32,24 @@ public final class StatsAndRatingService implements GameEndHook {
             ensureStats(w);
             ensureStats(b);
 
-            w.stats.setPlayed(w.stats.getPlayed() + 1);
-            b.stats.setPlayed(b.stats.getPlayed() + 1);
+            UserModels.Stats ws = w.getStats();
+            UserModels.Stats bs = b.getStats();
+
+            ws.setPlayed(ws.getPlayed() + 1);
+            bs.setPlayed(bs.getPlayed() + 1);
 
             double sw;
             if (g.getResult() == Result.WHITE_WIN) {
-                w.stats.setWon(w.stats.getWon() + 1);
-                b.stats.setLost(b.stats.getLost() + 1);
+                ws.setWon(ws.getWon() + 1);
+                bs.setLost(bs.getLost() + 1);
                 sw = 1.0;
             } else if (g.getResult() == Result.BLACK_WIN) {
-                b.stats.setWon(b.stats.getWon() + 1);
-                w.stats.setLost(w.stats.getLost() + 1);
+                bs.setWon(bs.getWon() + 1);
+                ws.setLost(ws.getLost() + 1);
                 sw = 0.0;
             } else {
-                w.stats.setDrawn(w.stats.getDrawn() + 1);
-                b.stats.setDrawn(b.stats.getDrawn() + 1);
+                ws.setDrawn(ws.getDrawn() + 1);
+                bs.setDrawn(bs.getDrawn() + 1);
                 sw = 0.5;
             }
 
@@ -59,19 +62,25 @@ public final class StatsAndRatingService implements GameEndHook {
             int newRw = (int) Math.round(rw + K * (sw - ew));
             int newRb = (int) Math.round(rb + K * ((1.0 - sw) - eb));
 
-            w.stats.setRating(Math.max(MIN_RATING, newRw));
-            b.stats.setRating(Math.max(MIN_RATING, newRb));
+            ws.setRating(Math.max(MIN_RATING, newRw));
+            bs.setRating(Math.max(MIN_RATING, newRb));
         });
     }
 
     private static void ensureStats(UserModels.User u) {
-        if (u.stats == null) u.stats = new UserModels.Stats();
-        if (u.stats.getRating() <= 0) u.stats.setRating(DEFAULT_RATING);
+        UserModels.Stats st = u.getStats();
+        if (st == null) {
+            st = new UserModels.Stats();
+            u.setStats(st);
+        }
+        if (st.getRating() <= 0) st.setRating(DEFAULT_RATING);
     }
 
     private static int ratingOf(UserModels.User u) {
-        if (u == null || u.stats == null || u.stats.getRating() <= 0) return DEFAULT_RATING;
-        return u.stats.getRating();
+        if (u == null) return DEFAULT_RATING;
+        UserModels.Stats st = u.getStats();
+        if (st == null || st.getRating() <= 0) return DEFAULT_RATING;
+        return st.getRating();
     }
 
     private static double expected(int ra, int rb) {

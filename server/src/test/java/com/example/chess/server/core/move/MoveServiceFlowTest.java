@@ -59,6 +59,30 @@ public class MoveServiceFlowTest {
         }
     }
 
+    @Test
+    public void timeoutEndsGame() throws Exception {
+        InMemoryRepo repo = new InMemoryRepo();
+        try (MoveService service = new MoveService(repo, new ClockService(), g -> {})) {
+            service.recoverOngoingGames(List.of(), System.currentTimeMillis());
+
+            Game game = new Game();
+            game.setId("g1");
+            game.setWhiteTimeMs(1L);
+            game.setBlackTimeMs(5_000L);
+            game.setWhiteMove(true);
+
+            service.registerGame(game, "white", "black", null, null, true);
+
+            long deadline = System.currentTimeMillis() + 2_000L;
+            while (game.getResult() == Result.ONGOING && System.currentTimeMillis() < deadline) {
+                Thread.sleep(20L);
+            }
+
+            assertEquals(Result.BLACK_WIN, game.getResult());
+            assertTrue(game.getWhiteTimeMs() <= 0L);
+        }
+    }
+
     private static final class InMemoryRepo implements GameRepository {
         private final Map<String, Game> games = new ConcurrentHashMap<>();
         private final AtomicInteger saveCount = new AtomicInteger();

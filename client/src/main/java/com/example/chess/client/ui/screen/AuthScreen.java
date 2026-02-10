@@ -60,7 +60,7 @@ public class AuthScreen implements Screen {
         st.setDrawn(intVal(um.get("drawn")));
         st.setLost(intVal(um.get("lost")));
         st.setRating(intVal(um.get("rating")));
-        user.stats = st;
+        user.setStats(st);
 
         state.setUser(user);
         view.showMessage("Logged in as " + user.getUsername());

@@ -80,7 +80,11 @@ public class UserRepository {
     }
 
     private static void ensureStats(User user) {
-        if (user.stats == null) user.stats = new UserModels.Stats();
-        if (user.stats.getRating() <= 0) user.stats.setRating(1200);
+        UserModels.Stats st = user.getStats();
+        if (st == null) {
+            st = new UserModels.Stats();
+            user.setStats(st);
+        }
+        if (st.getRating() <= 0) st.setRating(1200);
     }
 }
