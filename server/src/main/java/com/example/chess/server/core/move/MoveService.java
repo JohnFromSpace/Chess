@@ -54,22 +54,24 @@ public class MoveService implements AutoCloseable {
         if (!ready.get()) return;
 
         for (GameContext ctx : games.snapshot()) {
+            Runnable notify = null;
             try {
                 synchronized (ctx) {
-                    if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING) continue;
-
-                    boolean timeout = clocks.tick(ctx.game);
-                    if (!timeout) continue;
-
-                    if (ctx.game.getWhiteTimeMs() <= 0) {
-                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.BLACK_WIN, "timeout.");
-                    } else if (ctx.game.getBlackTimeMs() <= 0) {
-                        finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "timeout.");
+                    if (ctx.game.getResult() == com.example.chess.common.model.Result.ONGOING) {
+                        boolean timeout = clocks.tick(ctx.game);
+                        if (timeout) {
+                            if (ctx.game.getWhiteTimeMs() <= 0) {
+                                notify = finisher.finishLocked(ctx, com.example.chess.common.model.Result.BLACK_WIN, "timeout.");
+                            } else if (ctx.game.getBlackTimeMs() <= 0) {
+                                notify = finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "timeout.");
+                            }
+                        }
                     }
                 }
             } catch (Exception e) {
                 com.example.chess.server.util.Log.warn("tickAllGames failed ", e);
             }
+            if (notify != null) notify.run();
         }
     }
 
@@ -87,43 +89,51 @@ public class MoveService implements AutoCloseable {
         if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
         GameContext ctx = games.mustCtx(gameId);
 
+        Runnable notify;
         synchronized (ctx) {
-            moves.makeMoveLocked(ctx, u, uci);
+            notify = moves.makeMoveLocked(ctx, u, uci);
         }
+        if (notify != null) notify.run();
     }
 
     public void offerDraw(String gameId, User u) throws IOException {
         if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
         GameContext ctx = games.mustCtx(gameId);
 
+        Runnable notify;
         synchronized (ctx) {
-            draws.offerDrawLocked(ctx, u);
+            notify = draws.offerDrawLocked(ctx, u);
         }
+        if (notify != null) notify.run();
     }
 
     public void respondDraw(String gameId, User u, boolean accept) throws IOException {
         if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
         GameContext ctx = games.mustCtx(gameId);
 
+        Runnable notify;
         synchronized (ctx) {
-            draws.respondDrawLocked(ctx, u, accept);
+            notify = draws.respondDrawLocked(ctx, u, accept);
         }
+        if (notify != null) notify.run();
     }
 
     public void resign(String gameId, User u) throws IOException {
         if (u == null || u.getUsername() == null) throw new IllegalArgumentException("Not logged in.");
         GameContext ctx = games.mustCtx(gameId);
 
+        Runnable notify;
         synchronized (ctx) {
             if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
             if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING)
                 throw new IllegalArgumentException("Game is already finished.");
 
             boolean leaverWhite = ctx.isWhiteUser(u.getUsername());
-            finisher.finishLocked(ctx,
+            notify = finisher.finishLocked(ctx,
                     leaverWhite ? com.example.chess.common.model.Result.BLACK_WIN : com.example.chess.common.model.Result.WHITE_WIN,
                     "Resignation.");
         }
+        if (notify != null) notify.run();
     }
 
     public void onDisconnect(User u) {
