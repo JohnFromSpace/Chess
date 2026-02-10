@@ -55,6 +55,12 @@ final class AuthRequestHandler {
 
         try {
             moves.tryReconnect(user, h);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("missing game context")) {
+                return; // normal for users without an active game
+            }
+            Log.warn("Reconnect attempt failed for user " + user.getUsername(), e);
+            h.sendInfo("Logged in, but reconnect failed: " + e.getMessage());
         } catch (Exception e) {
             // don't fail login because of reconnect problems
             Log.warn("Reconnect attempt failed for user " + user.getUsername(), e);
