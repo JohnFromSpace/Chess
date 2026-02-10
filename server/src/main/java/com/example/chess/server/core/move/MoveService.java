@@ -57,12 +57,12 @@ public class MoveService implements AutoCloseable {
             Runnable notify = null;
             try {
                 synchronized (ctx) {
-                    if (ctx.game.getResult() == com.example.chess.common.model.Result.ONGOING) {
-                        boolean timeout = clocks.tick(ctx.game);
+                    if (ctx.getGame().getResult() == com.example.chess.common.model.Result.ONGOING) {
+                        boolean timeout = clocks.tick(ctx.getGame());
                         if (timeout) {
-                            if (ctx.game.getWhiteTimeMs() <= 0) {
+                            if (ctx.getGame().getWhiteTimeMs() <= 0) {
                                 notify = finisher.finishLocked(ctx, com.example.chess.common.model.Result.BLACK_WIN, "timeout.");
-                            } else if (ctx.game.getBlackTimeMs() <= 0) {
+                            } else if (ctx.getGame().getBlackTimeMs() <= 0) {
                                 notify = finisher.finishLocked(ctx, com.example.chess.common.model.Result.WHITE_WIN, "timeout.");
                             }
                         }
@@ -125,7 +125,7 @@ public class MoveService implements AutoCloseable {
         Runnable notify;
         synchronized (ctx) {
             if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
-            if (ctx.game.getResult() != com.example.chess.common.model.Result.ONGOING)
+            if (ctx.getGame().getResult() != com.example.chess.common.model.Result.ONGOING)
                 throw new IllegalArgumentException("Game is already finished.");
 
             boolean leaverWhite = ctx.isWhiteUser(u.getUsername());

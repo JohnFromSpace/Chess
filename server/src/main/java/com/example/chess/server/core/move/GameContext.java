@@ -4,18 +4,54 @@ import com.example.chess.common.model.Game;
 import com.example.chess.server.client.ClientHandler;
 
 final class GameContext {
-    final Game game;
+    private final Game game;
 
-    volatile ClientHandler white;
-    volatile ClientHandler black;
+    private volatile ClientHandler white;
+    private volatile ClientHandler black;
 
-    volatile long whiteOfflineAtMs = 0L;
-    volatile long blackOfflineAtMs = 0L;
+    private volatile long whiteOfflineAtMs = 0L;
+    private volatile long blackOfflineAtMs = 0L;
 
     GameContext(Game game, ClientHandler white, ClientHandler black) {
         this.game = game;
         this.white = white;
         this.black = black;
+    }
+
+    Game getGame() {
+        return game;
+    }
+
+    ClientHandler getWhiteHandler() {
+        return white;
+    }
+
+    void setWhiteHandler(ClientHandler white) {
+        this.white = white;
+    }
+
+    ClientHandler getBlackHandler() {
+        return black;
+    }
+
+    void setBlackHandler(ClientHandler black) {
+        this.black = black;
+    }
+
+    long getWhiteOfflineAtMs() {
+        return whiteOfflineAtMs;
+    }
+
+    void setWhiteOfflineAtMs(long whiteOfflineAtMs) {
+        this.whiteOfflineAtMs = whiteOfflineAtMs;
+    }
+
+    long getBlackOfflineAtMs() {
+        return blackOfflineAtMs;
+    }
+
+    void setBlackOfflineAtMs(long blackOfflineAtMs) {
+        this.blackOfflineAtMs = blackOfflineAtMs;
     }
 
     boolean isWhiteUser(String username) {

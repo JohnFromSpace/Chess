@@ -28,43 +28,43 @@ final class MoveFlow {
     Runnable makeMoveLocked(GameContext ctx, User u, String uci) throws IOException {
         if (!Thread.holdsLock(ctx)) throw new IllegalStateException("Game context must be locked.");
         if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
-        if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
+        if (ctx.getGame().getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
         String by = u.getUsername();
         boolean moverIsWhite = ctx.isWhiteUser(by);
-        if (ctx.game.isWhiteMove() != moverIsWhite) throw new IllegalArgumentException("Not your turn.");
+        if (ctx.getGame().isWhiteMove() != moverIsWhite) throw new IllegalArgumentException("Not your turn.");
 
         Move move = Move.parse(uci);
 
-        Board board = ctx.game.getBoard();
-        if (!rules.isLegalMove(ctx.game, board, move))
+        Board board = ctx.getGame().getBoard();
+        if (!rules.isLegalMove(ctx.getGame(), board, move))
             throw new IllegalArgumentException("Illegal move.");
 
         Board test = board.copy();
-        rules.applyMove(test, ctx.game, move, false);
+        rules.applyMove(test, ctx.getGame(), move, false);
         if (rules.isKingInCheck(test, moverIsWhite))
             throw new IllegalArgumentException("Illegal move: your king would be in check.");
 
-        rules.applyMove(board, ctx.game, move, true);
+        rules.applyMove(board, ctx.getGame(), move, true);
 
         String moveStr = move.toString();
-        ctx.game.recordMove(by, moveStr);
+        ctx.getGame().recordMove(by, moveStr);
 
-        clocks.onMoveApplied(ctx.game);
+        clocks.onMoveApplied(ctx.getGame());
 
         boolean wChk = rules.isKingInCheck(board, true);
         boolean bChk = rules.isKingInCheck(board, false);
 
-        if (ctx.game.getWhiteTimeMs() <= 0) {
+        if (ctx.getGame().getWhiteTimeMs() <= 0) {
             return finisher.finishLocked(ctx, Result.BLACK_WIN, "Timeout.");
         }
-        if (ctx.game.getBlackTimeMs() <= 0) {
+        if (ctx.getGame().getBlackTimeMs() <= 0) {
             return finisher.finishLocked(ctx, Result.WHITE_WIN, "Timeout.");
         }
 
-        boolean whiteToMove = ctx.game.isWhiteMove();
+        boolean whiteToMove = ctx.getGame().isWhiteMove();
         boolean inCheck = rules.isKingInCheck(board, whiteToMove);
-        boolean anyLegal = rules.hasAnyLegalMove(ctx.game, board, whiteToMove);
+        boolean anyLegal = rules.hasAnyLegalMove(ctx.getGame(), board, whiteToMove);
 
         if (!anyLegal) {
             if (inCheck) {
@@ -74,11 +74,11 @@ final class MoveFlow {
             }
         }
 
-        store.save(ctx.game);
+        store.save(ctx.getGame());
 
-        ClientHandler white = ctx.white;
-        ClientHandler black = ctx.black;
-        Game game = ctx.game;
+        ClientHandler white = ctx.getWhiteHandler();
+        ClientHandler black = ctx.getBlackHandler();
+        Game game = ctx.getGame();
         return moveNotification(game, white, black, by, moveStr, wChk, bChk);
     }
 
