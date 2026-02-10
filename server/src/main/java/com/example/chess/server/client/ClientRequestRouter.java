@@ -135,6 +135,7 @@ final class ClientRequestRouter {
             moves.tryReconnect(user, h);
         } catch (Exception e) {
             // don't fail login because of reconnect problems
+            com.example.chess.server.util.Log.warn("Reconnect attempt failed for user " + user.getUsername(), e);
             h.sendInfo("Logged in, but reconnect failed: " + e.getMessage());
         }
     }
