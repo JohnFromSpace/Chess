@@ -21,9 +21,17 @@ final class DrawFlow {
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
         String by = u.getUsername();
+        String prevOffer = ctx.game.getDrawOfferedBy();
+        long prevUpdate = ctx.game.getLastUpdate();
         ctx.game.setDrawOfferedBy(by);
         ctx.game.setLastUpdate(System.currentTimeMillis());
-        store.save(ctx.game);
+        try {
+            store.save(ctx.game);
+        } catch (IOException e) {
+            ctx.game.setDrawOfferedBy(prevOffer);
+            ctx.game.setLastUpdate(prevUpdate);
+            throw e;
+        }
 
         ClientHandler opp = ctx.opponentHandlerOf(by);
         String gameId = ctx.game.getId();
@@ -41,9 +49,17 @@ final class DrawFlow {
         if (accept) {
             return finisher.finishLocked(ctx, Result.DRAW, "Draw agreed.");
         } else {
+            String prevOffer = ctx.game.getDrawOfferedBy();
+            long prevUpdate = ctx.game.getLastUpdate();
             ctx.game.setDrawOfferedBy(null);
             ctx.game.setLastUpdate(System.currentTimeMillis());
-            store.save(ctx.game);
+            try {
+                store.save(ctx.game);
+            } catch (IOException e) {
+                ctx.game.setDrawOfferedBy(prevOffer);
+                ctx.game.setLastUpdate(prevUpdate);
+                throw e;
+            }
 
             ClientHandler offerer = ctx.handlerOf(by);
             String gameId = ctx.game.getId();

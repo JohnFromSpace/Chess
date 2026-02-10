@@ -70,6 +70,7 @@ final class ReconnectFlow {
 
         boolean isWhite = true;
         boolean pushGameOver = false;
+        boolean persistOk = true;
         Game gameToPush;
 
         ClientHandler opp = null;
@@ -98,6 +99,7 @@ final class ReconnectFlow {
                 try {
                     store.save(ctx.game);
                 } catch (Exception ex) {
+                    persistOk = false;
                     Log.warn("Failed to persist reconnect markers for game " + ctx.game.getId(), ex);
                 }
 
@@ -109,11 +111,14 @@ final class ReconnectFlow {
         }
 
         if(pushGameOver) {
-            newHandler.pushGameOver(gameToPush, true);
+            newHandler.pushGameOver(gameToPush, true, true);
             return;
         }
 
         newHandler.pushGameStarted(ctx.game, isWhite);
+        if (!persistOk) {
+            newHandler.sendInfo("Warning: reconnect state could not be persisted.");
+        }
         if (opp != null) opp.sendInfo(oppMsg);
     }
 

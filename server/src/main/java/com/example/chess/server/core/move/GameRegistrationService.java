@@ -4,6 +4,7 @@ import com.example.chess.common.model.Game;
 import com.example.chess.common.model.Result;
 import com.example.chess.server.client.ClientHandler;
 import com.example.chess.server.core.ClockService;
+import com.example.chess.server.util.Log;
 
 import java.io.IOException;
 
@@ -51,7 +52,15 @@ final class GameRegistrationService {
         games.put(ctx);
 
         clocks.register(game);
-        store.save(game);
+        try {
+            store.save(game);
+        } catch (IOException e) {
+            try { clocks.stop(game.getId()); }
+            catch (Exception ex) { Log.warn("Failed to stop clocks for game " + game.getId(), ex); }
+            try { games.remove(ctx); }
+            catch (Exception ex) { Log.warn("Failed to remove game from active list " + game.getId(), ex); }
+            throw e;
+        }
 
         if (whiteH != null) whiteH.pushGameStarted(game, true);
         if (blackH != null) blackH.pushGameStarted(game, false);

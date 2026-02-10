@@ -102,7 +102,7 @@ public class ReconnectFlowTest {
         }
 
         @Override
-        public void pushGameOver(Game g, boolean statsOk) {
+        public void pushGameOver(Game g, boolean statsOk, boolean persistOk) {
             gameOverCount.incrementAndGet();
         }
 

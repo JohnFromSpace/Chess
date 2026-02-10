@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -20,6 +19,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -196,16 +199,19 @@ public final class DataBackupTool {
         Path tmpDir = dir != null ? dir : Path.of(".");
         Path tmp = Files.createTempFile(tmpDir, target.getFileName().toString(), ".tmp");
         boolean moved = false;
-        try (OutputStream out = Files.newOutputStream(tmp,
+        try (FileChannel out = FileChannel.open(tmp,
                 StandardOpenOption.WRITE,
-                StandardOpenOption.TRUNCATE_EXISTING)) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) >= 0) {
-                if (n == 0) continue;
-                out.write(buf, 0, n);
+                StandardOpenOption.TRUNCATE_EXISTING);
+             ReadableByteChannel src = Channels.newChannel(in)) {
+            ByteBuffer buffer = ByteBuffer.allocate(8192);
+            while (src.read(buffer) != -1) {
+                buffer.flip();
+                while (buffer.hasRemaining()) {
+                    out.write(buffer);
+                }
+                buffer.clear();
             }
-            out.flush();
+            out.force(true);
             try {
                 Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException e) {
@@ -216,6 +222,7 @@ public final class DataBackupTool {
                 }
             }
             moved = true;
+            forceDirectory(tmpDir);
         } finally {
             if (!moved) Files.deleteIfExists(tmp);
         }
@@ -278,5 +285,15 @@ public final class DataBackupTool {
 
     private static void deleteIfExists(Path p) throws IOException {
         if (p != null && Files.exists(p)) Files.delete(p);
+    }
+
+    private static void forceDirectory(Path dir) {
+        if (dir == null) return;
+        try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
+            channel.force(true);
+        } catch (IOException e) {
+            System.err.println("Warning: directory fsync failed for " + dir + ": " + e.getMessage());
+            e.printStackTrace(System.err);
+        }
     }
 }

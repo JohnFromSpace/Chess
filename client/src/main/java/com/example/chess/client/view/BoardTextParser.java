@@ -1,5 +1,7 @@
 package com.example.chess.client.view;
 
+import com.example.chess.client.util.Log;
+
 final class BoardTextParser {
 
     private BoardTextParser() {}
@@ -20,7 +22,10 @@ final class BoardTextParser {
 
             int rank;
             try { rank = Integer.parseInt(t[0]); }
-            catch (Exception e) { continue; }
+            catch (Exception e) {
+                Log.warn("Failed to parse board rank: " + t[0], e);
+                continue;
+            }
 
             if (rank < 1 || rank > 8) continue;
 

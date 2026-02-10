@@ -60,7 +60,8 @@ public final class Log {
             try {
                 handler.flush();
                 handler.close();
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                L.log(Level.WARNING, "Failed to close log handler.", e);
             }
         }
     }

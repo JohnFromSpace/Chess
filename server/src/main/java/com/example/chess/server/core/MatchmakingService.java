@@ -64,7 +64,15 @@ public class MatchmakingService {
         g.setBlackTimeMs(g.getTimeControlMs());
         g.setWhiteMove(true);
 
-        moves.registerGame(g, whiteUser, blackUser, h1, h2, h1IsWhite);
+        try {
+            moves.registerGame(g, whiteUser, blackUser, h1, h2, h1IsWhite);
+        } catch (IOException e) {
+            queue.put(u1, h1);
+            queue.put(u2.getUsername(), h2);
+            if (h1 != null) h1.sendInfo("Match failed; you're back in the queue.");
+            if (h2 != null) h2.sendInfo("Match failed; you're back in the queue.");
+            throw e;
+        }
     }
 
     public void onDisconnect(User u) {

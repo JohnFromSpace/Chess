@@ -163,8 +163,8 @@ public class ClientHandler implements Runnable {
         notifier.move(this, g, by, move, wChk, bChk);
     }
 
-    public void pushGameOver(Game g, boolean statsOk) {
-        notifier.gameOver(this, g, statsOk);
+    public void pushGameOver(Game g, boolean statsOk, boolean persistOk) {
+        notifier.gameOver(this, g, statsOk, persistOk);
     }
 
     public void pushDrawOffered(String gameId, String by) {

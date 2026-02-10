@@ -365,8 +365,8 @@ public class FileStores implements GameRepository {
         if (dir == null) return;
         try (FileChannel channel = FileChannel.open(dir, StandardOpenOption.READ)) {
             channel.force(true);
-        } catch (IOException ignored) {
-            // Directory fsync is best-effort and not supported on all platforms.
+        } catch (IOException e) {
+            Log.warn("Directory fsync failed for: " + dir, e);
         }
     }
 }

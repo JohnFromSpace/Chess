@@ -42,12 +42,13 @@ public final class ClientNotifier {
         h.send(ResponseMessage.push("move", p));
     }
 
-    public void gameOver(ClientHandler h, Game g, boolean statsOk) {
+    public void gameOver(ClientHandler h, Game g, boolean statsOk, boolean persistOk) {
         Map<String, Object> p = new HashMap<>();
         p.put("gameId", g.getId());
         p.put("result", g.getResult().name());
         p.put("reason", g.getResultReason() == null ? "" : g.getResultReason());
         p.put("statsOk", statsOk);
+        p.put("persistOk", persistOk);
         p.put("rated", g.isRated());
         p.put("board", g.getBoard().toUnicodePrettyString());
         p.put("capturedByWhite", g.getCapturedByWhite());

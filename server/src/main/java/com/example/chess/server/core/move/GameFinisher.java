@@ -22,18 +22,24 @@ final class GameFinisher {
         this.endHook = endHook;
     }
 
-    Runnable finishLocked(GameContext ctx, Result result, String reason) throws IOException {
+    Runnable finishLocked(GameContext ctx, Result result, String reason) {
         boolean rated = (result != Result.ABORTED);
         return finishLocked(ctx, result, reason, rated);
     }
 
-    Runnable finishLocked(GameContext ctx, Result result, String reason, boolean rated) throws IOException {
+    Runnable finishLocked(GameContext ctx, Result result, String reason, boolean rated) {
         ctx.game.setResult(result);
         ctx.game.setResultReason(reason == null ? "" : reason);
         ctx.game.setRated(rated);
         ctx.game.setLastUpdate(System.currentTimeMillis());
 
-        store.save(ctx.game);
+        boolean persistOk = true;
+        try {
+            store.save(ctx.game);
+        } catch (IOException e) {
+            persistOk = false;
+            Log.warn("Failed to persist finished game " + ctx.game.getId(), e);
+        }
 
         boolean statsOk = true;
         try {
@@ -49,7 +55,7 @@ final class GameFinisher {
 
         cleanup(ctx);
 
-        return gameOverNotification(game, white, black, statsOk);
+        return gameOverNotification(game, white, black, statsOk, persistOk);
     }
 
     private void cleanup(GameContext ctx) {
@@ -60,20 +66,37 @@ final class GameFinisher {
         catch (Exception e) { Log.warn("Failed to remove game from active list " + ctx.game.getId(), e); }
     }
 
-    private static Runnable gameOverNotification(Game game, ClientHandler white, ClientHandler black, boolean statsOk) {
+    private static Runnable gameOverNotification(Game game,
+                                                 ClientHandler white,
+                                                 ClientHandler black,
+                                                 boolean statsOk,
+                                                 boolean persistOk) {
         if (white == null && black == null) return null;
 
         return () -> {
             try {
-                if (white != null) white.pushGameOver(game, statsOk);
+                if (white != null) white.pushGameOver(game, statsOk, persistOk);
             } catch (Exception e) {
                 Log.warn("Failed to push gameOver to WHITE handler for game " + game.getId(), e);
             }
 
             try {
-                if (black != null) black.pushGameOver(game, statsOk);
+                if (black != null) black.pushGameOver(game, statsOk, persistOk);
             } catch (Exception e) {
                 Log.warn("Failed to push gameOver to BLACK handler for game " + game.getId(), e);
+            }
+
+            if (!persistOk) {
+                try {
+                    if (white != null) white.sendInfo("Warning: game result could not be persisted.");
+                } catch (Exception e) {
+                    Log.warn("Failed to warn WHITE about persistence for game " + game.getId(), e);
+                }
+                try {
+                    if (black != null) black.sendInfo("Warning: game result could not be persisted.");
+                } catch (Exception e) {
+                    Log.warn("Failed to warn BLACK about persistence for game " + game.getId(), e);
+                }
             }
         };
     }
