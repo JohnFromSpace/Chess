@@ -1,6 +1,8 @@
 package com.example.chess.server.core.move;
 
+import com.example.chess.common.model.Game;
 import com.example.chess.common.model.Result;
+import com.example.chess.server.client.ClientHandler;
 import com.example.chess.server.core.ClockService;
 import com.example.chess.server.util.Log;
 
@@ -20,12 +22,12 @@ final class GameFinisher {
         this.endHook = endHook;
     }
 
-    void finishLocked(GameContext ctx, Result result, String reason) throws IOException {
+    Runnable finishLocked(GameContext ctx, Result result, String reason) throws IOException {
         boolean rated = (result != Result.ABORTED);
-        finishLocked(ctx, result, reason, rated);
+        return finishLocked(ctx, result, reason, rated);
     }
 
-    void finishLocked(GameContext ctx, Result result, String reason, boolean rated) throws IOException {
+    Runnable finishLocked(GameContext ctx, Result result, String reason, boolean rated) throws IOException {
         ctx.game.setResult(result);
         ctx.game.setResultReason(reason == null ? "" : reason);
         ctx.game.setRated(rated);
@@ -41,19 +43,13 @@ final class GameFinisher {
             Log.warn("Stats/ELO update failed for game " + ctx.game.getId(), e);
         }
 
-        try {
-            if (ctx.white != null) ctx.white.pushGameOver(ctx.game, statsOk);
-        } catch (Exception e) {
-            Log.warn("Failed to push gameOver to WHITE handler for game " + ctx.game.getId(), e);
-        }
-
-        try {
-            if (ctx.black != null) ctx.black.pushGameOver(ctx.game, statsOk);
-        } catch (Exception e) {
-            Log.warn("Failed to push gameOver to BLACK handler for game " + ctx.game.getId(), e);
-        }
+        ClientHandler white = ctx.white;
+        ClientHandler black = ctx.black;
+        Game game = ctx.game;
 
         cleanup(ctx);
+
+        return gameOverNotification(game, white, black, statsOk);
     }
 
     private void cleanup(GameContext ctx) {
@@ -62,5 +58,23 @@ final class GameFinisher {
 
         try { games.remove(ctx); }
         catch (Exception e) { Log.warn("Failed to remove game from active list " + ctx.game.getId(), e); }
+    }
+
+    private static Runnable gameOverNotification(Game game, ClientHandler white, ClientHandler black, boolean statsOk) {
+        if (white == null && black == null) return null;
+
+        return () -> {
+            try {
+                if (white != null) white.pushGameOver(game, statsOk);
+            } catch (Exception e) {
+                Log.warn("Failed to push gameOver to WHITE handler for game " + game.getId(), e);
+            }
+
+            try {
+                if (black != null) black.pushGameOver(game, statsOk);
+            } catch (Exception e) {
+                Log.warn("Failed to push gameOver to BLACK handler for game " + game.getId(), e);
+            }
+        };
     }
 }

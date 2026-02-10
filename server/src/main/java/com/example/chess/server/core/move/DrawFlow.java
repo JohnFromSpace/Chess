@@ -16,19 +16,21 @@ final class DrawFlow {
         this.finisher = finisher;
     }
 
-    void offerDrawLocked(GameContext ctx, User u) throws IOException {
+    Runnable offerDrawLocked(GameContext ctx, User u) throws IOException {
         if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
-        ctx.game.setDrawOfferedBy(u.getUsername());
+        String by = u.getUsername();
+        ctx.game.setDrawOfferedBy(by);
         ctx.game.setLastUpdate(System.currentTimeMillis());
         store.save(ctx.game);
 
-        ClientHandler opp = ctx.opponentHandlerOf(u.getUsername());
-        if (opp != null) opp.pushDrawOffered(ctx.game.getId(), u.getUsername());
+        ClientHandler opp = ctx.opponentHandlerOf(by);
+        String gameId = ctx.game.getId();
+        return drawOfferNotification(opp, gameId, by);
     }
 
-    void respondDrawLocked(GameContext ctx, User u, boolean accept) throws IOException {
+    Runnable respondDrawLocked(GameContext ctx, User u, boolean accept) throws IOException {
         if (!ctx.isParticipant(u.getUsername())) throw new IllegalArgumentException("You are not a participant in this game.");
         if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is already finished.");
 
@@ -37,14 +39,26 @@ final class DrawFlow {
         if (by.equals(u.getUsername())) throw new IllegalArgumentException("You cannot respond to your own draw offer.");
 
         if (accept) {
-            finisher.finishLocked(ctx, Result.DRAW, "Draw agreed.");
+            return finisher.finishLocked(ctx, Result.DRAW, "Draw agreed.");
         } else {
             ctx.game.setDrawOfferedBy(null);
             ctx.game.setLastUpdate(System.currentTimeMillis());
             store.save(ctx.game);
 
             ClientHandler offerer = ctx.handlerOf(by);
-            if (offerer != null) offerer.pushDrawDeclined(ctx.game.getId(), u.getUsername());
+            String gameId = ctx.game.getId();
+            String responder = u.getUsername();
+            return drawDeclineNotification(offerer, gameId, responder);
         }
+    }
+
+    private static Runnable drawOfferNotification(ClientHandler opp, String gameId, String by) {
+        if (opp == null) return null;
+        return () -> opp.pushDrawOffered(gameId, by);
+    }
+
+    private static Runnable drawDeclineNotification(ClientHandler offerer, String gameId, String responder) {
+        if (offerer == null) return null;
+        return () -> offerer.pushDrawDeclined(gameId, responder);
     }
 }
