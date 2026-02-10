@@ -126,7 +126,7 @@ public final class LoadSoakTool {
 
             if (w.game.getResult() == Result.ONGOING && reconnectEvery > 0 && moves % reconnectEvery == 0) {
                 service.onDisconnect(mover);
-                service.tryReconnect(mover, new ClientHandler(null, null, service, null, null));
+                service.tryReconnect(mover, new ClientHandler(null, null, null, service, null));
             }
         }
 
