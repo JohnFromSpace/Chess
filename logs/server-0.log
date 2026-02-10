@@ -1236,3 +1236,6 @@ java.nio.file.AccessDeniedException: data
 2026-02-10T22:48:26.101Z INFO ChessServer [main] Config summary: dataDir=D:\BL\Chess\Chess\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000
 2026-02-10T22:48:26.120Z WARNING ChessServer [server-heartbeat] Directory fsync skipped on Windows (not supported): data
 2026-02-10T22:49:26.051Z INFO ChessServer [metrics-reporter] Metrics: conn=0 req=0 err=0 rl=0 inv=0 online=0 queue=0 games=0 heapUsedPct=0,43 errRatePct=0,00
+2026-02-10T22:58:07.444Z INFO ChessServer [main] Chess server starting on port: 5000 ...
+2026-02-10T22:58:07.447Z INFO ChessServer [main] Config summary: dataDir=D:\BL\Chess\Chess\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000
+2026-02-10T22:58:07.454Z INFO ChessServer [server-heartbeat] Directory fsync skipped on Windows (not supported): data

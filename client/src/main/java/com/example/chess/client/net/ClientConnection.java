@@ -36,7 +36,7 @@ public class ClientConnection implements AutoCloseable {
     }
 
     public void start() throws Exception {
-        boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "true"));
+        boolean tls = Boolean.parseBoolean(System.getProperty("chess.tls.enabled", "false"));
         socket = tls ? Tls.createClientSocket(host, port) : new Socket(host, port);
 
         socket.setTcpNoDelay(true);
