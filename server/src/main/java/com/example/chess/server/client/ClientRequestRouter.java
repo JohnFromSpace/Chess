@@ -324,7 +324,11 @@ final class ClientRequestRouter {
         u.put("username", user.getUsername());
         u.put("name", user.getName());
 
-        UserModels.Stats st = user.stats == null ? new UserModels.Stats() : user.stats;
+        UserModels.Stats st = user.getStats();
+        if (st == null) {
+            st = new UserModels.Stats();
+            user.setStats(st);
+        }
 
         int derivedLost = st.getPlayed() - st.getWon() - st.getDrawn();
         if(derivedLost >= 0 && derivedLost != st.getLost()) {

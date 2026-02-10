@@ -34,7 +34,7 @@ public class UserModels {
         private String name;
         private String username;
         private String passHash;  // PBKDF2 hash stored on server
-        public Stats stats = new Stats();
+        private Stats stats = new Stats();
 
         public void setUsername(String username) {this.username = username;}
         public void setPassHash(String passHash) {this.passHash = passHash;}
@@ -44,6 +44,9 @@ public class UserModels {
 
         public String getUsername() {return username;}
         public String getPassHash() {return passHash;}
+
+        public Stats getStats() {return stats;}
+        public void setStats(Stats stats) {this.stats = stats;}
     }
 }
 

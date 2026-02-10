@@ -23,11 +23,12 @@ public class ProfileScreen implements Screen {
         UserModels.User u = state.getUser();
         if (u == null) { view.showError("Not logged in."); return; }
 
-        int played = (u.stats != null) ? u.stats.getPlayed() : 0;
-        int won    = (u.stats != null) ? u.stats.getWon() : 0;
-        int lost   = (u.stats != null) ? u.stats.getLost() : 0;
-        int drawn  = (u.stats != null) ? u.stats.getDrawn() : 0;
-        int rating = (u.stats != null && u.stats.getRating() > 0) ? u.stats.getRating() : 1200;
+        UserModels.Stats st = u.getStats();
+        int played = (st != null) ? st.getPlayed() : 0;
+        int won    = (st != null) ? st.getWon() : 0;
+        int lost   = (st != null) ? st.getLost() : 0;
+        int drawn  = (st != null) ? st.getDrawn() : 0;
+        int rating = (st != null && st.getRating() > 0) ? st.getRating() : 1200;
 
         view.showMessage("User: " + u.getUsername() + (u.getUsername() != null ? (" (" + u.getUsername() + ")") : ""));
         view.showMessage("ELO:  " + rating);

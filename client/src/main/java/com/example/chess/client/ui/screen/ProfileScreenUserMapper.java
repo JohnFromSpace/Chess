@@ -16,12 +16,16 @@ public final class ProfileScreenUserMapper {
         u.setUsername(str(um.get("username")));
         u.setName(str(um.get("name")));
 
-        if (u.stats == null) u.stats = new UserModels.Stats();
-        u.stats.setPlayed(intVal(um.get("played")));
-        u.stats.setWon(intVal(um.get("won")));
-        u.stats.setLost(intVal(um.get("lost")));
-        u.stats.setDrawn(intVal(um.get("drawn")));
-        u.stats.setRating(intValOr(um.get("rating")));
+        UserModels.Stats st = u.getStats();
+        if (st == null) {
+            st = new UserModels.Stats();
+            u.setStats(st);
+        }
+        st.setPlayed(intVal(um.get("played")));
+        st.setWon(intVal(um.get("won")));
+        st.setLost(intVal(um.get("lost")));
+        st.setDrawn(intVal(um.get("drawn")));
+        st.setRating(intValOr(um.get("rating")));
 
         return u;
     }
