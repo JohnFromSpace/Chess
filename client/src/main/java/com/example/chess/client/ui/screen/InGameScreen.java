@@ -82,7 +82,7 @@ public class InGameScreen implements Screen {
 
         conn.getGameDetails(gid).thenAccept(status -> {
             if (status == null || status.isError()) return;
-            Object gameObj = status.payload == null ? null : status.payload.get("game");
+            Object gameObj = status.getPayload() == null ? null : status.getPayload().get("game");
             if (gameObj instanceof java.util.Map<?, ?> g) {
                 Object res = g.get("result");
                 Object reason = g.get("reason");

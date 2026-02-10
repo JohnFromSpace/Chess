@@ -39,7 +39,7 @@ public class ProfileScreen implements Screen {
         var status = conn.getStats().join();
         if (status.isError()) { view.showError(status.getMessage()); return; }
 
-        UserModels.User updated = ProfileScreenUserMapper.userFromPayload(status.payload);
+        UserModels.User updated = ProfileScreenUserMapper.userFromPayload(status.getPayload());
         state.setUser(updated);
 
         renderProfile();

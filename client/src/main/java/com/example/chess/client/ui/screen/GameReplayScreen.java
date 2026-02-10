@@ -28,7 +28,7 @@ public final class GameReplayScreen implements Screen {
             return;
         }
 
-        Object gameObj = status.payload == null ? null : status.payload.get("game");
+        Object gameObj = status.getPayload() == null ? null : status.getPayload().get("game");
         if (!(gameObj instanceof Map<?, ?> g)) {
             view.showError("Bad server payload: missing game.");
             return;

@@ -76,10 +76,37 @@ public class ReconnectFlowTest {
         assertEquals(1, newHandler.startedCount.get());
         assertEquals(0, newHandler.gameOverCount.get());
         assertEquals(0L, game.getWhiteOfflineSince());
-        assertSame(newHandler, ctx.white);
+        assertSame(newHandler, ctx.getWhiteHandler());
 
         assertFalse("game should not finish", finished.await(400, TimeUnit.MILLISECONDS));
         assertEquals(Result.ONGOING, game.getResult());
+    }
+
+    @Test
+    public void reconnectAfterGameFinishedPushesGameOver() {
+        ActiveGames games = new ActiveGames();
+        InMemoryStore store = new InMemoryStore();
+
+        GameFinisher finisher = new GameFinisher(store, new ClockService(), games, null);
+        ReconnectFlow flow = new ReconnectFlow(games, new ReconnectService(200L), finisher, store);
+
+        Game game = new Game();
+        game.setId("g1");
+        game.setWhiteUser("white");
+        game.setBlackUser("black");
+        game.setResult(Result.WHITE_WIN);
+
+        GameContext ctx = new GameContext(game, null, null);
+        games.put(ctx);
+
+        User u = new User();
+        u.setUsername("white");
+
+        TestClientHandler newHandler = new TestClientHandler();
+        flow.tryReconnect(u, newHandler);
+
+        assertEquals(0, newHandler.startedCount.get());
+        assertEquals(1, newHandler.gameOverCount.get());
     }
 
     private static final class InMemoryStore implements GameStore {

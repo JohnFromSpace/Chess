@@ -55,7 +55,7 @@ public final class GameHistoryScreen implements Screen {
             view.showError(status.getMessage());
         }
 
-        Object gObj = status.payload == null ? null : status.payload.get("games");
+        Object gObj = status.getPayload() == null ? null : status.getPayload().get("games");
         if (!(gObj instanceof List<?> gl) || gl.isEmpty()) {
             view.showMessage("No games found.");
             return;

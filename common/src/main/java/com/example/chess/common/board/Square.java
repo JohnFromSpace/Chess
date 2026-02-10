@@ -3,12 +3,20 @@ package com.example.chess.common.board;
 import java.util.Objects;
 
 public final class Square {
-    public final int row;
-    public final int col;
+    private final int row;
+    private final int col;
 
     public Square(int row, int col) {
         this.row = row;
         this.col = col;
+    }
+
+    public int getRow() {
+        return row;
+    }
+
+    public int getCol() {
+        return col;
     }
     
     @Override

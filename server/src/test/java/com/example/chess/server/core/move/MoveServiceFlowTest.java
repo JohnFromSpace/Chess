@@ -59,6 +59,22 @@ public class MoveServiceFlowTest {
         }
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void resignRejectsNonParticipant() throws Exception {
+        InMemoryRepo repo = new InMemoryRepo();
+        try (MoveService service = new MoveService(repo, new ClockService(), g -> {})) {
+            Game game = new Game();
+            game.setId("g1");
+
+            service.registerGame(game, "white", "black", null, null, true);
+
+            User intruder = new User();
+            intruder.setUsername("intruder");
+
+            service.resign("g1", intruder);
+        }
+    }
+
     @Test
     public void timeoutEndsGame() throws Exception {
         InMemoryRepo repo = new InMemoryRepo();

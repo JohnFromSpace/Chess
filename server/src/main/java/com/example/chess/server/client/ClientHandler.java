@@ -107,16 +107,16 @@ public class ClientHandler implements Runnable {
         }
 
         String username = currentUser != null ? currentUser.getUsername() : null;
-        try (Log.ContextScope ignored = Log.withContext(req.corrId, clientIp, username)) {
-            if (metrics != null) metrics.onRequest(req.type);
+        try (Log.ContextScope ignored = Log.withContext(req.getCorrId(), clientIp, username)) {
+            if (metrics != null) metrics.onRequest(req.getType());
             if (inboundLimiter != null && !inboundLimiter.tryAcquire()) {
                 if (metrics != null) metrics.onRateLimited();
-                send(ResponseMessage.error(req.corrId, "rate_limited"));
+                send(ResponseMessage.error(req.getCorrId(), "rate_limited"));
                 return;
             }
             if (inboundIpLimiter != null && !inboundIpLimiter.tryAcquire()) {
                 if (metrics != null) metrics.onRateLimited();
-                send(ResponseMessage.error(req.corrId, "rate_limited"));
+                send(ResponseMessage.error(req.getCorrId(), "rate_limited"));
                 return;
             }
 

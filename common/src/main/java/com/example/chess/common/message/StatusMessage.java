@@ -3,11 +3,11 @@ package com.example.chess.common.message;
 import java.util.Map;
 
 public final class StatusMessage {
-    public final String type;
-    public final String corrId;
-    public final boolean error;
-    public final String message;
-    public final Map<String, Object> payload;
+    private final String type;
+    private final String corrId;
+    private final boolean error;
+    private final String message;
+    private final Map<String, Object> payload;
 
     private StatusMessage(String type, String corrId, boolean error, String message, Map<String, Object> payload) {
         this.type = type;
@@ -18,9 +18,21 @@ public final class StatusMessage {
     }
 
     public static StatusMessage from(ResponseMessage r) {
-        return new StatusMessage(r.type, r.corrId, r.error, r.message, r.payload);
+        return new StatusMessage(r.getType(), r.getCorrId(), r.isError(), r.getMessage(), r.getPayload());
     }
 
     public boolean isError() { return error; }
     public String getMessage() { return message; }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getCorrId() {
+        return corrId;
+    }
+
+    public Map<String, Object> getPayload() {
+        return payload;
+    }
 }

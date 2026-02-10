@@ -79,7 +79,7 @@ public class GameUIOrchestrator {
 
         conn.getStats().thenAccept(status -> {
            if (status != null && !status.isError()) {
-               var updated = ProfileScreenUserMapper.userFromPayload(status.payload);
+               var updated = ProfileScreenUserMapper.userFromPayload(status.getPayload());
                state.postUi(() -> state.setUser(updated));
            }
         });

@@ -44,7 +44,7 @@ public class AuthScreen implements Screen {
             return;
         }
 
-        Object userObj = status.payload != null ? status.payload.get("user") : null;
+        Object userObj = status.getPayload() != null ? status.getPayload().get("user") : null;
         if (!(userObj instanceof Map<?, ?> um)) {
             view.showError("Login OK, but missing user payload.");
             return;

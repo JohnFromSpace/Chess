@@ -82,7 +82,11 @@ public final class LoadSoakTool {
                         long count = runMoves(service, w, cfg.moves, endAtMs, cfg.reconnectEvery);
                         movesDone.addAndGet(count);
                     } catch (Exception e) {
-                        errors.incrementAndGet();
+                        long errCount = errors.incrementAndGet();
+                        if (errCount <= 3) {
+                            System.err.println("Load worker failed: " + e.getMessage());
+                            e.printStackTrace(System.err);
+                        }
                     } finally {
                         done.countDown();
                     }

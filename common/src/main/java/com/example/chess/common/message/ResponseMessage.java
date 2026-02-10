@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ResponseMessage extends Message {
-    public final boolean error;
-    public final String message;
-    public final Map<String, Object> payload;
+    private final boolean error;
+    private final String message;
+    private final Map<String, Object> payload;
 
     public ResponseMessage(String type, String corrId,
                            boolean error, String message,
@@ -31,5 +31,17 @@ public class ResponseMessage extends Message {
 
     public static ResponseMessage error(String corrId, String message) {
         return new ResponseMessage("error", corrId, true, message, new HashMap<>());
+    }
+
+    public boolean isError() {
+        return error;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public Map<String, Object> getPayload() {
+        return payload;
     }
 }

@@ -75,8 +75,8 @@ final class RequestValidator {
     }
 
     private static String reqStr(RequestMessage m, String key) {
-        if (m == null || m.payload == null) throw new IllegalArgumentException("Missing payload.");
-        Object v = m.payload.get(key);
+        if (m == null || m.getPayload() == null) throw new IllegalArgumentException("Missing payload.");
+        Object v = m.getPayload().get(key);
         if (v == null) throw new IllegalArgumentException("Missing field: " + key);
         if (!(v instanceof String)) throw new IllegalArgumentException("Expected string field: " + key);
         String s = ((String) v).trim();

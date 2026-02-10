@@ -75,8 +75,8 @@ final class GameRegistrationService {
         GameContext ctx = new GameContext(game, null, null);
 
         // Rehydrate offline markers from persisted fields
-        ctx.whiteOfflineAtMs = game.getWhiteOfflineSince();
-        ctx.blackOfflineAtMs = game.getBlackOfflineSince();
+        ctx.setWhiteOfflineAtMs(game.getWhiteOfflineSince());
+        ctx.setBlackOfflineAtMs(game.getBlackOfflineSince());
 
         games.put(ctx);
         clocks.register(game);
