@@ -147,6 +147,7 @@ final class ReconnectFlow {
         String k = key(ctx.game.getId(), username);
 
         reconnects.scheduleDrop(k, () -> {
+            Runnable notify = null;
             try {
                 synchronized (ctx) {
                     if (ctx.game.getResult() != Result.ONGOING) return;
@@ -158,24 +159,24 @@ final class ReconnectFlow {
                     boolean bothOffline = (ctx.whiteOfflineAtMs != 0L) && (ctx.blackOfflineAtMs != 0L);
 
                     if (noMoves || bothOffline) {
-                        finisher.finishLocked(
+                        notify = finisher.finishLocked(
                                 ctx,
                                 Result.ABORTED,
                                 bothOffline ? "Aborted (both disconnected)." : "Aborted (no moves).",
                                 false
                         );
-                        return;
+                    } else {
+                        notify = finisher.finishLocked(
+                                ctx,
+                                isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
+                                "Disconnected for more than 60 seconds."
+                        );
                     }
-
-                    finisher.finishLocked(
-                            ctx,
-                            isWhite ? Result.BLACK_WIN : Result.WHITE_WIN,
-                            "Disconnected for more than 60 seconds."
-                    );
                 }
             } catch (Exception e) {
                 Log.warn("Reconnect drop task failed for game " + ctx.game.getId(), e);
             }
+            if (notify != null) notify.run();
         }, delayMs);
     }
 
