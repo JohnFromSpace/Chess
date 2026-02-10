@@ -1,5 +1,7 @@
 package com.example.chess.server.tools;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -58,7 +60,7 @@ public final class DataBackupTool {
 
         switch (cmd) {
             case "backup" -> {
-                Path dataDir = params.size() > 0 ? Path.of(params.get(0)) : Path.of(DEFAULT_DATA_DIR);
+                Path dataDir = !params.isEmpty() ? Path.of(params.get(0)) : Path.of(DEFAULT_DATA_DIR);
                 Path outZip = params.size() > 1 ? Path.of(params.get(1)) : defaultBackupPath();
                 backup(dataDir, outZip, includeCorrupt);
             }
@@ -81,7 +83,7 @@ public final class DataBackupTool {
         System.out.println("Usage:");
         System.out.println("  backup [dataDir] [outZip] [--include-corrupt]");
         System.out.println("  restore <backup.zip> [dataDir] [--force] [--purge] [--include-corrupt]");
-        System.out.println("");
+        System.out.println();
         System.out.println("Examples:");
         System.out.println("  backup data backups/chess-data.zip");
         System.out.println("  restore backups/chess-data.zip data --force");
@@ -106,12 +108,12 @@ public final class DataBackupTool {
             zos.setLevel(Deflater.BEST_COMPRESSION);
             Files.walkFileTree(dataDir, EnumSet.noneOf(FileVisitOption.class), Integer.MAX_VALUE, new FileVisitor<>() {
                 @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                public @NotNull FileVisitResult preVisitDirectory(Path dir, @NotNull BasicFileAttributes attrs) {
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                public @NotNull FileVisitResult visitFile(Path file, @NotNull BasicFileAttributes attrs) throws IOException {
                     if (!attrs.isRegularFile()) return FileVisitResult.CONTINUE;
                     Path rel = dataDir.relativize(file);
                     if (!shouldInclude(rel, includeCorrupt)) return FileVisitResult.CONTINUE;
@@ -126,12 +128,12 @@ public final class DataBackupTool {
                 }
 
                 @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                public @NotNull FileVisitResult visitFileFailed(Path file, @NotNull IOException exc) throws IOException {
                     throw exc;
                 }
 
                 @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                public @NotNull FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
                     if (exc != null) throw exc;
                     return FileVisitResult.CONTINUE;
                 }
