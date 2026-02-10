@@ -18,10 +18,12 @@ public class ConsoleView {
     }
 
     public void showMessage(String msg) {
+        prompter.noteOutput();
         out.println(msg);
     }
 
     public void showError(String msg) {
+        prompter.noteOutput();
         out.println("ERROR: " + msg);
     }
 
@@ -33,6 +35,7 @@ public class ConsoleView {
     }
 
     public void clearScreen() {
+        prompter.noteOutput();
         out.print("\u001B[2J\u001B[H");
         out.flush();
     }
@@ -52,9 +55,11 @@ public class ConsoleView {
 
     public void showBoard(String boardText, boolean isWhitePerspective) {
         if (boardText == null || boardText.isBlank()) {
+            prompter.noteOutput();
             out.println("(no board)");
             return;
         }
+        prompter.noteOutput();
         out.println(boardRenderer.render(boardText, isWhitePerspective));
     }
 
@@ -63,6 +68,7 @@ public class ConsoleView {
                                       List<String> capturedByOpp,
                                       boolean isWhitePerspective) {
 
+        prompter.noteOutput();
         String renderedBoard = boardRenderer.render(boardText, isWhitePerspective).stripTrailing();
         String[] b = renderedBoard.split("\n", -1);
 

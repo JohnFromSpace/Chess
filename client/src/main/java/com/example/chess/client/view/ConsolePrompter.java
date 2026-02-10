@@ -7,15 +7,21 @@ final class ConsolePrompter {
 
     private final ConsoleInput in;
     private final PrintStream out;
+    private volatile boolean outputSincePrompt = false;
 
     ConsolePrompter(ConsoleInput in, PrintStream out) {
         this.in = in;
         this.out = out;
     }
 
+    void noteOutput() {
+        outputSincePrompt = true;
+    }
+
     String askLineResponsive(String prompt, long pollEveryMs, Runnable pump, BooleanSupplier shouldAbort) throws InterruptedException {
         out.print(prompt);
         out.flush();
+        outputSincePrompt = false;
 
         while (true) {
             if (shouldAbort != null && shouldAbort.getAsBoolean()) {
@@ -27,6 +33,12 @@ final class ConsolePrompter {
             if (line != null) return line;
 
             if (pump != null) pump.run();
+
+            if (outputSincePrompt) {
+                out.print(prompt);
+                out.flush();
+                outputSincePrompt = false;
+            }
         }
     }
 
