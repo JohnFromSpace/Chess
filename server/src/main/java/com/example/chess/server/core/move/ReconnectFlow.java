@@ -29,7 +29,7 @@ final class ReconnectFlow {
         String oppMsg = null;
 
         synchronized (ctx) {
-            if (ctx.game.getResult() != Result.ONGOING) {
+            if (ctx.getGame().getResult() != Result.ONGOING) {
                 games.remove(ctx);
                 return;
             }
@@ -38,17 +38,17 @@ final class ReconnectFlow {
             long now = System.currentTimeMillis();
 
             if (isWhite) {
-                ctx.whiteOfflineAtMs = now;
-                ctx.game.setWhiteOfflineSince(now);
+                ctx.setWhiteOfflineAtMs(now);
+                ctx.getGame().setWhiteOfflineSince(now);
             } else {
-                ctx.blackOfflineAtMs = now;
-                ctx.game.setBlackOfflineSince(now);
+                ctx.setBlackOfflineAtMs(now);
+                ctx.getGame().setBlackOfflineSince(now);
             }
 
             try {
-                store.save(ctx.game);
+                store.save(ctx.getGame());
             } catch (Exception ex) {
-                Log.warn("Failed to persist disconnect markers for game: " + ctx.game.getId(), ex);
+                Log.warn("Failed to persist disconnect markers for game: " + ctx.getGame().getId(), ex);
             }
 
             if (opp != null)
@@ -77,33 +77,33 @@ final class ReconnectFlow {
         String oppMsg = null;
 
         synchronized (ctx) {
-            if (ctx.game.getResult() != Result.ONGOING) {
-                gameToPush = ctx.game;
+            if (ctx.getGame().getResult() != Result.ONGOING) {
+                gameToPush = ctx.getGame();
                 pushGameOver = true;
                 games.remove(ctx);
             } else {
                 isWhite = ctx.isWhiteUser(u.getUsername());
 
-                reconnects.cancel(key(ctx.game.getId(), u.getUsername()));
+                reconnects.cancel(key(ctx.getGame().getId(), u.getUsername()));
 
                 if (isWhite) {
-                    ctx.white = newHandler;
-                    ctx.whiteOfflineAtMs = 0L;
-                    ctx.game.setWhiteOfflineSince(0L);
+                    ctx.setWhiteHandler(newHandler);
+                    ctx.setWhiteOfflineAtMs(0L);
+                    ctx.getGame().setWhiteOfflineSince(0L);
                 } else {
-                    ctx.black = newHandler;
-                    ctx.blackOfflineAtMs = 0L;
-                    ctx.game.setBlackOfflineSince(0L);
+                    ctx.setBlackHandler(newHandler);
+                    ctx.setBlackOfflineAtMs(0L);
+                    ctx.getGame().setBlackOfflineSince(0L);
                 }
 
                 try {
-                    store.save(ctx.game);
+                    store.save(ctx.getGame());
                 } catch (Exception ex) {
                     persistOk = false;
-                    Log.warn("Failed to persist reconnect markers for game " + ctx.game.getId(), ex);
+                    Log.warn("Failed to persist reconnect markers for game " + ctx.getGame().getId(), ex);
                 }
 
-                gameToPush = ctx.game;
+                gameToPush = ctx.getGame();
 
                 opp = ctx.opponentHandlerOf(u.getUsername());
                 if (opp != null) oppMsg = u.getUsername() + " reconnected.";
@@ -115,7 +115,7 @@ final class ReconnectFlow {
             return;
         }
 
-        newHandler.pushGameStarted(ctx.game, isWhite);
+        newHandler.pushGameStarted(ctx.getGame(), isWhite);
         if (!persistOk) {
             newHandler.sendInfo("Warning: reconnect state could not be persisted.");
         }
@@ -123,45 +123,45 @@ final class ReconnectFlow {
     }
 
     void recoverAfterRestart(GameContext ctx) {
-        if (ctx == null || ctx.game == null) throw new IllegalArgumentException("Missing game context.");
-        if (ctx.game.getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is no longer ongoing.");
+        if (ctx == null || ctx.getGame() == null) throw new IllegalArgumentException("Missing game context.");
+        if (ctx.getGame().getResult() != Result.ONGOING) throw new IllegalArgumentException("Game is no longer ongoing.");
 
         long now = System.currentTimeMillis();
         long grace = reconnects.getGraceMs();
 
-        long wOff = ctx.game.getWhiteOfflineSince();
-        long bOff = ctx.game.getBlackOfflineSince();
+        long wOff = ctx.getGame().getWhiteOfflineSince();
+        long bOff = ctx.getGame().getBlackOfflineSince();
 
-        ctx.whiteOfflineAtMs = Math.max(wOff, 0L);
-        ctx.blackOfflineAtMs = Math.max(bOff, 0L);
+        ctx.setWhiteOfflineAtMs(Math.max(wOff, 0L));
+        ctx.setBlackOfflineAtMs(Math.max(bOff, 0L));
 
-        if (ctx.whiteOfflineAtMs > 0L) {
-            long elapsed = now - ctx.whiteOfflineAtMs;
+        if (ctx.getWhiteOfflineAtMs() > 0L) {
+            long elapsed = now - ctx.getWhiteOfflineAtMs();
             long remaining = grace - elapsed;
-            scheduleDropTask(ctx, ctx.game.getWhiteUser(), true, remaining);
+            scheduleDropTask(ctx, ctx.getGame().getWhiteUser(), true, remaining);
         }
 
-        if (ctx.blackOfflineAtMs > 0L) {
-            long elapsed = now - ctx.blackOfflineAtMs;
+        if (ctx.getBlackOfflineAtMs() > 0L) {
+            long elapsed = now - ctx.getBlackOfflineAtMs();
             long remaining = grace - elapsed;
-            scheduleDropTask(ctx, ctx.game.getBlackUser(), false, remaining);
+            scheduleDropTask(ctx, ctx.getGame().getBlackUser(), false, remaining);
         }
     }
 
     private void scheduleDropTask(GameContext ctx, String username, boolean isWhite, long delayMs) {
-        String k = key(ctx.game.getId(), username);
+        String k = key(ctx.getGame().getId(), username);
 
         reconnects.scheduleDrop(k, () -> {
             Runnable notify = null;
             try {
                 synchronized (ctx) {
-                    if (ctx.game.getResult() != Result.ONGOING) return;
+                    if (ctx.getGame().getResult() != Result.ONGOING) return;
 
-                    long off = isWhite ? ctx.whiteOfflineAtMs : ctx.blackOfflineAtMs;
+                    long off = isWhite ? ctx.getWhiteOfflineAtMs() : ctx.getBlackOfflineAtMs();
                     if (off == 0L) return;
 
-                    boolean noMoves = !ctx.game.hasAnyMoves();
-                    boolean bothOffline = (ctx.whiteOfflineAtMs != 0L) && (ctx.blackOfflineAtMs != 0L);
+                    boolean noMoves = !ctx.getGame().hasAnyMoves();
+                    boolean bothOffline = (ctx.getWhiteOfflineAtMs() != 0L) && (ctx.getBlackOfflineAtMs() != 0L);
 
                     if (noMoves || bothOffline) {
                         notify = finisher.finishLocked(
@@ -179,7 +179,7 @@ final class ReconnectFlow {
                     }
                 }
             } catch (Exception e) {
-                Log.warn("Reconnect drop task failed for game " + ctx.game.getId(), e);
+                Log.warn("Reconnect drop task failed for game " + ctx.getGame().getId(), e);
             }
             if (notify != null) notify.run();
         }, delayMs);
