@@ -1462,3 +1462,12 @@ java.net.SocketException: Socket closed
 2026-02-10T23:34:15.157Z WARNING ChessServer [metrics-reporter] Metric alert: errorRatePct=100,00 threshold=5,00
 2026-02-10T23:35:15.147Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=18 err=4 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,58 errRatePct=0,00
 2026-02-10T23:36:15.151Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=19 err=4 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,62 errRatePct=0,00
+2026-02-10T23:55:20.951Z INFO ChessServer [main] Chess server starting on port: 5000 ...
+2026-02-10T23:55:20.954Z INFO ChessServer [main] Config summary: dataDir=D:\BL\Chess\Chess\data, port=5000, tls=false, threads=8/64, queueCap=256, socket.maxLineChars=16384, socket.readTimeoutMs=60000
+2026-02-10T23:55:20.964Z INFO ChessServer [server-heartbeat] Directory fsync skipped on Windows (not supported): data
+2026-02-10T23:56:04.792Z INFO ChessServer [client-handler] Directory fsync skipped on Windows (not supported): data\games corrId=8bd60547-6c4a-4ac5-9110-c5b8e23e9bc4 clientIp=127.0.0.1 user=admin
+2026-02-10T23:56:20.724Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=5 err=0 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,33 errRatePct=0,00
+2026-02-10T23:57:20.666Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=6 err=0 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,40 errRatePct=0,00
+2026-02-10T23:58:20.663Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=6 err=0 rl=0 inv=0 online=2 queue=0 games=1 heapUsedPct=0,42 errRatePct=0,00
+2026-02-10T23:59:20.671Z INFO ChessServer [metrics-reporter] Metrics: conn=2 req=14 err=1 rl=0 inv=0 online=1 queue=0 games=0 heapUsedPct=0,49 errRatePct=12,50
+2026-02-10T23:59:20.680Z WARNING ChessServer [metrics-reporter] Metric alert: errorRatePct=12,50 threshold=5,00

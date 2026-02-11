@@ -16,11 +16,11 @@
     "username": "admin",
     "passHash": "pbkdf2$65536$VUCS6+V37KRwnI0ok6XiiQ\u003d\u003d$tJDL7eThkshdWly9Rm2LhtfSHrCh0g0XoU9qy9I1Jyg\u003d",
     "stats": {
-      "played": 24,
+      "played": 25,
       "won": 9,
       "drawn": 1,
-      "rating": 1145,
-      "lost": 14
+      "rating": 1134,
+      "lost": 15
     }
   },
   "borko": {
@@ -28,10 +28,10 @@
     "username": "borko",
     "passHash": "pbkdf2$65536$Pei08168dMLwCGqGF+O4/g\u003d\u003d$bOOto/8kspBKWL+kykDVLHC20sFPYJkQZoixYbhdZgI\u003d",
     "stats": {
-      "played": 24,
-      "won": 14,
+      "played": 25,
+      "won": 15,
       "drawn": 1,
-      "rating": 1255,
+      "rating": 1266,
       "lost": 9
     }
   }
